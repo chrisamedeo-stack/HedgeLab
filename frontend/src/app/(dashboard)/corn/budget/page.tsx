@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   BookOpen, Plus, Edit2, Trash2, X,
   ChevronDown, ChevronRight, CalendarDays,
@@ -9,6 +9,7 @@ import {
   useBudget, useSites,
   CornBudgetLineResponse,
 } from "@/hooks/useCorn";
+import { useAppSettings } from "@/hooks/useSettings";
 import { api } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
@@ -20,10 +21,10 @@ const COMMODITY_OPTIONS = [
   { value: "CORN-ZC", label: "Corn (CBOT ZC)" },
   { value: "CORN",    label: "Corn (Generic)" },
 ];
-const UNIT_OPTIONS = ["¢/bu", "$/MT", "CAD/MT", "%", "$/bu"];
+const UNIT_OPTIONS = ["$/bu", "$/MT", "¢/bu", "CAD/MT", "%"];
 const PRESET_COMPONENTS = [
-  { name: "Board Price",     unit: "¢/bu" },
-  { name: "Basis",           unit: "¢/bu" },
+  { name: "Board Price",     unit: "$/bu" },
+  { name: "Basis",           unit: "$/bu" },
   { name: "Freight",         unit: "$/MT" },
   { name: "Elevation",       unit: "$/MT" },
   { name: "Insurance",       unit: "$/MT" },
@@ -47,28 +48,31 @@ function suggestFuturesMonth(budgetMonth: string): string {
   return `ZCH${yy(year + 1)}`;
 }
 
-/** Jul-Jun fiscal year */
-function deriveFiscalYear(budgetMonth: string): string {
+/** Configurable fiscal year derivation */
+function deriveFiscalYear(budgetMonth: string, fyStartMonth = 7): string {
   if (!budgetMonth) return "";
   const year  = parseInt(budgetMonth.slice(0, 4));
   const month = parseInt(budgetMonth.slice(5, 7));
-  const start = month >= 7 ? year : year - 1;
+  const start = month >= fyStartMonth ? year : year - 1;
   return `${start}/${start + 1}`;
 }
 
-/** All 12 months of a Jul-Jun FY */
-function fiscalYearMonths(fy: string): string[] {
+/** All 12 months of a configurable FY */
+function fiscalYearMonths(fy: string, fyStartMonth = 7): string[] {
   if (!fy.includes("/")) return [];
   const sy = parseInt(fy.split("/")[0]);
   const months: string[] = [];
-  for (let m = 7; m <= 12; m++) months.push(`${sy}-${String(m).padStart(2, "0")}`);
-  for (let m = 1; m <= 6;  m++) months.push(`${sy + 1}-${String(m).padStart(2, "0")}`);
+  for (let i = 0; i < 12; i++) {
+    const m = ((fyStartMonth - 1 + i) % 12) + 1;
+    const y = m >= fyStartMonth ? sy : sy + 1;
+    months.push(`${y}-${String(m).padStart(2, "0")}`);
+  }
   return months;
 }
 
-function availableFiscalYears(): string[] {
+function availableFiscalYears(fyStartMonth = 7): string[] {
   const now = new Date();
-  const y = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  const y = now.getMonth() + 1 >= fyStartMonth ? now.getFullYear() : now.getFullYear() - 1;
   return Array.from({ length: 7 }, (_, i) => `${y - 2 + i}/${y - 1 + i}`);
 }
 
@@ -101,7 +105,7 @@ function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onChange: (
   const totalPerMt = rows.reduce((sum, r) => {
     const val = parseFloat(r.targetValue);
     if (isNaN(val)) return sum;
-    return sum + (r.unit === "¢/bu" ? (val / 100) * BUSHELS_PER_MT : val);
+    return sum + (r.unit === "¢/bu" ? (val / 100) * BUSHELS_PER_MT : r.unit === "$/bu" ? val * BUSHELS_PER_MT : val);
   }, 0);
 
   return (
@@ -130,7 +134,7 @@ function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onChange: (
             <tbody className="divide-y divide-slate-800">
               {rows.map((r) => {
                 const val = parseFloat(r.targetValue);
-                const perMt = isNaN(val) ? null : r.unit === "¢/bu" ? (val / 100) * BUSHELS_PER_MT : val;
+                const perMt = isNaN(val) ? null : r.unit === "¢/bu" ? (val / 100) * BUSHELS_PER_MT : r.unit === "$/bu" ? val * BUSHELS_PER_MT : val;
                 return (
                   <tr key={r.key} className="hover:bg-slate-800/30">
                     <td className="px-3 py-1.5">
@@ -180,10 +184,37 @@ function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onChange: (
   );
 }
 
+// ─── Component Token Bar ──────────────────────────────────────────────────────
+
+function ComponentTokenBar({ rows }: { rows: ComponentRow[] }) {
+  const filled = rows.filter((r) => r.componentName && r.targetValue && !isNaN(parseFloat(r.targetValue)));
+  if (filled.length === 0) return null;
+  const totalPerMt = filled.reduce((sum, r) => {
+    const val = parseFloat(r.targetValue);
+    return sum + (r.unit === "¢/bu" ? (val / 100) * BUSHELS_PER_MT : r.unit === "$/bu" ? val * BUSHELS_PER_MT : val);
+  }, 0);
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+      {filled.map((r, i) => (
+        <Fragment key={r.key}>
+          {i > 0 && <span className="text-slate-600 text-xs">+</span>}
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 ring-1 ring-blue-500/20 text-blue-300 text-xs tabular-nums">
+            {r.componentName}: {r.unit === "$/bu" || r.unit === "¢/bu" ? parseFloat(r.targetValue).toFixed(2) : parseFloat(r.targetValue).toLocaleString("en-US", { maximumFractionDigits: 2 })} {r.unit}
+          </span>
+        </Fragment>
+      ))}
+      <span className="text-slate-600 text-xs">=</span>
+      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/20 text-emerald-400 text-xs font-medium tabular-nums">
+        ${fmtPrice(totalPerMt)}/MT
+      </span>
+    </div>
+  );
+}
+
 // ─── Single-month Budget Line Form ────────────────────────────────────────────
 
-function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editing }: {
-  siteCode?: string; onSaved: () => void; onCancel: () => void; editing?: CornBudgetLineResponse;
+function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editing, fyStartMonth = 7 }: {
+  siteCode?: string; onSaved: () => void; onCancel: () => void; editing?: CornBudgetLineResponse; fyStartMonth?: number;
 }) {
   const { sites } = useSites();
   const { toast } = useToast();
@@ -211,7 +242,7 @@ function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editing }: {
 
   const buVal = parseFloat(form.budgetVolumeBu) || 0;
   const mtVal = buVal > 0 ? buVal / BUSHELS_PER_MT : 0;
-  const fiscalYear = deriveFiscalYear(form.budgetMonth);
+  const fiscalYear = deriveFiscalYear(form.budgetMonth, fyStartMonth);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -310,15 +341,23 @@ function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editing }: {
 
 // ─── Fiscal Year Grid ─────────────────────────────────────────────────────────
 
-function FiscalYearGrid({ onSaved, onCancel }: { onSaved: () => void; onCancel: () => void }) {
+function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSaved: () => void; onCancel: () => void; fyStartMonth?: number }) {
   const { sites } = useSites();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
-  const [config, setConfig] = useState({ siteCode: "", commodityCode: "CORN-ZC", fiscalYear: availableFiscalYears()[2] });
-  type MRow = { budgetVolumeBu: string; futuresMonth: string; allInCentsBu: string; notes: string };
+  const [config, setConfig] = useState({ siteCode: "", commodityCode: "CORN-ZC", fiscalYear: availableFiscalYears(fyStartMonth)[2] });
+  const [components, setComponents] = useState<ComponentRow[]>([]);
+  type MRow = { budgetVolumeBu: string; futuresMonth: string; notes: string };
   const mkRows = (fy: string) =>
-    Object.fromEntries(fiscalYearMonths(fy).map((m) => [m, { budgetVolumeBu: "", futuresMonth: suggestFuturesMonth(m), allInCentsBu: "", notes: "" }]));
+    Object.fromEntries(fiscalYearMonths(fy, fyStartMonth).map((m) => [m, { budgetVolumeBu: "", futuresMonth: suggestFuturesMonth(m), notes: "" }]));
   const [rows, setRows] = useState<Record<string, MRow>>(() => mkRows(config.fiscalYear));
+
+  const sharedTotalPerMt = components.reduce((sum, r) => {
+    const val = parseFloat(r.targetValue);
+    if (isNaN(val)) return sum;
+    return sum + (r.unit === "¢/bu" ? (val / 100) * BUSHELS_PER_MT : r.unit === "$/bu" ? val * BUSHELS_PER_MT : val);
+  }, 0);
+  const sharedTotalDollarsBu = sharedTotalPerMt > 0 ? sharedTotalPerMt / BUSHELS_PER_MT : 0;
 
   function handleFYChange(fy: string) {
     setConfig((c) => ({ ...c, fiscalYear: fy }));
@@ -326,9 +365,8 @@ function FiscalYearGrid({ onSaved, onCancel }: { onSaved: () => void; onCancel: 
   }
   function updateRow(m: string, f: keyof MRow, v: string) { setRows((r) => ({ ...r, [m]: { ...r[m], [f]: v } })); }
   function applyAll(v: string) { setRows((r) => Object.fromEntries(Object.entries(r).map(([m, row]) => [m, { ...row, budgetVolumeBu: v }]))); }
-  function applyAllPrice(v: string) { setRows((r) => Object.fromEntries(Object.entries(r).map(([m, row]) => [m, { ...row, allInCentsBu: v }]))); }
 
-  const months = fiscalYearMonths(config.fiscalYear);
+  const months = fiscalYearMonths(config.fiscalYear, fyStartMonth);
   const totalBu = months.reduce((s, m) => s + (parseFloat(rows[m]?.budgetVolumeBu) || 0), 0);
   const totalMt = totalBu / BUSHELS_PER_MT;
   const filledCount = months.filter((m) => parseFloat(rows[m]?.budgetVolumeBu) > 0).length;
@@ -336,14 +374,15 @@ function FiscalYearGrid({ onSaved, onCancel }: { onSaved: () => void; onCancel: 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!config.siteCode) { toast("Select a site", "error"); return; }
+    const sharedComponentPayload = components
+      .map((r, i) => ({ componentName: r.componentName, unit: r.unit, targetValue: parseFloat(r.targetValue), displayOrder: i + 1 }))
+      .filter((c) => c.componentName && !isNaN(c.targetValue));
     const lines = months.filter((m) => parseFloat(rows[m]?.budgetVolumeBu) > 0).map((m) => {
       const bu = parseFloat(rows[m].budgetVolumeBu);
       return { siteCode: config.siteCode, commodityCode: config.commodityCode, budgetMonth: m,
         futuresMonth: rows[m].futuresMonth || null, budgetVolumeBu: bu, budgetVolumeMt: bu / BUSHELS_PER_MT,
         fiscalYear: config.fiscalYear, notes: rows[m].notes || null,
-        components: rows[m].allInCentsBu && parseFloat(rows[m].allInCentsBu) > 0
-          ? [{ componentName: "All-in Target", unit: "¢/bu", targetValue: parseFloat(rows[m].allInCentsBu), displayOrder: 1 }]
-          : [] };
+        components: sharedComponentPayload };
     });
     if (lines.length === 0) { toast("Enter volume for at least one month", "error"); return; }
     setSubmitting(true);
@@ -364,6 +403,7 @@ function FiscalYearGrid({ onSaved, onCancel }: { onSaved: () => void; onCancel: 
         <h2 className="text-sm font-semibold text-slate-200">New Fiscal Year Budget</h2>
         <button type="button" onClick={onCancel} className="text-slate-500 hover:text-slate-300 transition-colors"><X className="h-4 w-4" /></button>
       </div>
+      {/* Config Bar */}
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-1">
           <label className="text-xs text-slate-400">Site</label>
@@ -381,29 +421,31 @@ function FiscalYearGrid({ onSaved, onCancel }: { onSaved: () => void; onCancel: 
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-slate-400">Fiscal Year (Jul – Jun)</label>
+          <label className="text-xs text-slate-400">Fiscal Year</label>
           <select value={config.fiscalYear} onChange={(e) => handleFYChange(e.target.value)}
             className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-            {availableFiscalYears().map((fy) => <option key={fy}>{fy}</option>)}
+            {availableFiscalYears(fyStartMonth).map((fy) => <option key={fy}>{fy}</option>)}
           </select>
         </div>
       </div>
-      <div className="flex items-center gap-4 flex-wrap">
+      {/* Cost Components (shared across all months) */}
+      <div className="space-y-2">
+        <label className="text-xs text-slate-400 block">Cost Components (shared across all months)</label>
+        <ComponentEditor rows={components} onChange={setComponents} />
+        <ComponentTokenBar rows={components} />
+      </div>
+      {/* Default Volume */}
+      <div className="rounded-lg bg-slate-800/40 border border-slate-700/50 px-4 py-3 space-y-1">
         <div className="flex items-center gap-2">
-          <label className="text-xs text-slate-500 whitespace-nowrap">Fill all volumes:</label>
+          <label className="text-xs text-slate-400 whitespace-nowrap">Default volume:</label>
           <input type="number" placeholder="bushels" step="1" min="0"
             className="w-32 bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-600"
             onChange={(e) => applyAll(e.target.value)} />
           <span className="text-xs text-slate-600">bu/month</span>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-slate-500 whitespace-nowrap">Fill all prices:</label>
-          <input type="number" placeholder="¢/bu" step="0.25" min="0"
-            className="w-28 bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-600"
-            onChange={(e) => applyAllPrice(e.target.value)} />
-          <span className="text-xs text-slate-600">¢/bu</span>
-        </div>
+        <p className="text-xs text-slate-600">Sets all months — override individually below</p>
       </div>
+      {/* Monthly Grid */}
       <div className="rounded-lg border border-slate-700 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -411,19 +453,16 @@ function FiscalYearGrid({ onSaved, onCancel }: { onSaved: () => void; onCancel: 
               <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium w-20">Month</th>
               <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">Bushels</th>
               <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-28">MT (auto)</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-28">All-in ¢/bu</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-28">$/MT (auto)</th>
+              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-36">All-in</th>
               <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium w-28">Futures Ref</th>
               <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium">Notes</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
             {months.map((m) => {
-              const row = rows[m] ?? { budgetVolumeBu: "", futuresMonth: "", allInCentsBu: "", notes: "" };
-              const bu       = parseFloat(row.budgetVolumeBu) || 0;
-              const mt       = bu > 0 ? bu / BUSHELS_PER_MT : 0;
-              const cents    = parseFloat(row.allInCentsBu) || 0;
-              const perMt    = cents > 0 ? (cents / 100) * BUSHELS_PER_MT : 0;
+              const row = rows[m] ?? { budgetVolumeBu: "", futuresMonth: "", notes: "" };
+              const bu  = parseFloat(row.budgetVolumeBu) || 0;
+              const mt  = bu > 0 ? bu / BUSHELS_PER_MT : 0;
               return (
                 <tr key={m} className={m.endsWith("-07") ? "border-t-2 border-blue-500/30" : ""}>
                   <td className="px-3 py-2 font-medium text-slate-300 whitespace-nowrap">{monthLabel(m)}</td>
@@ -435,13 +474,14 @@ function FiscalYearGrid({ onSaved, onCancel }: { onSaved: () => void; onCancel: 
                   <td className="px-3 py-2 text-right tabular-nums text-slate-500 text-xs">
                     {mt > 0 ? mt.toLocaleString("en-US", { maximumFractionDigits: 1 }) : "—"}
                   </td>
-                  <td className="px-3 py-1.5">
-                    <input type="number" step="0.25" min="0" placeholder="—" value={row.allInCentsBu}
-                      onChange={(e) => updateRow(m, "allInCentsBu", e.target.value)}
-                      className="w-full bg-transparent text-blue-400 text-right tabular-nums placeholder:text-slate-700 focus:outline-none text-sm" />
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-slate-500 text-xs">
-                    {perMt > 0 ? `$${perMt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+                  <td className="px-3 py-2 text-right tabular-nums text-xs">
+                    {sharedTotalPerMt > 0 ? (
+                      <div>
+                        <span className="text-blue-400">${sharedTotalDollarsBu.toFixed(2)}/bu</span>
+                        <br />
+                        <span className="text-slate-500">${fmtPrice(sharedTotalPerMt)}/MT</span>
+                      </div>
+                    ) : <span className="text-slate-700">—</span>}
                   </td>
                   <td className="px-3 py-1.5">
                     <input type="text" placeholder="e.g. ZCN26" value={row.futuresMonth}
@@ -466,7 +506,10 @@ function FiscalYearGrid({ onSaved, onCancel }: { onSaved: () => void; onCancel: 
               <td className="px-3 py-2 text-right tabular-nums text-slate-400 text-xs">
                 {totalMt > 0 ? totalMt.toLocaleString("en-US", { maximumFractionDigits: 0 }) : "—"}
               </td>
-              <td colSpan={4} />
+              <td className="px-3 py-2 text-right tabular-nums text-xs">
+                {sharedTotalPerMt > 0 ? <span className="text-blue-400 font-medium">${fmtPrice(sharedTotalPerMt)}/MT</span> : ""}
+              </td>
+              <td colSpan={2} />
             </tr>
           </tfoot>
         </table>
@@ -551,6 +594,8 @@ type FormMode = "none" | "single" | "fiscal-year";
 
 export default function BudgetPage() {
   const { sites } = useSites();
+  const { settings } = useAppSettings();
+  const fyStartMonth = parseInt(settings.find((s) => s.settingKey === "FISCAL_YEAR_START_MONTH")?.value ?? "7") || 7;
   const [filterSite, setFilterSite] = useState("");
   const [filterFY, setFilterFY]     = useState("");
   const { budget, isLoading, mutate } = useBudget(filterSite || undefined, filterFY || undefined);
@@ -575,7 +620,7 @@ export default function BudgetPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-slate-100">Procurement Budget</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Fiscal year Jul – Jun · volume targets by site and month</p>
+          <p className="text-sm text-slate-400 mt-0.5">Fiscal year starting {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][fyStartMonth - 1]} · volume targets by site and month</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => { setFormMode("fiscal-year"); setEditing(undefined); }}
@@ -599,16 +644,16 @@ export default function BudgetPage() {
         <select value={filterFY} onChange={(e) => setFilterFY(e.target.value)}
           className="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
           <option value="">All Fiscal Years</option>
-          {availableFiscalYears().map((fy) => <option key={fy}>{fy}</option>)}
+          {availableFiscalYears(fyStartMonth).map((fy) => <option key={fy}>{fy}</option>)}
         </select>
       </div>
 
       {/* Forms */}
       {formMode === "single" && (
-        <BudgetLineForm siteCode={filterSite || undefined} editing={editing} onSaved={onSaved} onCancel={closeForm} />
+        <BudgetLineForm siteCode={filterSite || undefined} editing={editing} onSaved={onSaved} onCancel={closeForm} fyStartMonth={fyStartMonth} />
       )}
       {formMode === "fiscal-year" && (
-        <FiscalYearGrid onSaved={onSaved} onCancel={closeForm} />
+        <FiscalYearGrid onSaved={onSaved} onCancel={closeForm} fyStartMonth={fyStartMonth} />
       )}
 
       {/* KPIs */}

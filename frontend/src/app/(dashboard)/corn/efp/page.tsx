@@ -57,8 +57,8 @@ export default function EFPPage() {
         hedgeTradeId: parseInt(form.hedgeTradeId),
         physicalContractId: parseInt(form.physicalContractId),
         lots: parseInt(form.lots),
-        boardPrice: parseFloat(form.boardPrice),
-        basisValue: form.basisValue ? parseFloat(form.basisValue) : null,
+        boardPrice: parseFloat(form.boardPrice) * 100,
+        basisValue: form.basisValue ? parseFloat(form.basisValue) * 100 : null,
         efpDate: form.efpDate,
         confirmationRef: form.confirmationRef || null,
         notes: form.notes || null,
@@ -166,12 +166,12 @@ export default function EFPPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Board Price (¢/bu)</label>
+              <label className="text-xs text-slate-400">Board Price ($/bu)</label>
               <input
                 type="number"
-                step="0.25"
+                step="0.0025"
                 className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
-                placeholder="e.g. 440.50"
+                placeholder="e.g. 4.41"
                 value={form.boardPrice}
                 onChange={(e) => field("boardPrice", e.target.value)}
                 required
@@ -179,10 +179,10 @@ export default function EFPPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Basis Override (¢/bu)</label>
+              <label className="text-xs text-slate-400">Basis Override ($/bu)</label>
               <input
                 type="number"
-                step="0.25"
+                step="0.0025"
                 className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
                 placeholder="Leave blank to use contract basis"
                 value={form.basisValue}
@@ -272,7 +272,7 @@ export default function EFPPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-800/50 border-b border-slate-800">
-                {["Ticket", "Hedge", "Contract", "Site", "Lots", "Board (¢/bu)", "Qty (MT)", "Date", "Status"].map((h) => (
+                {["Ticket", "Hedge", "Contract", "Site", "Lots", "Board ($/bu)", "Qty (MT)", "Date", "Status"].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
@@ -287,7 +287,7 @@ export default function EFPPage() {
                   <td className="px-4 py-3 font-mono text-xs text-slate-400">{e.contractRef}</td>
                   <td className="px-4 py-3 text-slate-300">{e.siteName}</td>
                   <td className="px-4 py-3 tabular-nums text-slate-200">{e.lots}</td>
-                  <td className="px-4 py-3 tabular-nums text-slate-200">{e.boardPrice?.toFixed(2)}</td>
+                  <td className="px-4 py-3 tabular-nums text-slate-200">{e.boardPrice != null ? (e.boardPrice / 100).toFixed(4) : "—"}</td>
                   <td className="px-4 py-3 tabular-nums text-slate-400">{formatNumber(Math.round(e.quantityMt ?? 0))}</td>
                   <td className="px-4 py-3 text-slate-400">{e.efpDate}</td>
                   <td className="px-4 py-3">

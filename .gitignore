@@ -34,3 +34,6 @@ frontend/tsconfig.tsbuildinfo
 *.iml
 .vscode/
 *.swp
+
+# Claude Code
+.claude/

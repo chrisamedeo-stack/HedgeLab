@@ -21,6 +21,7 @@ import {
   Package,
   Activity,
   BookOpen,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -59,6 +60,12 @@ const navSections: NavSection[] = [
       { href: "/corn/hedges",    label: "Hedges",     icon: Wheat },
       { href: "/corn/efp",       label: "EFP",        icon: ArrowLeftRight },
       { href: "/corn/receipts",  label: "Receipts",   icon: Package },
+    ],
+  },
+  {
+    label: "Admin",
+    items: [
+      { href: "/settings", label: "Settings", icon: Settings },
     ],
   },
 ];

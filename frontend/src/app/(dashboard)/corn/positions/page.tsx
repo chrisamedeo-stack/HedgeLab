@@ -90,7 +90,7 @@ function SettlePublisher({
     const payload: Record<string, number> = {};
     for (const [fm, v] of Object.entries(prices)) {
       const n = parseFloat(v);
-      if (!isNaN(n)) payload[fm] = n;
+      if (!isNaN(n)) payload[fm] = n * 100;
     }
     if (Object.keys(payload).length === 0) {
       toast.toast("Enter at least one settle price", "error");
@@ -112,7 +112,7 @@ function SettlePublisher({
     <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 mb-4">
       <div className="flex items-center gap-3 mb-3">
         <span className="text-sm font-semibold text-slate-200">Publish Settle Prices</span>
-        <span className="text-xs text-slate-500">Enter ZC close prices (¢/bu)</span>
+        <span className="text-xs text-slate-500">Enter ZC close prices ($/bu)</span>
       </div>
       <div className="flex flex-wrap gap-3 mb-4">
         <div className="flex flex-col gap-1">
@@ -126,11 +126,11 @@ function SettlePublisher({
         </div>
         {futuresMonths.map((fm) => (
           <div key={fm} className="flex flex-col gap-1">
-            <label className="text-xs text-slate-500">{fm} (¢/bu)</label>
+            <label className="text-xs text-slate-500">{fm} ($/bu)</label>
             <input
               type="number"
               step="0.25"
-              placeholder={existingSettles[fm] != null ? String(existingSettles[fm]) : "e.g. 438.75"}
+              placeholder={existingSettles[fm] != null ? String(existingSettles[fm] / 100) : "e.g. 4.39"}
               value={prices[fm] ?? ""}
               onChange={(e) => setPrices((p) => ({ ...p, [fm]: e.target.value }))}
               className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 w-36 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -180,7 +180,7 @@ function EFPForm({
   const [month, setMonth]         = useState("");
   const [contractId, setContractId] = useState("");
   const [boardPrice, setBoardPrice] = useState(
-    hedge.settlePrice != null ? String(hedge.settlePrice) : ""
+    hedge.settlePrice != null ? String(hedge.settlePrice / 100) : ""
   );
   const [efpDate, setEfpDate]     = useState(today());
   const [confirmRef, setConfirmRef] = useState("");
@@ -213,7 +213,7 @@ function EFPForm({
         hedgeTradeId:      hedge.hedgeTradeId,
         physicalContractId: parseInt(contractId, 10),
         lots:              lotsN,
-        boardPrice:        parseFloat(boardPrice),
+        boardPrice:        parseFloat(boardPrice) * 100,
         basisValue:        selectedContract?.basisValue ?? null,
         efpDate,
         confirmationRef:   confirmRef,
@@ -305,13 +305,13 @@ function EFPForm({
 
         {/* Board Price */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Board Price (¢/bu)</label>
+          <label className="text-xs text-slate-500">Board Price ($/bu)</label>
           <input
             type="number"
-            step="0.25"
+            step="0.0025"
             value={boardPrice}
             onChange={(e) => setBoardPrice(e.target.value)}
-            placeholder="e.g. 438.75"
+            placeholder="e.g. 4.39"
             className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
@@ -399,7 +399,7 @@ function CorporatePoolTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-800/50">
-              {["Trade Ref", "ZC Month", "Total Lots", "Open Lots", "Open MT", "Entry ¢/bu", "Settle ¢/bu", "MTM P&L", "Broker", ""].map(
+              {["Trade Ref", "ZC Month", "Total Lots", "Open Lots", "Open MT", "Entry $/bu", "Settle $/bu", "MTM P&L", "Broker", ""].map(
                 (h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                     {h}
@@ -440,10 +440,10 @@ function CorporatePoolTable({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-slate-400">{fmtMt(h.openMt)}</td>
-                    <td className="px-4 py-3 text-slate-300 font-mono">{fmt2(h.entryPrice)}</td>
+                    <td className="px-4 py-3 text-slate-300 font-mono">{h.entryPrice != null ? (h.entryPrice / 100).toFixed(4) : "–"}</td>
                     <td className="px-4 py-3 font-mono">
                       {h.settlePrice != null ? (
-                        <span className="text-slate-200">{fmt2(h.settlePrice)}</span>
+                        <span className="text-slate-200">{(h.settlePrice / 100).toFixed(4)}</span>
                       ) : (
                         <span className="text-slate-600 italic text-xs">no settle</span>
                       )}
@@ -513,7 +513,7 @@ function PhysicalPositionsTable({ positions }: { positions: PhysicalPositionItem
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-slate-800/50">
-            {["Month", "Site", "Contract", "Supplier", "Committed MT", "Basis ¢/bu", "Board ¢/bu", "All-In $/MT", "Status"].map(
+            {["Month", "Site", "Contract", "Supplier", "Committed MT", "Basis $/bu", "Board $/bu", "All-In $/MT", "Status"].map(
               (h) => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                   {h}
@@ -545,7 +545,7 @@ function PhysicalPositionsTable({ positions }: { positions: PhysicalPositionItem
                 {p.basisLocked ? (
                   <span className="flex items-center gap-1 text-blue-300 font-mono">
                     <Lock className="h-3 w-3 text-blue-400" />
-                    {fmt2(p.basisValue)}
+                    {p.basisValue != null ? (p.basisValue / 100).toFixed(4) : "–"}
                   </span>
                 ) : (
                   <span className="text-slate-600 italic text-xs">open</span>
@@ -553,7 +553,7 @@ function PhysicalPositionsTable({ positions }: { positions: PhysicalPositionItem
               </td>
               <td className="px-4 py-3">
                 {p.efpExecuted ? (
-                  <span className="text-emerald-400 font-mono">{fmt2(p.boardPriceLocked)}</span>
+                  <span className="text-emerald-400 font-mono">{p.boardPriceLocked != null ? (p.boardPriceLocked / 100).toFixed(4) : "–"}</span>
                 ) : (
                   <span className="text-slate-600 italic text-xs">open</span>
                 )}
@@ -588,7 +588,7 @@ function LockedPositionsTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-slate-800/50">
-            {["Ticket", "Site", "Delivery", "ZC Month", "Lots", "Board ¢/bu", "Basis ¢/bu", "Freight $/MT", "All-In $/MT", "MT", "EFP Date", "Confirm Ref"].map(
+            {["Ticket", "Site", "Delivery", "ZC Month", "Lots", "Board $/bu", "Basis $/bu", "Freight $/MT", "All-In $/MT", "MT", "EFP Date", "Confirm Ref"].map(
               (h) => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                   {h}
@@ -618,8 +618,8 @@ function LockedPositionsTable({
                 </span>
               </td>
               <td className="px-4 py-3 text-slate-300">{l.lots}</td>
-              <td className="px-4 py-3 text-emerald-400 font-mono">{fmt2(l.boardPrice)}</td>
-              <td className="px-4 py-3 text-slate-400 font-mono">{fmt2(l.basisValue)}</td>
+              <td className="px-4 py-3 text-emerald-400 font-mono">{l.boardPrice != null ? (l.boardPrice / 100).toFixed(4) : "–"}</td>
+              <td className="px-4 py-3 text-slate-400 font-mono">{l.basisValue != null ? (l.basisValue / 100).toFixed(4) : "–"}</td>
               <td className="px-4 py-3 text-slate-400 font-mono">{fmt2(l.freightValue)}</td>
               <td className="px-4 py-3">
                 <span className="text-emerald-300 font-semibold">{fmtUsd(l.allInPricePerMt)}</span>

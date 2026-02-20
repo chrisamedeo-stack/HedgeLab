@@ -29,6 +29,7 @@ public class CornBudgetService {
 
     private final CornBudgetLineRepository budgetRepo;
     private final SiteRepository           siteRepo;
+    private final AppSettingService        appSettingService;
 
     // ─── Queries ──────────────────────────────────────────────────────────────
 
@@ -202,10 +203,9 @@ public class CornBudgetService {
     }
 
     /**
-     * Derive fiscal year from budget month using Jul–Jun boundaries.
-     * Jul (month >= 7) → startYear = that calendar year  → "year/year+1"
-     * Jan–Jun          → startYear = prior calendar year → "year-1/year"
-     * e.g. 2026-05 → "2025/2026", 2025-09 → "2025/2026"
+     * Derive fiscal year from budget month using configurable FY boundaries.
+     * Uses the FISCAL_YEAR_START_MONTH setting (default 7 = July).
+     * e.g. with start month 7: 2026-05 → "2025/2026", 2025-09 → "2025/2026"
      */
     private String resolveFiscalYear(String budgetMonth, String explicitFiscalYear) {
         if (explicitFiscalYear != null && !explicitFiscalYear.isBlank()) return explicitFiscalYear;
@@ -213,7 +213,8 @@ public class CornBudgetService {
         try {
             int year  = Integer.parseInt(budgetMonth.substring(0, 4));
             int month = Integer.parseInt(budgetMonth.substring(5, 7));
-            int startYear = month >= 7 ? year : year - 1;
+            int fyStartMonth = appSettingService.getFiscalYearStartMonth();
+            int startYear = month >= fyStartMonth ? year : year - 1;
             return startYear + "/" + (startYear + 1);
         } catch (Exception e) {
             return null;

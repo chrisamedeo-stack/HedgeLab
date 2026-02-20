@@ -7,7 +7,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatNumber } from "@/lib/format";
-import { Layers, Plus, X, ChevronDown, ChevronRight, Trash2, GitBranch } from "lucide-react";
+import { Layers, Plus, X, ChevronDown, ChevronRight, Trash2, Edit2, GitBranch } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -214,53 +214,88 @@ function AllocationPanel({
 
 // ─── Hedge Table ──────────────────────────────────────────────────────────────
 
-function HedgeTable({ book }: { book: "CANADA" | "US" }) {
+function HedgeTable({ book, showForm, setShowForm }: { book: "CANADA" | "US"; showForm: boolean; setShowForm: (v: boolean) => void }) {
   const { hedges, isLoading, mutate } = useHedgesByBook(book);
   const { toast } = useToast();
-  const [showForm, setShowForm]         = useState(false);
   const [submitting, setSubmitting]     = useState(false);
   const [expandedId, setExpandedId]     = useState<number | null>(null);
+  const [editing, setEditing]           = useState<HedgeTradeResponse | null>(null);
 
-  const [form, setForm] = useState({
-    futuresMonth: ZC_MONTHS[5], // ZCN26 default
+  const defaultForm = {
+    futuresMonth: ZC_MONTHS[5],
     lots: "",
     pricePerBushel: "",
     brokerAccount: "StoneX",
     tradeDate: new Date().toISOString().slice(0, 10),
     notes: "",
-  });
+  };
+  const [form, setForm] = useState(defaultForm);
 
   function field(k: keyof typeof form, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  function startEdit(h: HedgeTradeResponse) {
+    setEditing(h);
+    setForm({
+      futuresMonth: h.futuresMonth,
+      lots: String(h.lots),
+      pricePerBushel: String((h.pricePerBushel / 100).toFixed(4)),
+      brokerAccount: h.brokerAccount ?? "StoneX",
+      tradeDate: h.tradeDate,
+      notes: h.notes ?? "",
+    });
+    setShowForm(true);
+  }
+
+  function cancelForm() {
+    setShowForm(false);
+    setEditing(null);
+    setForm(defaultForm);
   }
 
   const lots        = parseInt(form.lots) || 0;
   const bushels     = lots * BUSHELS_PER_LOT;
   const equivMt     = bushels / BUSHELS_PER_MT;
   const pricePerBu  = parseFloat(form.pricePerBushel) || 0;
-  const notionalUsd = (bushels * pricePerBu) / 100;
+  const notionalUsd = bushels * pricePerBu;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post("/api/v1/corn/hedges", {
+      const payload = {
         futuresMonth:  form.futuresMonth,
         lots:          parseInt(form.lots),
-        pricePerBushel: parseFloat(form.pricePerBushel),
+        pricePerBushel: parseFloat(form.pricePerBushel) * 100,
         brokerAccount: form.brokerAccount,
         tradeDate:     form.tradeDate,
         book,
         notes:         form.notes || null,
-      });
-      toast("Hedge trade booked", "success");
-      setShowForm(false);
-      setForm((f) => ({ ...f, lots: "", pricePerBushel: "", notes: "" }));
+      };
+      if (editing) {
+        await api.put(`/api/v1/corn/hedges/${editing.id}`, payload);
+        toast("Hedge trade updated", "success");
+      } else {
+        await api.post("/api/v1/corn/hedges", payload);
+        toast("Hedge trade booked", "success");
+      }
+      cancelForm();
       mutate();
     } catch (err: unknown) {
-      toast((err as Error).message ?? "Booking failed", "error");
+      toast((err as Error).message ?? "Save failed", "error");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleDelete(h: HedgeTradeResponse) {
+    try {
+      await api.delete(`/api/v1/corn/hedges/${h.id}`);
+      toast("Hedge trade deleted", "success");
+      mutate();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Delete failed", "error");
     }
   }
 
@@ -268,7 +303,6 @@ function HedgeTable({ book }: { book: "CANADA" | "US" }) {
   const openLots     = hedges.reduce((s, h) => s + (h.openLots ?? 0), 0);
   const allocatedLots= hedges.reduce((s, h) => s + (h.allocatedLots ?? 0), 0);
   const unallocated  = hedges.reduce((s, h) => s + (h.unallocatedLots ?? 0), 0);
-  const totalMt      = hedges.reduce((s, h) => s + (h.equivalentMt ?? 0), 0);
 
   return (
     <div className="space-y-4">
@@ -299,11 +333,13 @@ function HedgeTable({ book }: { book: "CANADA" | "US" }) {
         </div>
       )}
 
-      {/* Create form */}
+      {/* Create / Edit form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
           <h2 className="text-sm font-semibold text-slate-200">
-            Book Hedge Trade — <span className="text-blue-400">{book} Book</span>
+            {editing
+              ? <>Edit <span className="text-blue-400">{editing.tradeRef}</span></>
+              : <>Book Hedge Trade — <span className="text-blue-400">{book} Book</span></>}
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="space-y-1">
@@ -329,11 +365,11 @@ function HedgeTable({ book }: { book: "CANADA" | "US" }) {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Price (¢/bu)</label>
+              <label className="text-xs text-slate-400">Price ($/bu)</label>
               <input
-                type="number" step="0.25"
+                type="number" step="0.0025"
                 className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
-                placeholder="e.g. 438.75"
+                placeholder="e.g. 4.39"
                 value={form.pricePerBushel}
                 onChange={(e) => field("pricePerBushel", e.target.value)}
                 required
@@ -390,13 +426,13 @@ function HedgeTable({ book }: { book: "CANADA" | "US" }) {
           )}
 
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setShowForm(false)}
+            <button type="button" onClick={cancelForm}
               className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">
               Cancel
             </button>
             <button type="submit" disabled={submitting}
               className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
-              {submitting ? "Booking…" : "Book Hedge"}
+              {submitting ? "Saving…" : editing ? "Update Hedge" : "Book Hedge"}
             </button>
           </div>
         </form>
@@ -418,7 +454,7 @@ function HedgeTable({ book }: { book: "CANADA" | "US" }) {
             <thead>
               <tr className="bg-slate-800/50 border-b border-slate-800">
                 <th className="w-8" />
-                {["Ref", "Month", "Lots", "Open", "Allocated", "Unalloc.", "Price (¢/bu)", "Status"].map((h) => (
+                {["Ref", "Month", "Lots", "Open", "Allocated", "Unalloc.", "Price ($/bu)", "Status", ""].map((h) => (
                   <th key={h} className="text-left px-3 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
@@ -448,7 +484,7 @@ function HedgeTable({ book }: { book: "CANADA" | "US" }) {
                         {h.unallocatedLots ?? 0}
                       </span>
                     </td>
-                    <td className="px-3 py-3 tabular-nums text-slate-200">{h.pricePerBushel?.toFixed(2)}</td>
+                    <td className="px-3 py-3 tabular-nums text-slate-200">{h.pricePerBushel != null ? (h.pricePerBushel / 100).toFixed(4) : "—"}</td>
                     <td className="px-3 py-3">
                       <span className={cn(
                         "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
@@ -457,10 +493,20 @@ function HedgeTable({ book }: { book: "CANADA" | "US" }) {
                         {h.status}
                       </span>
                     </td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => startEdit(h)} className="text-slate-600 hover:text-blue-400 transition-colors" title="Edit">
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => handleDelete(h)} className="text-slate-600 hover:text-red-400 transition-colors" title="Delete">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                   {expandedId === h.id && (
                     <tr key={`${h.id}-alloc`}>
-                      <td colSpan={9} className="px-4 py-3 bg-slate-950/40">
+                      <td colSpan={10} className="px-4 py-3 bg-slate-950/40">
                         <AllocationPanel
                           trade={h}
                           onClose={() => setExpandedId(null)}
@@ -522,7 +568,7 @@ export default function HedgesPage() {
         ))}
       </div>
 
-      <HedgeTable key={book} book={book} />
+      <HedgeTable key={book} book={book} showForm={showForm} setShowForm={setShowForm} />
     </div>
   );
 }

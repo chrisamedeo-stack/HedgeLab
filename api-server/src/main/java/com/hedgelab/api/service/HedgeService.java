@@ -7,7 +7,9 @@ import com.hedgelab.api.entity.HedgeTradeStatus;
 import com.hedgelab.api.repository.HedgeAllocationRepository;
 import com.hedgelab.api.repository.HedgeTradeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -42,6 +44,27 @@ public class HedgeService {
                 .tradeDate(req.getTradeDate()).status(HedgeTradeStatus.OPEN)
                 .openLots(req.getLots()).book(book).notes(req.getNotes()).build();
         return toResponse(hedgeRepository.save(hedge));
+    }
+
+    public HedgeTradeResponse update(Long id, CreateHedgeTradeRequest req) {
+        HedgeTrade hedge = hedgeRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Hedge trade not found"));
+        hedge.setFuturesMonth(req.getFuturesMonth());
+        hedge.setLots(req.getLots());
+        hedge.setPricePerBushel(req.getPricePerBushel());
+        hedge.setBrokerAccount(req.getBrokerAccount());
+        hedge.setTradeDate(req.getTradeDate());
+        hedge.setOpenLots(req.getLots());
+        hedge.setNotes(req.getNotes());
+        if (req.getBook() != null) hedge.setBook(req.getBook().toUpperCase());
+        return toResponse(hedgeRepository.save(hedge));
+    }
+
+    public void delete(Long id) {
+        HedgeTrade hedge = hedgeRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Hedge trade not found"));
+        allocationRepository.deleteAll(allocationRepository.findByHedgeTrade_IdOrderByBudgetMonthAsc(id));
+        hedgeRepository.delete(hedge);
     }
 
     private HedgeTradeResponse toResponse(HedgeTrade h) {

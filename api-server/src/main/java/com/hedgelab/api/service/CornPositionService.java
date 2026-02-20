@@ -28,6 +28,7 @@ public class CornPositionService {
     private final PhysicalContractRepository   contractRepo;
     private final EFPTicketRepository          efpRepo;
     private final CornDailySettleRepository    settleRepo;
+    private final ZcMonthMapper                zcMonthMapper;
 
     @Transactional(readOnly = true)
     public CornPositionResponse getPositions() {
@@ -118,7 +119,7 @@ public class CornPositionService {
                 .settlePrice(settle)
                 .mtmPnlUsd(mtmPnl)
                 .openMt(openMt)
-                .validDeliveryMonths(ZcMonthMapper.getValidDeliveryMonths(h.getFuturesMonth()))
+                .validDeliveryMonths(zcMonthMapper.getValidDeliveryMonths(h.getFuturesMonth()))
                 .status(h.getStatus().name())
                 .brokerAccount(h.getBrokerAccount())
                 .build();

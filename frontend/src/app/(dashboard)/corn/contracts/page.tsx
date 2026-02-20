@@ -24,7 +24,8 @@ function fmtBu(n: number | null | undefined) {
 }
 function fmtCents(n: number | null | undefined) {
   if (n == null) return "—";
-  return `${n >= 0 ? "+" : ""}${n.toFixed(2)}¢`;
+  const d = n / 100;
+  return `${d >= 0 ? "+" : ""}$${Math.abs(d).toFixed(4)}`;
 }
 function fmtPerMt(n: number | null | undefined) {
   if (n == null) return "—";
@@ -84,7 +85,7 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
         deliveryMonth: form.deliveryMonth,
         futuresRef: form.futuresRef || null,
         quantityBu: buVal,
-        basisCentsBu: !isNaN(basis) ? basis : null,
+        basisCentsBu: !isNaN(basis) ? basis * 100 : null,
         freightPerMt: parseFloat(form.freightPerMt) || null,
         currency: form.currency,
         contractDate: form.contractDate || null,
@@ -151,8 +152,8 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs text-slate-400">Basis (¢/bu)</label>
-          <input type="number" step="0.25" placeholder="e.g. -25" value={form.basisCentsBu}
+          <label className="text-xs text-slate-400">Basis ($/bu)</label>
+          <input type="number" step="0.0025" placeholder="e.g. -0.25" value={form.basisCentsBu}
             onChange={(e) => f("basisCentsBu", e.target.value)}
             className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
         </div>
@@ -206,7 +207,7 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
 function LockBasisPanel({ contract, onDone }: { contract: PhysicalContractResponse; onDone: () => void }) {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
-  const [basis, setBasis]     = useState(contract.basisCentsBu != null ? String(contract.basisCentsBu) : "");
+  const [basis, setBasis]     = useState(contract.basisCentsBu != null ? String(contract.basisCentsBu / 100) : "");
   const [futures, setFutures] = useState(contract.futuresRef ?? "");
   const [notes, setNotes]     = useState("");
 
@@ -217,7 +218,7 @@ function LockBasisPanel({ contract, onDone }: { contract: PhysicalContractRespon
     setSubmitting(true);
     try {
       await api.patch(`/api/v1/corn/contracts/${contract.id}/lock-basis`, {
-        basisCentsBu: basisVal,
+        basisCentsBu: basisVal * 100,
         futuresRef: futures || null,
         notes: notes || null,
       });
@@ -235,8 +236,8 @@ function LockBasisPanel({ contract, onDone }: { contract: PhysicalContractRespon
       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Lock Basis</p>
       <div className="flex items-end gap-3 flex-wrap">
         <div className="space-y-1">
-          <label className="text-xs text-slate-500">Basis (¢/bu)</label>
-          <input type="number" step="0.25" placeholder="-25" value={basis}
+          <label className="text-xs text-slate-500">Basis ($/bu)</label>
+          <input type="number" step="0.0025" placeholder="-0.25" value={basis}
             onChange={(e) => setBasis(e.target.value)} required
             className="w-28 bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-600" />
         </div>
@@ -360,7 +361,7 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
               { label: "Currency",      value: contract.currency },
               { label: "Freight",       value: contract.freightPerMt != null ? `${fmtPerMt(contract.freightPerMt)}/MT` : "—" },
               { label: "Basis",         value: contract.basisCentsBu != null ? `${fmtCents(contract.basisCentsBu)}/bu vs ${contract.futuresRef ?? "?"}` : "Open" },
-              { label: "Board Price",   value: contract.boardPriceCentsBu != null ? `${contract.boardPriceCentsBu.toFixed(2)}¢/bu` : "Open (floating with futures)" },
+              { label: "Board Price",   value: contract.boardPriceCentsBu != null ? `$${(contract.boardPriceCentsBu / 100).toFixed(4)}/bu` : "Open (floating with futures)" },
               { label: "All-in Price",  value: isFullyPriced ? `${fmtPerMt(contract.allInPerMt)}/MT · ${fmtCents(contract.allInCentsBu)}/bu` : "Pending board price lock" },
               { label: "Basis Locked",  value: contract.basisLockedDate ?? "Not yet locked" },
               { label: "Notes",         value: contract.notes ?? "—" },

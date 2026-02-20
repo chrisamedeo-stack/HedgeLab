@@ -27,4 +27,15 @@ public class HedgeController {
     public HedgeTradeResponse create(@RequestBody CreateHedgeTradeRequest req) {
         return service.create(req);
     }
+
+    @PutMapping("/{id}")
+    public HedgeTradeResponse update(@PathVariable Long id, @RequestBody CreateHedgeTradeRequest req) {
+        return service.update(id, req);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        service.delete(id);
+    }
 }
