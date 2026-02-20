@@ -1,6 +1,6 @@
-com\hedgelab\domain\FormulaPricing.class
-com\hedgelab\domain\FormulaComponent.class
-com\hedgelab\domain\Commodity.class
-com\hedgelab\domain\PricingCalculator.class
-com\hedgelab\domain\PricingDemo.class
-com\hedgelab\domain\PricingType.class
+com/hedgelab/domain/PricingDemo.class
+com/hedgelab/domain/FormulaPricing.class
+com/hedgelab/domain/PricingCalculator.class
+com/hedgelab/domain/PricingType.class
+com/hedgelab/domain/Commodity.class
+com/hedgelab/domain/FormulaComponent.class
