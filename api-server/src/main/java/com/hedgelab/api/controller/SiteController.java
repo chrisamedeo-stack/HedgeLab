@@ -1,7 +1,9 @@
 package com.hedgelab.api.controller;
 
 import com.hedgelab.api.dto.request.CreateSiteRequest;
+import com.hedgelab.api.dto.response.CommodityResponse;
 import com.hedgelab.api.dto.response.SiteResponse;
+import com.hedgelab.api.dto.response.SupplierResponse;
 import com.hedgelab.api.service.SiteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,5 +38,29 @@ public class SiteController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         siteService.delete(id);
+    }
+
+    // ─── Site → Supplier linking ────────────────────────────────────────────────
+
+    @GetMapping("/{id}/suppliers")
+    public List<SupplierResponse> getSiteSuppliers(@PathVariable Long id) {
+        return siteService.getSiteSuppliers(id);
+    }
+
+    @PutMapping("/{id}/suppliers")
+    public List<SupplierResponse> setSiteSuppliers(@PathVariable Long id, @RequestBody List<Long> supplierIds) {
+        return siteService.setSiteSuppliers(id, supplierIds);
+    }
+
+    // ─── Site → Commodity linking ───────────────────────────────────────────────
+
+    @GetMapping("/{id}/commodities")
+    public List<CommodityResponse> getSiteCommodities(@PathVariable Long id) {
+        return siteService.getSiteCommodities(id);
+    }
+
+    @PutMapping("/{id}/commodities")
+    public List<CommodityResponse> setSiteCommodities(@PathVariable Long id, @RequestBody List<Long> commodityIds) {
+        return siteService.setSiteCommodities(id, commodityIds);
     }
 }

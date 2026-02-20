@@ -48,6 +48,7 @@ export interface PhysicalContractResponse {
   allInPerMt: number | null;
   contractDate: string;
   notes: string | null;
+  tradeType: string;
 }
 
 export interface HedgeTradeResponse {
@@ -182,19 +183,43 @@ export function useSites() {
 
 // ─── Position Manager Types ────────────────────────────────────────────────────
 
-export interface CorporatePoolItem {
+export interface HedgeBookItem {
   hedgeTradeId: number;
   tradeRef: string;
   futuresMonth: string;
   lots: number;
+  bushels: number;
   openLots: number;
+  allocatedLots: number;
+  allocatedBushels: number;
+  unallocatedLots: number;
+  unallocatedBushels: number;
   entryPrice: number;
   settlePrice: number | null;
   mtmPnlUsd: number | null;
-  openMt: number;
+  unallocatedMt: number;
   validDeliveryMonths: string[];
   status: string;
   brokerAccount: string;
+}
+
+export interface SiteAllocationItem {
+  allocationId: number;
+  hedgeTradeId: number;
+  tradeRef: string;
+  futuresMonth: string;
+  siteCode: string;
+  siteName: string;
+  budgetMonth: string;
+  allocatedLots: number;
+  allocatedBushels: number;
+  allocatedMt: number;
+  entryPrice: number;
+  settlePrice: number | null;
+  mtmPnlUsd: number | null;
+  efpdLots: number;
+  offsetLots: number;
+  openAllocatedLots: number;
 }
 
 export interface PhysicalPositionItem {
@@ -211,6 +236,8 @@ export interface PhysicalPositionItem {
   efpExecuted: boolean;
   allInPricePerMt: number | null;
   status: string;
+  tradeType: string;
+  futuresRef: string | null;
 }
 
 export interface LockedPositionItem {
@@ -230,12 +257,38 @@ export interface LockedPositionItem {
   efpDate: string;
   confirmationRef: string;
   status: string;
+  // Gain/loss fields
+  entryPrice: number | null;
+  futuresBuyPrice: number | null;
+  futuresSellPrice: number | null;
+  gainLossCentsBu: number | null;
+  gainLossUsd: number | null;
+  gainLossPerMt: number | null;
+  effectiveAllInPerMt: number | null;
+}
+
+export interface OffsetItem {
+  offsetId: number;
+  tradeRef: string;
+  futuresMonth: string;
+  siteCode: string | null;
+  siteName: string | null;
+  lots: number;
+  bushels: number;
+  entryPrice: number;
+  exitPrice: number;
+  pnlCentsBu: number;
+  pnlUsd: number;
+  offsetDate: string;
+  notes: string | null;
 }
 
 export interface CornPositionResponse {
-  corporatePool: CorporatePoolItem[];
+  hedgeBook: HedgeBookItem[];
+  siteAllocations: SiteAllocationItem[];
   physicalPositions: PhysicalPositionItem[];
   lockedPositions: LockedPositionItem[];
+  offsets: OffsetItem[];
   latestSettles: Record<string, number>;
 }
 
@@ -279,10 +332,11 @@ export function useBudget(site?: string, fiscalYear?: string) {
   return { budget: data ?? [], isLoading: !data && !error, error, mutate };
 }
 
-export function usePositions() {
+export function usePositions(book?: string) {
+  const url = book ? `/api/v1/corn/positions?book=${book}` : "/api/v1/corn/positions";
   const { data, error, mutate } = useSWR<CornPositionResponse>(
-    "/api/v1/corn/positions",
-    (url: string) => api.get<CornPositionResponse>(url),
+    url,
+    (u: string) => api.get<CornPositionResponse>(u),
     { refreshInterval: 30_000 }
   );
   return { positions: data, isLoading: !data && !error, error, mutate };

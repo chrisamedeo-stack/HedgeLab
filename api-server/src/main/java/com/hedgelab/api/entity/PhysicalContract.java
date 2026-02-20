@@ -38,4 +38,9 @@ public class PhysicalContract extends AuditableEntity {
     private LocalDate basisLockedDate;
     private LocalDate contractDate;
     private String notes;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "trade_type", nullable = false)
+    @Builder.Default
+    private PhysicalContractTradeType tradeType = PhysicalContractTradeType.BASIS;
 }

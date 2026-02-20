@@ -10,20 +10,26 @@ import java.util.Map;
 
 /**
  * Top-level response for GET /api/v1/corn/positions.
- * Aggregates three position views plus the latest settle prices.
+ * Five-panel position view: Hedge Book, Site Allocations, Physical, Locked, Offsets.
  */
 @Data
 @Builder
 public class CornPositionResponse {
 
-    /** Open/partially-allocated hedge trades forming the corporate pool */
-    private List<CorporatePoolItem> corporatePool;
+    /** Hedge Book — open/partially-allocated hedges with unallocated bushels */
+    private List<HedgeBookItem> hedgeBook;
 
-    /** Active physical contracts showing commitment, basis, and pricing status */
+    /** Site Allocations — allocated futures per site/month */
+    private List<SiteAllocationItem> siteAllocations;
+
+    /** Active physical contracts showing commitment, basis, pricing, and trade type */
     private List<PhysicalPositionItem> physicalPositions;
 
-    /** EFP tickets — positions with a locked board price */
+    /** EFP tickets — locked positions with gain/loss tracking */
     private List<LockedPositionItem> lockedPositions;
+
+    /** Closed offsets — futures closed without EFP */
+    private List<OffsetItem> offsets;
 
     /** Latest published settle price per futures month (¢/bu) */
     private Map<String, BigDecimal> latestSettles;
@@ -32,19 +38,45 @@ public class CornPositionResponse {
 
     @Data
     @Builder
-    public static class CorporatePoolItem {
+    public static class HedgeBookItem {
         private Long hedgeTradeId;
         private String tradeRef;
         private String futuresMonth;
         private Integer lots;
+        private Integer bushels;            // lots × 5000
         private Integer openLots;
+        private Integer allocatedLots;
+        private Integer allocatedBushels;
+        private Integer unallocatedLots;
+        private Integer unallocatedBushels;
         private BigDecimal entryPrice;      // ¢/bu
-        private BigDecimal settlePrice;     // ¢/bu — null until settle is published
-        private BigDecimal mtmPnlUsd;       // openLots × 5000 × (settle − entry) / 100
-        private BigDecimal openMt;          // openLots × 5000 / 39.3683
+        private BigDecimal settlePrice;     // ¢/bu — null until settle published
+        private BigDecimal mtmPnlUsd;       // on unallocated lots only
+        private BigDecimal unallocatedMt;
         private List<String> validDeliveryMonths;
         private String status;
         private String brokerAccount;
+    }
+
+    @Data
+    @Builder
+    public static class SiteAllocationItem {
+        private Long allocationId;
+        private Long hedgeTradeId;
+        private String tradeRef;
+        private String futuresMonth;
+        private String siteCode;
+        private String siteName;
+        private String budgetMonth;
+        private Integer allocatedLots;
+        private Integer allocatedBushels;
+        private BigDecimal allocatedMt;
+        private BigDecimal entryPrice;      // ¢/bu
+        private BigDecimal settlePrice;     // ¢/bu
+        private BigDecimal mtmPnlUsd;
+        private Integer efpdLots;
+        private Integer offsetLots;
+        private Integer openAllocatedLots;
     }
 
     @Data
@@ -63,6 +95,8 @@ public class CornPositionResponse {
         private boolean efpExecuted;
         private BigDecimal allInPricePerMt;  // null until both board and basis are set
         private String status;
+        private String tradeType;           // INDEX or BASIS
+        private String futuresRef;          // e.g. ZCN26
     }
 
     @Data
@@ -84,5 +118,31 @@ public class CornPositionResponse {
         private LocalDate efpDate;
         private String confirmationRef;
         private String status;
+        // Gain/loss fields
+        private BigDecimal entryPrice;          // ¢/bu — hedge entry at EFP time
+        private BigDecimal futuresBuyPrice;     // = entryPrice
+        private BigDecimal futuresSellPrice;    // = boardPrice
+        private BigDecimal gainLossCentsBu;     // sell − buy
+        private BigDecimal gainLossUsd;         // (sell − buy) × lots × 5000 / 100
+        private BigDecimal gainLossPerMt;       // (sell − buy) / 100 × 39.3683
+        private BigDecimal effectiveAllInPerMt; // allInPerMt − gainLossPerMt
+    }
+
+    @Data
+    @Builder
+    public static class OffsetItem {
+        private Long offsetId;
+        private String tradeRef;
+        private String futuresMonth;
+        private String siteCode;
+        private String siteName;
+        private Integer lots;
+        private Integer bushels;
+        private BigDecimal entryPrice;      // ¢/bu
+        private BigDecimal exitPrice;       // ¢/bu
+        private BigDecimal pnlCentsBu;
+        private BigDecimal pnlUsd;
+        private LocalDate offsetDate;
+        private String notes;
     }
 }

@@ -34,6 +34,16 @@ export interface AppSettingResponse {
   updatedAt: string;
 }
 
+export interface SupplierResponse {
+  id: number;
+  code: string;
+  name: string;
+  country: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  active: boolean;
+}
+
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
 export function useAdminSites() {
@@ -58,4 +68,28 @@ export function useAppSettings() {
     (url: string) => api.get<AppSettingResponse[]>(url)
   );
   return { settings: data ?? [], isLoading: !data && !error, error, mutate };
+}
+
+export function useSuppliers() {
+  const { data, error, mutate } = useSWR<SupplierResponse[]>(
+    "/api/v1/suppliers",
+    (url: string) => api.get<SupplierResponse[]>(url)
+  );
+  return { suppliers: data ?? [], isLoading: !data && !error, error, mutate };
+}
+
+export function useSiteSuppliers(siteId: number | null) {
+  const { data, error, mutate } = useSWR<SupplierResponse[]>(
+    siteId ? `/api/v1/corn/sites/${siteId}/suppliers` : null,
+    (url: string) => api.get<SupplierResponse[]>(url)
+  );
+  return { suppliers: data ?? [], isLoading: !data && !error, error, mutate };
+}
+
+export function useSiteCommodities(siteId: number | null) {
+  const { data, error, mutate } = useSWR<CommodityResponse[]>(
+    siteId ? `/api/v1/corn/sites/${siteId}/commodities` : null,
+    (url: string) => api.get<CommodityResponse[]>(url)
+  );
+  return { commodities: data ?? [], isLoading: !data && !error, error, mutate };
 }

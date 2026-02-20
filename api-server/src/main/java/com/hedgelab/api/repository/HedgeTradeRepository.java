@@ -11,4 +11,5 @@ public interface HedgeTradeRepository extends JpaRepository<HedgeTrade, Long> {
     List<HedgeTrade> findAllByOrderByTradeDateDesc();
     List<HedgeTrade> findByFuturesMonth(String futuresMonth);
     List<HedgeTrade> findByStatusInOrderByTradeDateDesc(Collection<HedgeTradeStatus> statuses);
+    List<HedgeTrade> findByStatusInAndBookOrderByTradeDateDesc(Collection<HedgeTradeStatus> statuses, String book);
 }

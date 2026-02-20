@@ -5,6 +5,7 @@ import com.hedgelab.api.dto.request.LockBasisRequest;
 import com.hedgelab.api.dto.response.PhysicalContractResponse;
 import com.hedgelab.api.entity.PhysicalContract;
 import com.hedgelab.api.entity.PhysicalContractStatus;
+import com.hedgelab.api.entity.PhysicalContractTradeType;
 import com.hedgelab.api.exception.InvalidStateException;
 import com.hedgelab.api.repository.PhysicalContractRepository;
 import com.hedgelab.api.repository.SiteRepository;
@@ -83,6 +84,7 @@ public class PhysicalContractService {
                 .status(PhysicalContractStatus.OPEN)
                 .contractDate(req.getContractDate() != null ? req.getContractDate() : LocalDate.now())
                 .notes(req.getNotes())
+                .tradeType(parseTradeType(req.getTradeType()))
                 .build();
 
         return toResponse(contractRepository.save(contract));
@@ -130,6 +132,15 @@ public class PhysicalContractService {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    private PhysicalContractTradeType parseTradeType(String tradeType) {
+        if (tradeType == null || tradeType.isBlank()) return PhysicalContractTradeType.BASIS;
+        try {
+            return PhysicalContractTradeType.valueOf(tradeType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return PhysicalContractTradeType.BASIS;
+        }
+    }
+
     private PhysicalContract findOrThrow(Long id) {
         return contractRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -168,6 +179,7 @@ public class PhysicalContractService {
                 .basisLockedDate(c.getBasisLockedDate())
                 .allInCentsBu(allInCents).allInPerMt(allInPerMt)
                 .contractDate(c.getContractDate()).notes(c.getNotes())
+                .tradeType(c.getTradeType() != null ? c.getTradeType().name() : "BASIS")
                 .build();
     }
 }

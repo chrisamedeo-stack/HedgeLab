@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, Fragment } from "react";
 import {
   Activity,
   TrendingUp,
@@ -8,49 +8,75 @@ import {
   Minus,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Zap,
   Lock,
   AlertCircle,
+  Plus,
+  X,
+  ArrowRightLeft,
 } from "lucide-react";
-import { usePositions, useSites, CorporatePoolItem, PhysicalPositionItem } from "@/hooks/useCorn";
+import {
+  usePositions,
+  useSites,
+  HedgeBookItem,
+  SiteAllocationItem,
+  PhysicalPositionItem,
+  LockedPositionItem,
+  OffsetItem,
+} from "@/hooks/useCorn";
+import { useSuppliers } from "@/hooks/useSettings";
 import { api } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { cn } from "@/lib/utils";
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const BUSHELS_PER_MT = 39.3683;
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
 function fmt2(n: number | null | undefined): string {
-  if (n == null) return "–";
+  if (n == null) return "\u2013";
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+function fmtBu(n: number | null | undefined): string {
+  if (n == null) return "\u2013";
+  return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+}
 function fmtMt(n: number | null | undefined): string {
-  if (n == null) return "–";
+  if (n == null) return "\u2013";
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 function fmtPnl(n: number | null | undefined): string {
-  if (n == null) return "–";
+  if (n == null) return "\u2013";
   const abs = Math.abs(n);
-  const sign = n >= 0 ? "+" : "−";
+  const sign = n >= 0 ? "+" : "\u2212";
   if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000)     return `${sign}$${(abs / 1_000).toFixed(0)}K`;
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}K`;
   return `${sign}$${abs.toFixed(0)}`;
 }
 function fmtUsd(n: number | null | undefined): string {
-  if (n == null) return "–";
+  if (n == null) return "\u2013";
   return `$${fmt2(n)}`;
+}
+function centsToUsd(cents: number | null | undefined): string {
+  if (cents == null) return "\u2013";
+  return (cents / 100).toFixed(4);
 }
 function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-// ─── ZC → delivery month mapping (mirrors backend ZcMonthMapper) ─────────────
+// ─── ZC → delivery month mapping ────────────────────────────────────────────
 
 function getValidDeliveryMonths(futuresMonth: string): string[] {
   if (!futuresMonth || futuresMonth.length < 5) return [];
   const upper = futuresMonth.toUpperCase();
   if (!upper.startsWith("ZC")) return [];
-  const mc   = upper[2];
+  const mc = upper[2];
   const year = 2000 + parseInt(upper.slice(3), 10);
   if (isNaN(year)) return [];
   const pad = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
@@ -60,9 +86,18 @@ function getValidDeliveryMonths(futuresMonth: string): string[] {
     case "N": return [pad(year, 5), pad(year, 6)];
     case "U": return [pad(year, 7), pad(year, 8)];
     case "Z": return [pad(year, 9), pad(year, 10), pad(year, 11)];
-    default:  return [];
+    default: return [];
   }
 }
+
+// ─── Input class ─────────────────────────────────────────────────────────────
+
+const inputCls =
+  "bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500";
+const btnPrimary =
+  "px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg font-medium disabled:opacity-50";
+const btnSecondary =
+  "px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm rounded-lg font-medium";
 
 // ─── Settle Publisher ────────────────────────────────────────────────────────
 
@@ -80,7 +115,7 @@ function SettlePublisher({
   const [prices, setPrices] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     futuresMonths.forEach((fm) => {
-      init[fm] = existingSettles[fm] != null ? String(existingSettles[fm]) : "";
+      init[fm] = existingSettles[fm] != null ? String(existingSettles[fm] / 100) : "";
     });
     return init;
   });
@@ -117,12 +152,7 @@ function SettlePublisher({
       <div className="flex flex-wrap gap-3 mb-4">
         <div className="flex flex-col gap-1">
           <label className="text-xs text-slate-500">Settle Date</label>
-          <input
-            type="date"
-            value={settleDate}
-            onChange={(e) => setSettleDate(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
+          <input type="date" value={settleDate} onChange={(e) => setSettleDate(e.target.value)} className={inputCls} />
         </div>
         {futuresMonths.map((fm) => (
           <div key={fm} className="flex flex-col gap-1">
@@ -133,25 +163,394 @@ function SettlePublisher({
               placeholder={existingSettles[fm] != null ? String(existingSettles[fm] / 100) : "e.g. 4.39"}
               value={prices[fm] ?? ""}
               onChange={(e) => setPrices((p) => ({ ...p, [fm]: e.target.value }))}
-              className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 w-36 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className={cn(inputCls, "w-36")}
             />
           </div>
         ))}
       </div>
       <div className="flex gap-2">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg font-medium disabled:opacity-50"
-        >
-          {saving ? "Saving…" : "Publish"}
+        <button onClick={handleSave} disabled={saving} className={btnPrimary}>
+          {saving ? "Saving\u2026" : "Publish"}
         </button>
-        <button
-          onClick={onDone}
-          className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm rounded-lg font-medium"
-        >
-          Cancel
+        <button onClick={onDone} className={btnSecondary}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Allocate Form (multi-site) ─────────────────────────────────────────────
+
+interface AllocRow {
+  siteCode: string;
+  budgetMonth: string;
+  bushels: string;
+}
+
+function AllocateForm({
+  hedge,
+  sites,
+  onDone,
+  onCancel,
+}: {
+  hedge: HedgeBookItem;
+  sites: { code: string; name: string }[];
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const toast = useToast();
+  const validMonths = hedge.validDeliveryMonths;
+  const [rows, setRows] = useState<AllocRow[]>([
+    { siteCode: sites[0]?.code ?? "", budgetMonth: validMonths[0] ?? "", bushels: "" },
+  ]);
+  const [saving, setSaving] = useState(false);
+
+  const totalBu = rows.reduce((s, r) => s + (parseInt(r.bushels) || 0), 0);
+  const availBu = hedge.unallocatedBushels;
+
+  function updateRow(idx: number, field: keyof AllocRow, val: string) {
+    setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, [field]: val } : r)));
+  }
+  function addRow() {
+    setRows((prev) => [...prev, { siteCode: sites[0]?.code ?? "", budgetMonth: validMonths[0] ?? "", bushels: "" }]);
+  }
+  function removeRow(idx: number) {
+    setRows((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  async function handleSubmit() {
+    if (totalBu <= 0 || totalBu > availBu) {
+      toast.toast(`Total bushels must be 1\u2013${fmtBu(availBu)}`, "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      for (const row of rows) {
+        const bu = parseInt(row.bushels);
+        if (!bu || bu <= 0) continue;
+        const lots = Math.round(bu / 5000);
+        if (lots <= 0) continue;
+        await api.post(`/api/v1/corn/hedges/${hedge.hedgeTradeId}/allocations`, {
+          siteCode: row.siteCode,
+          budgetMonth: row.budgetMonth,
+          allocatedLots: lots,
+        });
+      }
+      toast.toast(`Allocated ${fmtBu(totalBu)} bu from ${hedge.tradeRef}`, "success");
+      onDone();
+    } catch (e: unknown) {
+      toast.toast((e as Error).message ?? "Allocation failed", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="bg-slate-800/70 border border-emerald-500/30 rounded-xl p-4 mt-2">
+      <div className="flex items-center gap-2 mb-3">
+        <ArrowRightLeft className="h-4 w-4 text-emerald-400" />
+        <span className="text-sm font-semibold text-emerald-300">
+          Allocate \u2014 {hedge.tradeRef} ({hedge.futuresMonth})
+        </span>
+        <span className="ml-auto text-xs text-slate-500">{fmtBu(availBu)} bu available</span>
+      </div>
+
+      <div className="space-y-2 mb-3">
+        {rows.map((row, idx) => (
+          <div key={idx} className="flex items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-slate-500">Site</label>
+              <select value={row.siteCode} onChange={(e) => updateRow(idx, "siteCode", e.target.value)} className={inputCls}>
+                {sites.map((s) => (
+                  <option key={s.code} value={s.code}>{s.code} \u2014 {s.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-slate-500">Budget Month</label>
+              <select value={row.budgetMonth} onChange={(e) => updateRow(idx, "budgetMonth", e.target.value)} className={inputCls}>
+                {validMonths.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-slate-500">Bushels</label>
+              <input
+                type="number"
+                step={5000}
+                min={5000}
+                placeholder="e.g. 25000"
+                value={row.bushels}
+                onChange={(e) => updateRow(idx, "bushels", e.target.value)}
+                className={cn(inputCls, "w-36")}
+              />
+            </div>
+            <div className="text-xs text-slate-500 pb-1.5">
+              {row.bushels ? `${Math.round(parseInt(row.bushels) / 5000)} lots` : ""}
+            </div>
+            {rows.length > 1 && (
+              <button onClick={() => removeRow(idx)} className="pb-1.5 text-slate-500 hover:text-red-400">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-3 mb-3">
+        <button onClick={addRow} className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300">
+          <Plus className="h-3 w-3" /> Add Row
         </button>
+        <span className={cn("text-xs font-medium", totalBu > availBu ? "text-red-400" : "text-slate-400")}>
+          Total: {fmtBu(totalBu)} / {fmtBu(availBu)} bu
+        </span>
+      </div>
+
+      <div className="flex gap-2">
+        <button onClick={handleSubmit} disabled={saving || totalBu <= 0 || totalBu > availBu} className={btnPrimary}>
+          {saving ? "Allocating\u2026" : "Allocate"}
+        </button>
+        <button onClick={onCancel} className={btnSecondary}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Offset Form ─────────────────────────────────────────────────────────────
+
+function OffsetForm({
+  entryPrice,
+  availableBu,
+  endpoint,
+  onDone,
+  onCancel,
+}: {
+  entryPrice: number;
+  availableBu: number;
+  endpoint: string;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const toast = useToast();
+  const [bushels, setBushels] = useState("");
+  const [exitPrice, setExitPrice] = useState("");
+  const [offsetDate, setOffsetDate] = useState(today());
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const bu = parseInt(bushels) || 0;
+  const lots = Math.round(bu / 5000);
+  const exit = parseFloat(exitPrice);
+  const pnlPreview =
+    !isNaN(exit) && bu > 0
+      ? ((exit * 100 - entryPrice) * bu) / 100
+      : null;
+
+  async function handleSubmit() {
+    if (lots <= 0 || bu > availableBu) {
+      toast.toast(`Bushels must be 5000\u2013${fmtBu(availableBu)}`, "error");
+      return;
+    }
+    if (isNaN(exit)) {
+      toast.toast("Enter an exit price", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.post(endpoint, {
+        lots,
+        exitPrice: exit * 100, // convert $/bu to ¢/bu
+        offsetDate,
+        notes: notes || null,
+      });
+      toast.toast(`Offset ${fmtBu(bu)} bu \u2014 P&L: ${fmtPnl(pnlPreview)}`, "success");
+      onDone();
+    } catch (e: unknown) {
+      toast.toast((e as Error).message ?? "Offset failed", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="bg-slate-800/70 border border-amber-500/30 rounded-xl p-4 mt-2">
+      <div className="flex items-center gap-2 mb-3">
+        <ArrowRightLeft className="h-4 w-4 text-amber-400" />
+        <span className="text-sm font-semibold text-amber-300">Offset Futures</span>
+        <span className="ml-auto text-xs text-slate-500">{fmtBu(availableBu)} bu available</span>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Bushels</label>
+          <input type="number" step={5000} min={5000} value={bushels} onChange={(e) => setBushels(e.target.value)}
+            placeholder="e.g. 10000" className={inputCls} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Exit Price ($/bu)</label>
+          <input type="number" step="0.0025" value={exitPrice} onChange={(e) => setExitPrice(e.target.value)}
+            placeholder="e.g. 4.55" className={inputCls} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Offset Date</label>
+          <input type="date" value={offsetDate} onChange={(e) => setOffsetDate(e.target.value)} className={inputCls} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Notes</label>
+          <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional\u2026" className={inputCls} />
+        </div>
+      </div>
+      {pnlPreview != null && (
+        <div className={cn("text-xs mb-3 font-medium", pnlPreview >= 0 ? "text-emerald-400" : "text-red-400")}>
+          P&L Preview: {fmtPnl(pnlPreview)} ({lots} lots)
+        </div>
+      )}
+      <div className="flex gap-2">
+        <button onClick={handleSubmit} disabled={saving} className={btnPrimary}>
+          {saving ? "Offsetting\u2026" : "Execute Offset"}
+        </button>
+        <button onClick={onCancel} className={btnSecondary}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── New Purchase Form ──────────────────────────────────────────────────────
+
+function NewPurchaseForm({
+  siteCode,
+  sites,
+  onDone,
+  onCancel,
+}: {
+  siteCode: string;
+  sites: { code: string; name: string }[];
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const toast = useToast();
+  const { suppliers } = useSuppliers();
+  const [tradeType, setTradeType] = useState<"BASIS" | "INDEX">("BASIS");
+  const [site, setSite] = useState(siteCode || sites[0]?.code || "");
+  const [supplier, setSupplier] = useState("");
+  const [deliveryMonth, setDeliveryMonth] = useState("");
+  const [quantityMt, setQuantityMt] = useState("");
+  const [basisCentsBu, setBasisCentsBu] = useState("");
+  const [futuresRef, setFuturesRef] = useState("");
+  const [freightPerMt, setFreightPerMt] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [contractDate, setContractDate] = useState(today());
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit() {
+    if (!site) { toast.toast("Select a site", "error"); return; }
+    if (!deliveryMonth) { toast.toast("Enter delivery month", "error"); return; }
+    if (!quantityMt) { toast.toast("Enter quantity", "error"); return; }
+
+    setSaving(true);
+    try {
+      await api.post("/api/v1/corn/contracts", {
+        siteCode: site,
+        supplierName: supplier || null,
+        deliveryMonth,
+        quantityMt: parseFloat(quantityMt),
+        basisCentsBu: tradeType === "BASIS" && basisCentsBu ? parseFloat(basisCentsBu) : null,
+        futuresRef: futuresRef || null,
+        freightPerMt: freightPerMt ? parseFloat(freightPerMt) : null,
+        currency,
+        contractDate,
+        notes: notes || null,
+        tradeType,
+      });
+      toast.toast(`${tradeType} purchase created at ${site}`, "success");
+      onDone();
+    } catch (e: unknown) {
+      toast.toast((e as Error).message ?? "Failed to create", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 mb-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Plus className="h-4 w-4 text-blue-400" />
+        <span className="text-sm font-semibold text-slate-200">New Physical Purchase</span>
+      </div>
+
+      {/* Trade type toggle */}
+      <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg w-fit mb-4">
+        {(["BASIS", "INDEX"] as const).map((t) => (
+          <button key={t} onClick={() => setTradeType(t)}
+            className={cn("px-4 py-1.5 rounded-md text-xs font-medium transition-colors",
+              tradeType === t ? (t === "BASIS" ? "bg-blue-600 text-white" : "bg-amber-600 text-white") : "text-slate-400 hover:text-slate-200")}>
+            {t}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Site</label>
+          <select value={site} onChange={(e) => setSite(e.target.value)} className={inputCls}>
+            {sites.map((s) => <option key={s.code} value={s.code}>{s.code} \u2014 {s.name}</option>)}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Supplier</label>
+          <select value={supplier} onChange={(e) => setSupplier(e.target.value)} className={inputCls}>
+            <option value="">Select\u2026</option>
+            {(suppliers ?? []).map((s: { name: string }) => <option key={s.name} value={s.name}>{s.name}</option>)}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Delivery Month</label>
+          <input type="month" value={deliveryMonth} onChange={(e) => setDeliveryMonth(e.target.value)} className={inputCls} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Quantity (MT)</label>
+          <input type="number" step="100" value={quantityMt} onChange={(e) => setQuantityMt(e.target.value)}
+            placeholder="e.g. 3000" className={inputCls} />
+        </div>
+        {tradeType === "BASIS" && (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-slate-500">Basis (¢/bu)</label>
+            <input type="number" step="1" value={basisCentsBu} onChange={(e) => setBasisCentsBu(e.target.value)}
+              placeholder="e.g. -20" className={inputCls} />
+          </div>
+        )}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Futures Ref</label>
+          <input type="text" value={futuresRef} onChange={(e) => setFuturesRef(e.target.value)}
+            placeholder="e.g. ZCN26" className={inputCls} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Freight ($/MT)</label>
+          <input type="number" step="0.5" value={freightPerMt} onChange={(e) => setFreightPerMt(e.target.value)}
+            placeholder="e.g. 12.50" className={inputCls} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Currency</label>
+          <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={inputCls}>
+            <option value="USD">USD</option>
+            <option value="CAD">CAD</option>
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Contract Date</label>
+          <input type="date" value={contractDate} onChange={(e) => setContractDate(e.target.value)} className={inputCls} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-slate-500">Notes</label>
+          <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional\u2026" className={inputCls} />
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        <button onClick={handleSubmit} disabled={saving} className={btnPrimary}>
+          {saving ? "Creating\u2026" : "Create Purchase"}
+        </button>
+        <button onClick={onCancel} className={btnSecondary}>Cancel</button>
       </div>
     </div>
   );
@@ -160,66 +559,63 @@ function SettlePublisher({
 // ─── EFP Form ────────────────────────────────────────────────────────────────
 
 function EFPForm({
-  hedge,
+  allocation,
   physicalPositions,
   sites,
+  settles,
   onDone,
   onCancel,
 }: {
-  hedge: CorporatePoolItem;
+  allocation: SiteAllocationItem;
   physicalPositions: PhysicalPositionItem[];
   sites: { code: string; name: string }[];
+  settles: Record<string, number>;
   onDone: () => void;
   onCancel: () => void;
 }) {
   const toast = useToast();
-  const validMonths = getValidDeliveryMonths(hedge.futuresMonth);
+  const validMonths = getValidDeliveryMonths(allocation.futuresMonth);
 
-  const [lots, setLots]           = useState("");
-  const [site, setSite]           = useState("");
-  const [month, setMonth]         = useState("");
+  const [lots, setLots] = useState("");
   const [contractId, setContractId] = useState("");
   const [boardPrice, setBoardPrice] = useState(
-    hedge.settlePrice != null ? String(hedge.settlePrice / 100) : ""
+    settles[allocation.futuresMonth] != null ? String(settles[allocation.futuresMonth] / 100) : ""
   );
-  const [efpDate, setEfpDate]     = useState(today());
+  const [efpDate, setEfpDate] = useState(today());
   const [confirmRef, setConfirmRef] = useState("");
-  const [notes, setNotes]         = useState("");
-  const [saving, setSaving]       = useState(false);
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  // Filter physical positions by site + valid delivery months
   const eligible = physicalPositions.filter(
     (p) =>
-      (!site  || p.siteCode === site) &&
-      (!month || p.deliveryMonth === month) &&
+      p.siteCode === allocation.siteCode &&
       validMonths.includes(p.deliveryMonth) &&
       !["CLOSED", "CANCELLED"].includes(p.status)
   );
 
   async function handleSubmit() {
     const lotsN = parseInt(lots, 10);
-    if (!lotsN || lotsN <= 0 || lotsN > hedge.openLots) {
-      toast.toast(`Lots must be 1–${hedge.openLots}`, "error");
+    if (!lotsN || lotsN <= 0 || lotsN > allocation.openAllocatedLots) {
+      toast.toast(`Lots must be 1\u2013${allocation.openAllocatedLots}`, "error");
       return;
     }
     if (!contractId) { toast.toast("Select a physical contract", "error"); return; }
-    if (!boardPrice)  { toast.toast("Enter a board price", "error"); return; }
-    if (!efpDate)     { toast.toast("Enter an EFP date", "error"); return; }
+    if (!boardPrice) { toast.toast("Enter a board price", "error"); return; }
 
     const selectedContract = physicalPositions.find((p) => String(p.contractId) === contractId);
     setSaving(true);
     try {
       await api.post("/api/v1/corn/efp", {
-        hedgeTradeId:      hedge.hedgeTradeId,
+        hedgeTradeId: allocation.hedgeTradeId,
         physicalContractId: parseInt(contractId, 10),
-        lots:              lotsN,
-        boardPrice:        parseFloat(boardPrice) * 100,
-        basisValue:        selectedContract?.basisValue ?? null,
+        lots: lotsN,
+        boardPrice: parseFloat(boardPrice) * 100,
+        basisValue: selectedContract?.basisValue ?? null,
         efpDate,
-        confirmationRef:   confirmRef,
+        confirmationRef: confirmRef,
         notes,
       });
-      toast.toast(`EFP executed — ${lotsN} lots allocated from ${hedge.tradeRef}`, "success");
+      toast.toast(`EFP executed \u2014 ${lotsN} lots from ${allocation.tradeRef}`, "success");
       onDone();
     } catch (e: unknown) {
       toast.toast((e as Error).message ?? "EFP failed", "error");
@@ -233,165 +629,400 @@ function EFPForm({
       <div className="flex items-center gap-2 mb-3">
         <Zap className="h-4 w-4 text-blue-400" />
         <span className="text-sm font-semibold text-blue-300">
-          Execute EFP — {hedge.tradeRef} ({hedge.futuresMonth})
+          Execute EFP \u2014 {allocation.tradeRef} \u2192 {allocation.siteCode}
         </span>
-        <span className="ml-auto text-xs text-slate-500">{hedge.openLots} lots available</span>
+        <span className="ml-auto text-xs text-slate-500">{allocation.openAllocatedLots} lots available</span>
       </div>
-
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-        {/* Lots */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Lots (max {hedge.openLots})</label>
-          <input
-            type="number"
-            min={1}
-            max={hedge.openLots}
-            value={lots}
-            onChange={(e) => setLots(e.target.value)}
-            placeholder={`1–${hedge.openLots}`}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
+          <label className="text-xs text-slate-500">Lots (max {allocation.openAllocatedLots})</label>
+          <input type="number" min={1} max={allocation.openAllocatedLots} value={lots}
+            onChange={(e) => setLots(e.target.value)} className={inputCls} />
         </div>
-
-        {/* Site */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Site</label>
-          <select
-            value={site}
-            onChange={(e) => { setSite(e.target.value); setContractId(""); }}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="">All sites</option>
-            {sites.map((s) => (
-              <option key={s.code} value={s.code}>{s.code} — {s.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Delivery Month */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Delivery Month</label>
-          <select
-            value={month}
-            onChange={(e) => { setMonth(e.target.value); setContractId(""); }}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="">All months</option>
-            {validMonths.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Physical Contract */}
         <div className="flex flex-col gap-1">
           <label className="text-xs text-slate-500">Physical Contract</label>
-          <select
-            value={contractId}
-            onChange={(e) => setContractId(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="">Select contract…</option>
+          <select value={contractId} onChange={(e) => setContractId(e.target.value)} className={inputCls}>
+            <option value="">Select contract\u2026</option>
             {eligible.map((p) => (
               <option key={p.contractId} value={p.contractId}>
-                {p.contractRef} — {p.siteCode} {p.deliveryMonth}
+                {p.contractRef} \u2014 {p.deliveryMonth}
               </option>
             ))}
           </select>
-          {eligible.length === 0 && (site || month) && (
-            <span className="text-xs text-amber-400">No open contracts for selection</span>
-          )}
+          {eligible.length === 0 && <span className="text-xs text-amber-400">No open contracts at {allocation.siteCode}</span>}
         </div>
-
-        {/* Board Price */}
         <div className="flex flex-col gap-1">
           <label className="text-xs text-slate-500">Board Price ($/bu)</label>
-          <input
-            type="number"
-            step="0.0025"
-            value={boardPrice}
-            onChange={(e) => setBoardPrice(e.target.value)}
-            placeholder="e.g. 4.39"
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
+          <input type="number" step="0.0025" value={boardPrice} onChange={(e) => setBoardPrice(e.target.value)} className={inputCls} />
         </div>
-
-        {/* EFP Date */}
         <div className="flex flex-col gap-1">
           <label className="text-xs text-slate-500">EFP Date</label>
-          <input
-            type="date"
-            value={efpDate}
-            onChange={(e) => setEfpDate(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
+          <input type="date" value={efpDate} onChange={(e) => setEfpDate(e.target.value)} className={inputCls} />
         </div>
-
-        {/* Confirmation Ref */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Confirmation Ref</label>
-          <input
-            type="text"
-            value={confirmRef}
-            onChange={(e) => setConfirmRef(e.target.value)}
-            placeholder="Broker ref…"
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
+          <label className="text-xs text-slate-500">Confirm Ref</label>
+          <input type="text" value={confirmRef} onChange={(e) => setConfirmRef(e.target.value)} placeholder="Broker ref\u2026" className={inputCls} />
         </div>
-
-        {/* Notes */}
         <div className="flex flex-col gap-1">
           <label className="text-xs text-slate-500">Notes</label>
-          <input
-            type="text"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Optional…"
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
+          <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional\u2026" className={inputCls} />
         </div>
       </div>
-
       <div className="flex gap-2">
-        <button
-          onClick={handleSubmit}
-          disabled={saving}
-          className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg font-medium disabled:opacity-50 flex items-center gap-2"
-        >
+        <button onClick={handleSubmit} disabled={saving} className={cn(btnPrimary, "flex items-center gap-2")}>
           <Zap className="h-3.5 w-3.5" />
-          {saving ? "Executing…" : "Execute EFP"}
+          {saving ? "Executing\u2026" : "Execute EFP"}
         </button>
-        <button
-          onClick={onCancel}
-          className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm rounded-lg font-medium"
-        >
-          Cancel
-        </button>
+        <button onClick={onCancel} className={btnSecondary}>Cancel</button>
       </div>
     </div>
   );
 }
 
-// ─── Corporate Pool Table ─────────────────────────────────────────────────────
+// ─── Hedge Book — Grouped by Futures Month ──────────────────────────────────
 
-function CorporatePoolTable({
-  pool,
-  physicalPositions,
+interface FuturesMonthGroup {
+  futuresMonth: string;
+  items: HedgeBookItem[];
+  totalBu: number;
+  unallocBu: number;
+  totalLots: number;
+  wtdAvgEntry: number;
+  totalMtm: number;
+}
+
+function HedgeBookTable({
+  hedgeBook,
   sites,
   onRefresh,
 }: {
-  pool: CorporatePoolItem[];
-  physicalPositions: PhysicalPositionItem[];
+  hedgeBook: HedgeBookItem[];
   sites: { code: string; name: string }[];
   onRefresh: () => void;
 }) {
-  const [efpHedgeId, setEfpHedgeId] = useState<number | null>(null);
-  const activeHedge = efpHedgeId != null ? pool.find((h) => h.hedgeTradeId === efpHedgeId) : null;
+  const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
+  const [allocTradeId, setAllocTradeId] = useState<number | null>(null);
+  const [offsetTradeId, setOffsetTradeId] = useState<number | null>(null);
 
-  function handleEfpDone() {
-    setEfpHedgeId(null);
+  const groups: FuturesMonthGroup[] = useMemo(() => {
+    const map = new Map<string, HedgeBookItem[]>();
+    for (const item of hedgeBook) {
+      const list = map.get(item.futuresMonth) || [];
+      list.push(item);
+      map.set(item.futuresMonth, list);
+    }
+    return Array.from(map.entries())
+      .map(([fm, items]) => {
+        const totalBu = items.reduce((s, i) => s + i.bushels, 0);
+        const unallocBu = items.reduce((s, i) => s + i.unallocatedBushels, 0);
+        const totalLots = items.reduce((s, i) => s + i.lots, 0);
+        const totalMtm = items.reduce((s, i) => s + (i.mtmPnlUsd ?? 0), 0);
+        const sumWt = items.reduce((s, i) => s + i.unallocatedLots * (i.entryPrice ?? 0), 0);
+        const sumLots = items.reduce((s, i) => s + i.unallocatedLots, 0);
+        const wtdAvgEntry = sumLots > 0 ? sumWt / sumLots : 0;
+        return { futuresMonth: fm, items, totalBu, unallocBu, totalLots, wtdAvgEntry, totalMtm };
+      })
+      .sort((a, b) => a.futuresMonth.localeCompare(b.futuresMonth));
+  }, [hedgeBook]);
+
+  function handleDone() {
+    setAllocTradeId(null);
+    setOffsetTradeId(null);
     onRefresh();
   }
+
+  return (
+    <div className="divide-y divide-slate-800">
+      {groups.length === 0 && (
+        <div className="px-4 py-8 text-center text-slate-500 text-sm">No open hedge positions</div>
+      )}
+      {groups.map((g) => {
+        const isExpanded = expandedMonth === g.futuresMonth;
+        return (
+          <Fragment key={g.futuresMonth}>
+            {/* Summary row */}
+            <button
+              onClick={() => setExpandedMonth(isExpanded ? null : g.futuresMonth)}
+              className="w-full flex items-center gap-4 px-5 py-3 hover:bg-slate-800/30 transition-colors text-left"
+            >
+              {isExpanded ? <ChevronDown className="h-4 w-4 text-slate-500" /> : <ChevronRight className="h-4 w-4 text-slate-500" />}
+              <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">
+                {g.futuresMonth}
+              </span>
+              <span className="text-sm text-slate-300">{fmtBu(g.totalBu)} bu</span>
+              <span className="text-sm text-slate-500">{fmtBu(g.unallocBu)} unalloc</span>
+              <span className="text-sm text-slate-400 font-mono">Avg {centsToUsd(g.wtdAvgEntry)}</span>
+              <span className={cn("text-sm font-semibold", g.totalMtm > 0 ? "text-emerald-400" : g.totalMtm < 0 ? "text-red-400" : "text-slate-400")}>
+                {fmtPnl(g.totalMtm)}
+              </span>
+              <span className="text-xs text-slate-600 ml-auto">{g.totalLots} lots</span>
+            </button>
+
+            {/* Expanded trade rows */}
+            {isExpanded && (
+              <div className="bg-slate-800/20">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-800/40">
+                      {["Trade Ref", "Total Bu", "Alloc Bu", "Unalloc Bu", "Entry $/bu", "Settle $/bu", "MTM", "Broker", ""].map(
+                        (h) => (
+                          <th key={h} className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">
+                            {h}
+                          </th>
+                        )
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {g.items.map((h) => {
+                      const isAlloc = allocTradeId === h.hedgeTradeId;
+                      const isOffset = offsetTradeId === h.hedgeTradeId;
+                      return (
+                        <Fragment key={h.hedgeTradeId}>
+                          <tr className="border-t border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                            <td className="px-4 py-2 font-mono text-slate-200 text-xs">{h.tradeRef}</td>
+                            <td className="px-4 py-2 text-slate-300">{fmtBu(h.bushels)}</td>
+                            <td className="px-4 py-2 text-slate-500">{fmtBu(h.allocatedBushels)}</td>
+                            <td className="px-4 py-2 text-emerald-400 font-semibold">{fmtBu(h.unallocatedBushels)}</td>
+                            <td className="px-4 py-2 text-slate-300 font-mono">{centsToUsd(h.entryPrice)}</td>
+                            <td className="px-4 py-2 font-mono">
+                              {h.settlePrice != null ? (
+                                <span className="text-slate-200">{centsToUsd(h.settlePrice)}</span>
+                              ) : (
+                                <span className="text-slate-600 italic text-xs">no settle</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-2">
+                              {h.mtmPnlUsd != null ? (
+                                <span className={cn("flex items-center gap-1 font-semibold",
+                                  h.mtmPnlUsd > 0 ? "text-emerald-400" : h.mtmPnlUsd < 0 ? "text-red-400" : "text-slate-400")}>
+                                  {h.mtmPnlUsd > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : h.mtmPnlUsd < 0 ? <TrendingDown className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
+                                  {fmtPnl(h.mtmPnlUsd)}
+                                </span>
+                              ) : <span className="text-slate-600 italic text-xs">\u2013</span>}
+                            </td>
+                            <td className="px-4 py-2 text-slate-500 text-xs">{h.brokerAccount}</td>
+                            <td className="px-4 py-2">
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => { setAllocTradeId(isAlloc ? null : h.hedgeTradeId); setOffsetTradeId(null); }}
+                                  className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 rounded-lg text-xs font-medium transition-colors"
+                                >
+                                  <ArrowRightLeft className="h-3 w-3" /> Alloc
+                                </button>
+                                <button
+                                  onClick={() => { setOffsetTradeId(isOffset ? null : h.hedgeTradeId); setAllocTradeId(null); }}
+                                  className="flex items-center gap-1 px-2.5 py-1 bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 rounded-lg text-xs font-medium transition-colors"
+                                >
+                                  <X className="h-3 w-3" /> Offset
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                          {isAlloc && (
+                            <tr className="border-t border-slate-800/50">
+                              <td colSpan={9} className="px-4 py-2">
+                                <AllocateForm hedge={h} sites={sites} onDone={handleDone} onCancel={() => setAllocTradeId(null)} />
+                              </td>
+                            </tr>
+                          )}
+                          {isOffset && (
+                            <tr className="border-t border-slate-800/50">
+                              <td colSpan={9} className="px-4 py-2">
+                                <OffsetForm
+                                  entryPrice={h.entryPrice}
+                                  availableBu={h.unallocatedBushels}
+                                  endpoint={`/api/v1/corn/hedges/${h.hedgeTradeId}/offset`}
+                                  onDone={handleDone}
+                                  onCancel={() => setOffsetTradeId(null)}
+                                />
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Site Allocations Table ─────────────────────────────────────────────────
+
+function SiteAllocationsTable({
+  allocations,
+  physicalPositions,
+  sites,
+  settles,
+  onRefresh,
+}: {
+  allocations: SiteAllocationItem[];
+  physicalPositions: PhysicalPositionItem[];
+  sites: { code: string; name: string }[];
+  settles: Record<string, number>;
+  onRefresh: () => void;
+}) {
+  const [efpAllocId, setEfpAllocId] = useState<number | null>(null);
+  const [offsetAllocId, setOffsetAllocId] = useState<number | null>(null);
+
+  function handleDone() {
+    setEfpAllocId(null);
+    setOffsetAllocId(null);
+    onRefresh();
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-slate-800/50">
+            {["Trade", "ZC", "Site", "Month", "Alloc Bu", "Open Bu", "Entry $/bu", "Settle $/bu", "MTM", ""].map((h) => (
+              <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {allocations.length === 0 && (
+            <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-500 text-sm">No allocations yet</td></tr>
+          )}
+          {allocations.map((a) => {
+            const isEfp = efpAllocId === a.allocationId;
+            const isOffset = offsetAllocId === a.allocationId;
+            return (
+              <Fragment key={a.allocationId}>
+                <tr className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
+                  <td className="px-4 py-3 font-mono text-slate-200 text-xs">{a.tradeRef}</td>
+                  <td className="px-4 py-3">
+                    <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
+                  </td>
+                  <td className="px-4 py-3"><span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">{a.siteCode}</span></td>
+                  <td className="px-4 py-3 text-slate-400 text-xs font-mono">{a.budgetMonth}</td>
+                  <td className="px-4 py-3 text-slate-300">{fmtBu(a.allocatedBushels)}</td>
+                  <td className="px-4 py-3 text-emerald-400 font-semibold">{fmtBu(a.openAllocatedLots * 5000)}</td>
+                  <td className="px-4 py-3 text-slate-300 font-mono">{centsToUsd(a.entryPrice)}</td>
+                  <td className="px-4 py-3 font-mono">
+                    {a.settlePrice != null ? <span className="text-slate-200">{centsToUsd(a.settlePrice)}</span>
+                      : <span className="text-slate-600 italic text-xs">no settle</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    {a.mtmPnlUsd != null ? (
+                      <span className={cn("font-semibold", a.mtmPnlUsd > 0 ? "text-emerald-400" : a.mtmPnlUsd < 0 ? "text-red-400" : "text-slate-400")}>
+                        {fmtPnl(a.mtmPnlUsd)}
+                      </span>
+                    ) : <span className="text-slate-600 italic text-xs">\u2013</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1">
+                      {a.openAllocatedLots > 0 && (
+                        <>
+                          <button
+                            onClick={() => { setEfpAllocId(isEfp ? null : a.allocationId); setOffsetAllocId(null); }}
+                            className="flex items-center gap-1 px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded-lg text-xs font-medium transition-colors"
+                          >
+                            <Zap className="h-3 w-3" /> EFP
+                          </button>
+                          <button
+                            onClick={() => { setOffsetAllocId(isOffset ? null : a.allocationId); setEfpAllocId(null); }}
+                            className="flex items-center gap-1 px-2.5 py-1 bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 rounded-lg text-xs font-medium transition-colors"
+                          >
+                            <X className="h-3 w-3" /> Offset
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+                {isEfp && (
+                  <tr className="border-t border-slate-800">
+                    <td colSpan={10} className="px-4 py-3">
+                      <EFPForm allocation={a} physicalPositions={physicalPositions} sites={sites} settles={settles} onDone={handleDone} onCancel={() => setEfpAllocId(null)} />
+                    </td>
+                  </tr>
+                )}
+                {isOffset && (
+                  <tr className="border-t border-slate-800">
+                    <td colSpan={10} className="px-4 py-3">
+                      <OffsetForm
+                        entryPrice={a.entryPrice}
+                        availableBu={a.openAllocatedLots * 5000}
+                        endpoint={`/api/v1/corn/hedges/allocations/${a.allocationId}/offset`}
+                        onDone={handleDone}
+                        onCancel={() => setOffsetAllocId(null)}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Physical Positions Table ────────────────────────────────────────────────
+
+function statusColor(status: string) {
+  switch (status) {
+    case "OPEN": return "text-slate-400";
+    case "BASIS_LOCKED": return "text-blue-400";
+    case "EFP_EXECUTED": return "text-emerald-400";
+    case "PO_ISSUED": return "text-emerald-500";
+    default: return "text-slate-500";
+  }
+}
+
+function tradeTypeBadge(type: string) {
+  if (type === "INDEX") return <span className="bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/25 px-2 py-0.5 rounded text-xs font-mono font-semibold">INDEX</span>;
+  return <span className="bg-blue-500/15 text-blue-300 ring-1 ring-blue-500/25 px-2 py-0.5 rounded text-xs font-mono font-semibold">BASIS</span>;
+}
+
+function PhysicalPositionsTable({
+  positions,
+  settles,
+}: {
+  positions: PhysicalPositionItem[];
+  settles: Record<string, number>;
+}) {
+  // Compute blended cost summary
+  const blended = useMemo(() => {
+    let hedgedCost = 0;
+    let hedgedVol = 0;
+    let marketCost = 0;
+    let marketVol = 0;
+
+    for (const p of positions) {
+      if (p.allInPricePerMt != null) {
+        hedgedCost += p.allInPricePerMt * p.committedMt;
+        hedgedVol += p.committedMt;
+      } else {
+        // Use settle-based estimate
+        const settle = p.futuresRef ? settles[p.futuresRef] : null;
+        if (settle != null) {
+          const basisCents = p.basisValue ?? 0;
+          const freightEst = 0; // freight unknown for unpriced
+          const estPerMt = ((settle + basisCents) / 100) * BUSHELS_PER_MT + freightEst;
+          marketCost += estPerMt * p.committedMt;
+          marketVol += p.committedMt;
+        } else {
+          marketVol += p.committedMt;
+        }
+      }
+    }
+
+    const totalVol = hedgedVol + marketVol;
+    const totalCost = hedgedCost + marketCost;
+    const blendedPerMt = totalVol > 0 ? totalCost / totalVol : null;
+
+    return { hedgedVol, hedgedPerMt: hedgedVol > 0 ? hedgedCost / hedgedVol : null, marketVol, marketPerMt: marketVol > 0 ? marketCost / marketVol : null, blendedPerMt, totalVol };
+  }, [positions, settles]);
 
   return (
     <div>
@@ -399,236 +1030,173 @@ function CorporatePoolTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-800/50">
-              {["Trade Ref", "ZC Month", "Total Lots", "Open Lots", "Open MT", "Entry $/bu", "Settle $/bu", "MTM P&L", "Broker", ""].map(
-                (h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                    {h}
-                  </th>
-                )
-              )}
+              {["Type", "Month", "Site", "Contract", "Supplier", "MT", "Board", "Basis", "Freight", "All-In $/MT", "Status"].map((h) => (
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {pool.length === 0 && (
-              <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-slate-500 text-sm">
-                  No open hedge positions
+            {positions.length === 0 && (
+              <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-500 text-sm">No active physical contracts</td></tr>
+            )}
+            {positions.map((p) => (
+              <tr key={p.contractId} className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
+                <td className="px-4 py-3">{tradeTypeBadge(p.tradeType)}</td>
+                <td className="px-4 py-3 font-mono text-slate-300 text-xs">{p.deliveryMonth}</td>
+                <td className="px-4 py-3"><span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">{p.siteCode}</span></td>
+                <td className="px-4 py-3 font-mono text-slate-400 text-xs">{p.contractRef}</td>
+                <td className="px-4 py-3 text-slate-400 text-xs">{p.supplierName}</td>
+                <td className="px-4 py-3 text-slate-300">{fmtMt(p.committedMt)}</td>
+                <td className="px-4 py-3">
+                  {p.efpExecuted ? (
+                    <span className="flex items-center gap-1 text-emerald-400 font-mono">
+                      <Lock className="h-3 w-3" /> {centsToUsd(p.boardPriceLocked)}
+                    </span>
+                  ) : (
+                    <span className="text-orange-400 italic text-xs">Open</span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  {p.tradeType === "INDEX" ? (
+                    <span className="text-slate-600 italic text-xs">N/A</span>
+                  ) : p.basisLocked ? (
+                    <span className="flex items-center gap-1 text-blue-300 font-mono">
+                      <Lock className="h-3 w-3 text-blue-400" /> {p.basisValue != null ? (p.basisValue / 100).toFixed(4) : "\u2013"}
+                    </span>
+                  ) : (
+                    <span className="text-orange-400 italic text-xs">Open</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-slate-400 font-mono">{fmt2(null)}</td>
+                <td className="px-4 py-3">
+                  {p.allInPricePerMt != null ? (
+                    <span className="text-emerald-300 font-semibold">{fmtUsd(p.allInPricePerMt)}</span>
+                  ) : (
+                    <span className="text-slate-600 italic text-xs">\u2013</span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <span className={cn("text-xs font-medium", statusColor(p.status))}>{p.status.replace("_", " ")}</span>
                 </td>
               </tr>
-            )}
-            {pool.map((h) => {
-              const hasMtm    = h.mtmPnlUsd != null;
-              const mtmPos    = hasMtm && (h.mtmPnlUsd ?? 0) > 0;
-              const mtmNeg    = hasMtm && (h.mtmPnlUsd ?? 0) < 0;
-              const isEfpOpen = efpHedgeId === h.hedgeTradeId;
-              return (
-                <>
-                  <tr
-                    key={h.hedgeTradeId}
-                    className={`border-t border-slate-800 hover:bg-slate-800/30 transition-colors ${isEfpOpen ? "bg-slate-800/40" : ""}`}
-                  >
-                    <td className="px-4 py-3 font-mono text-slate-200 text-xs">{h.tradeRef}</td>
-                    <td className="px-4 py-3">
-                      <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">
-                        {h.futuresMonth}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-300">{h.lots}</td>
-                    <td className="px-4 py-3">
-                      <span className={h.openLots === 0 ? "text-slate-500" : "text-emerald-400 font-semibold"}>
-                        {h.openLots}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-400">{fmtMt(h.openMt)}</td>
-                    <td className="px-4 py-3 text-slate-300 font-mono">{h.entryPrice != null ? (h.entryPrice / 100).toFixed(4) : "–"}</td>
-                    <td className="px-4 py-3 font-mono">
-                      {h.settlePrice != null ? (
-                        <span className="text-slate-200">{(h.settlePrice / 100).toFixed(4)}</span>
-                      ) : (
-                        <span className="text-slate-600 italic text-xs">no settle</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 font-semibold">
-                      {hasMtm ? (
-                        <span className={`flex items-center gap-1 ${mtmPos ? "text-emerald-400" : mtmNeg ? "text-red-400" : "text-slate-400"}`}>
-                          {mtmPos ? <TrendingUp className="h-3.5 w-3.5" /> : mtmNeg ? <TrendingDown className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
-                          {fmtPnl(h.mtmPnlUsd)}
-                        </span>
-                      ) : (
-                        <span className="text-slate-600 italic text-xs">–</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">{h.brokerAccount}</td>
-                    <td className="px-4 py-3">
-                      {h.openLots > 0 && (
-                        <button
-                          onClick={() => setEfpHedgeId(isEfpOpen ? null : h.hedgeTradeId)}
-                          className="flex items-center gap-1.5 px-3 py-1 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded-lg text-xs font-medium transition-colors"
-                        >
-                          <Zap className="h-3 w-3" />
-                          EFP
-                          {isEfpOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                  {isEfpOpen && activeHedge && (
-                    <tr key={`${h.hedgeTradeId}-efp`} className="border-t border-slate-800">
-                      <td colSpan={10} className="px-4 py-3">
-                        <EFPForm
-                          hedge={activeHedge}
-                          physicalPositions={physicalPositions}
-                          sites={sites}
-                          onDone={handleEfpDone}
-                          onCancel={() => setEfpHedgeId(null)}
-                        />
-                      </td>
-                    </tr>
-                  )}
-                </>
-              );
-            })}
+            ))}
           </tbody>
         </table>
       </div>
+
+      {/* Blended cost summary */}
+      {positions.length > 0 && blended.blendedPerMt != null && (
+        <div className="px-5 py-3 border-t border-slate-800 bg-slate-800/30">
+          <span className="text-xs text-slate-400">
+            Blended Cost: <span className="text-emerald-300 font-semibold">{fmtUsd(blended.blendedPerMt)}/MT</span>
+            {blended.hedgedVol > 0 && <span> (hedged: {fmtUsd(blended.hedgedPerMt)}/MT x {fmtMt(blended.hedgedVol)} MT</span>}
+            {blended.marketVol > 0 && <span>{blended.hedgedVol > 0 ? " + " : " ("}market: {fmtUsd(blended.marketPerMt)}/MT x {fmtMt(blended.marketVol)} MT</span>}
+            {(blended.hedgedVol > 0 || blended.marketVol > 0) && <span>)</span>}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
 
-// ─── Physical Positions Table ─────────────────────────────────────────────────
+// ─── Locked Positions Table ─────────────────────────────────────────────────
 
-function statusColor(status: string) {
-  switch (status) {
-    case "OPEN":         return "text-slate-400";
-    case "BASIS_LOCKED": return "text-blue-400";
-    case "EFP_EXECUTED": return "text-emerald-400";
-    case "PO_ISSUED":    return "text-emerald-500";
-    default:             return "text-slate-500";
-  }
-}
-
-function PhysicalPositionsTable({ positions }: { positions: PhysicalPositionItem[] }) {
+function LockedPositionsTable({ locked }: { locked: LockedPositionItem[] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-slate-800/50">
-            {["Month", "Site", "Contract", "Supplier", "Committed MT", "Basis $/bu", "Board $/bu", "All-In $/MT", "Status"].map(
-              (h) => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                  {h}
-                </th>
-              )
-            )}
+            {["Ticket", "Site", "Delivery", "ZC", "Lots", "Fut.Buy", "Fut.Sell", "P&L \u00a2/bu", "P&L $", "Board", "Basis", "Freight", "All-In", "Eff.All-In"].map((h) => (
+              <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {positions.length === 0 && (
-            <tr>
-              <td colSpan={9} className="px-4 py-8 text-center text-slate-500 text-sm">
-                No active physical contracts
-              </td>
-            </tr>
+          {locked.length === 0 && (
+            <tr><td colSpan={14} className="px-4 py-8 text-center text-slate-500 text-sm">No EFP positions locked yet</td></tr>
           )}
-          {positions.map((p) => (
-            <tr key={p.contractId} className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
-              <td className="px-4 py-3 font-mono text-slate-300 text-xs">{p.deliveryMonth}</td>
-              <td className="px-4 py-3">
-                <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">
-                  {p.siteCode}
-                </span>
-              </td>
-              <td className="px-4 py-3 font-mono text-slate-400 text-xs">{p.contractRef}</td>
-              <td className="px-4 py-3 text-slate-400 text-xs">{p.supplierName}</td>
-              <td className="px-4 py-3 text-slate-300">{fmtMt(p.committedMt)}</td>
-              <td className="px-4 py-3">
-                {p.basisLocked ? (
-                  <span className="flex items-center gap-1 text-blue-300 font-mono">
-                    <Lock className="h-3 w-3 text-blue-400" />
-                    {p.basisValue != null ? (p.basisValue / 100).toFixed(4) : "–"}
-                  </span>
-                ) : (
-                  <span className="text-slate-600 italic text-xs">open</span>
-                )}
-              </td>
-              <td className="px-4 py-3">
-                {p.efpExecuted ? (
-                  <span className="text-emerald-400 font-mono">{p.boardPriceLocked != null ? (p.boardPriceLocked / 100).toFixed(4) : "–"}</span>
-                ) : (
-                  <span className="text-slate-600 italic text-xs">open</span>
-                )}
-              </td>
-              <td className="px-4 py-3">
-                {p.allInPricePerMt != null ? (
-                  <span className="text-emerald-300 font-semibold">{fmtUsd(p.allInPricePerMt)}</span>
-                ) : (
-                  <span className="text-slate-600 italic text-xs">–</span>
-                )}
-              </td>
-              <td className="px-4 py-3">
-                <span className={`text-xs font-medium ${statusColor(p.status)}`}>{p.status.replace("_", " ")}</span>
-              </td>
-            </tr>
-          ))}
+          {locked.map((l) => {
+            const pnlPositive = (l.gainLossCentsBu ?? 0) > 0;
+            const pnlNegative = (l.gainLossCentsBu ?? 0) < 0;
+            const pnlColor = pnlPositive ? "text-emerald-400" : pnlNegative ? "text-red-400" : "text-slate-400";
+            return (
+              <tr key={l.efpTicketId} className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
+                <td className="px-3 py-3 font-mono text-slate-300 text-xs">{l.ticketRef}</td>
+                <td className="px-3 py-3"><span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">{l.siteCode}</span></td>
+                <td className="px-3 py-3 font-mono text-slate-400 text-xs">{l.deliveryMonth}</td>
+                <td className="px-3 py-3">
+                  <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono">{l.futuresMonth}</span>
+                </td>
+                <td className="px-3 py-3 text-slate-300">{l.lots}</td>
+                <td className="px-3 py-3 text-slate-300 font-mono">{centsToUsd(l.futuresBuyPrice)}</td>
+                <td className="px-3 py-3 text-emerald-400 font-mono">{centsToUsd(l.futuresSellPrice)}</td>
+                <td className={cn("px-3 py-3 font-mono font-semibold", pnlColor)}>
+                  {l.gainLossCentsBu != null ? `${l.gainLossCentsBu > 0 ? "+" : ""}${(l.gainLossCentsBu / 100).toFixed(4)}` : "\u2013"}
+                </td>
+                <td className={cn("px-3 py-3 font-semibold", pnlColor)}>
+                  {l.gainLossUsd != null ? fmtPnl(l.gainLossUsd) : "\u2013"}
+                </td>
+                <td className="px-3 py-3 text-emerald-400 font-mono">{centsToUsd(l.boardPrice)}</td>
+                <td className="px-3 py-3 text-slate-400 font-mono">{l.basisValue != null ? (l.basisValue / 100).toFixed(4) : "\u2013"}</td>
+                <td className="px-3 py-3 text-slate-400 font-mono">{fmt2(l.freightValue)}</td>
+                <td className="px-3 py-3 text-emerald-300 font-semibold">{fmtUsd(l.allInPricePerMt)}</td>
+                <td className="px-3 py-3">
+                  {l.effectiveAllInPerMt != null ? (
+                    <span className="text-cyan-300 font-semibold">{fmtUsd(l.effectiveAllInPerMt)}</span>
+                  ) : <span className="text-slate-600">\u2013</span>}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
 
-// ─── Locked Positions Table ───────────────────────────────────────────────────
+// ─── Offsets Table ───────────────────────────────────────────────────────────
 
-function LockedPositionsTable({
-  locked,
-}: {
-  locked: import("@/hooks/useCorn").LockedPositionItem[];
-}) {
+function OffsetsTable({ offsets }: { offsets: OffsetItem[] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-slate-800/50">
-            {["Ticket", "Site", "Delivery", "ZC Month", "Lots", "Board $/bu", "Basis $/bu", "Freight $/MT", "All-In $/MT", "MT", "EFP Date", "Confirm Ref"].map(
-              (h) => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                  {h}
-                </th>
-              )
-            )}
+            {["Trade", "ZC", "Lots", "Bushels", "Entry $/bu", "Exit $/bu", "P&L \u00a2/bu", "P&L $", "Site", "Date", "Notes"].map((h) => (
+              <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {locked.length === 0 && (
-            <tr>
-              <td colSpan={12} className="px-4 py-8 text-center text-slate-500 text-sm">
-                No EFP positions locked yet
-              </td>
-            </tr>
+          {offsets.length === 0 && (
+            <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-500 text-sm">No closed offsets</td></tr>
           )}
-          {locked.map((l) => (
-            <tr key={l.efpTicketId} className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
-              <td className="px-4 py-3 font-mono text-slate-300 text-xs">{l.ticketRef}</td>
-              <td className="px-4 py-3">
-                <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">{l.siteCode}</span>
-              </td>
-              <td className="px-4 py-3 font-mono text-slate-400 text-xs">{l.deliveryMonth}</td>
-              <td className="px-4 py-3">
-                <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono">
-                  {l.futuresMonth}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-slate-300">{l.lots}</td>
-              <td className="px-4 py-3 text-emerald-400 font-mono">{l.boardPrice != null ? (l.boardPrice / 100).toFixed(4) : "–"}</td>
-              <td className="px-4 py-3 text-slate-400 font-mono">{l.basisValue != null ? (l.basisValue / 100).toFixed(4) : "–"}</td>
-              <td className="px-4 py-3 text-slate-400 font-mono">{fmt2(l.freightValue)}</td>
-              <td className="px-4 py-3">
-                <span className="text-emerald-300 font-semibold">{fmtUsd(l.allInPricePerMt)}</span>
-              </td>
-              <td className="px-4 py-3 text-slate-300">{fmtMt(l.quantityMt)}</td>
-              <td className="px-4 py-3 text-slate-500 text-xs font-mono">{l.efpDate}</td>
-              <td className="px-4 py-3 text-slate-500 text-xs">{l.confirmationRef || "–"}</td>
-            </tr>
-          ))}
+          {offsets.map((o) => {
+            const pnlColor = o.pnlCentsBu > 0 ? "text-emerald-400" : o.pnlCentsBu < 0 ? "text-red-400" : "text-slate-400";
+            return (
+              <tr key={o.offsetId} className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
+                <td className="px-4 py-3 font-mono text-slate-200 text-xs">{o.tradeRef}</td>
+                <td className="px-4 py-3">
+                  <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono">{o.futuresMonth}</span>
+                </td>
+                <td className="px-4 py-3 text-slate-300">{o.lots}</td>
+                <td className="px-4 py-3 text-slate-300">{fmtBu(o.bushels)}</td>
+                <td className="px-4 py-3 text-slate-300 font-mono">{centsToUsd(o.entryPrice)}</td>
+                <td className="px-4 py-3 text-slate-200 font-mono">{centsToUsd(o.exitPrice)}</td>
+                <td className={cn("px-4 py-3 font-mono font-semibold", pnlColor)}>
+                  {o.pnlCentsBu > 0 ? "+" : ""}{(o.pnlCentsBu / 100).toFixed(4)}
+                </td>
+                <td className={cn("px-4 py-3 font-semibold", pnlColor)}>{fmtPnl(o.pnlUsd)}</td>
+                <td className="px-4 py-3">
+                  {o.siteCode ? <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">{o.siteCode}</span>
+                    : <span className="text-slate-600 text-xs">Pool</span>}
+                </td>
+                <td className="px-4 py-3 text-slate-500 text-xs font-mono">{o.offsetDate}</td>
+                <td className="px-4 py-3 text-slate-500 text-xs">{o.notes || "\u2013"}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -637,26 +1205,56 @@ function LockedPositionsTable({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+type Book = "CANADA" | "US";
+
 export default function PositionsPage() {
-  const { positions, isLoading, error, mutate } = usePositions();
+  const [book, setBook] = useState<Book>("CANADA");
+  const { positions, isLoading, error, mutate } = usePositions(book);
   const { sites } = useSites();
   const [settleOpen, setSettleOpen] = useState(false);
+  const [siteFilter, setSiteFilter] = useState("");
+  const [newPurchaseOpen, setNewPurchaseOpen] = useState(false);
 
-  const pool     = positions?.corporatePool     ?? [];
-  const physical = positions?.physicalPositions ?? [];
-  const locked   = positions?.lockedPositions   ?? [];
-  const settles  = positions?.latestSettles     ?? {};
+  const hedgeBook   = positions?.hedgeBook         ?? [];
+  const allocations = positions?.siteAllocations   ?? [];
+  const physical    = positions?.physicalPositions  ?? [];
+  const locked      = positions?.lockedPositions    ?? [];
+  const offsets     = positions?.offsets            ?? [];
+  const settles     = positions?.latestSettles      ?? {};
 
-  // Unique futures months with open lots — for settle publisher
-  const openFuturesMonths = Array.from(new Set(pool.map((h) => h.futuresMonth)));
-
-  // Gap detection: physical commitments with no open hedge covering that month
-  const coveredMonths = new Set(
-    pool.flatMap((h) => getValidDeliveryMonths(h.futuresMonth))
+  // Client-side site filter
+  const filteredAllocations = useMemo(
+    () => siteFilter ? allocations.filter((a) => a.siteCode === siteFilter) : allocations,
+    [allocations, siteFilter]
   );
-  const uncoveredPhysical = physical.filter(
-    (p) => !p.efpExecuted && !coveredMonths.has(p.deliveryMonth)
+  const filteredPhysical = useMemo(
+    () => siteFilter ? physical.filter((p) => p.siteCode === siteFilter) : physical,
+    [physical, siteFilter]
   );
+  const filteredLocked = useMemo(
+    () => siteFilter ? locked.filter((l) => l.siteCode === siteFilter) : locked,
+    [locked, siteFilter]
+  );
+
+  // Unique sites from data
+  const dataSites = useMemo(() => {
+    const codes = new Set([
+      ...allocations.map((a) => a.siteCode),
+      ...physical.map((p) => p.siteCode),
+      ...locked.map((l) => l.siteCode),
+    ]);
+    return Array.from(codes).sort();
+  }, [allocations, physical, locked]);
+
+  // All unique futures months for settle publisher
+  const allFuturesMonths = useMemo(() => {
+    const months = new Set<string>();
+    hedgeBook.forEach((h) => months.add(h.futuresMonth));
+    allocations.forEach((a) => months.add(a.futuresMonth));
+    return Array.from(months).sort();
+  }, [hedgeBook, allocations]);
+
+  const bookLabel = book === "CANADA" ? "Canada" : "US";
 
   if (isLoading) {
     return (
@@ -669,13 +1267,7 @@ export default function PositionsPage() {
   }
 
   if (error) {
-    return (
-      <EmptyState
-        icon={AlertCircle}
-        title="Failed to load positions"
-        description={error.message}
-      />
-    );
+    return <EmptyState icon={AlertCircle} title="Failed to load positions" description={error.message} />;
   }
 
   return (
@@ -685,7 +1277,6 @@ export default function PositionsPage() {
         <div className="flex items-center gap-3">
           <Activity className="h-6 w-6 text-blue-400" />
           <h1 className="text-xl font-bold text-slate-100">Position Manager</h1>
-          <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded">Canada</span>
         </div>
         <button
           onClick={() => setSettleOpen((o) => !o)}
@@ -697,72 +1288,139 @@ export default function PositionsPage() {
         </button>
       </div>
 
-      {/* Gap alert */}
-      {uncoveredPhysical.length > 0 && (
-        <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
-          <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-amber-300">Coverage gap detected</p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {uncoveredPhysical.length} physical contract{uncoveredPhysical.length > 1 ? "s" : ""} have delivery months not covered by open futures:{" "}
-              {uncoveredPhysical.map((p) => `${p.contractRef} (${p.deliveryMonth})`).join(", ")}
-            </p>
-          </div>
+      {/* Book toggle + site filter */}
+      <div className="flex items-center gap-4">
+        <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl w-fit">
+          {(["CANADA", "US"] as Book[]).map((b) => (
+            <button
+              key={b}
+              onClick={() => { setBook(b); setSiteFilter(""); }}
+              className={cn(
+                "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
+                book === b ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
+              )}
+            >
+              {b === "CANADA" ? "\ud83c\udde8\ud83c\udde6 Canada" : "\ud83c\uddfa\ud83c\uddf8 United States"}
+            </button>
+          ))}
         </div>
-      )}
+        {dataSites.length > 0 && (
+          <select
+            value={siteFilter}
+            onChange={(e) => setSiteFilter(e.target.value)}
+            className="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="">All Sites</option>
+            {dataSites.map((code) => <option key={code} value={code}>{code}</option>)}
+          </select>
+        )}
+      </div>
 
       {/* Settle publisher */}
       {settleOpen && (
         <SettlePublisher
-          futuresMonths={openFuturesMonths.length > 0 ? openFuturesMonths : ["ZCH26", "ZCK26", "ZCN26"]}
+          futuresMonths={allFuturesMonths.length > 0 ? allFuturesMonths : ["ZCH26", "ZCK26", "ZCN26"]}
           existingSettles={settles}
           onDone={() => { setSettleOpen(false); mutate(); }}
         />
       )}
 
-      {/* Panel 1 — Canada Hedge Book */}
+      {/* Panel 1 — Hedge Book */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-slate-200">Canada Hedge Book — Corporate Pool</h2>
+            <h2 className="text-sm font-semibold text-slate-200">Hedge Book &mdash; {bookLabel}</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              {pool.length} position{pool.length !== 1 ? "s" : ""} ·{" "}
-              {pool.reduce((s, h) => s + h.openLots, 0)} open lots ·{" "}
-              {fmtMt(pool.reduce((s, h) => s + (h.openMt ?? 0), 0))} MT
+              {hedgeBook.length} trade{hedgeBook.length !== 1 ? "s" : ""} &middot;{" "}
+              {fmtBu(hedgeBook.reduce((s, h) => s + h.unallocatedBushels, 0))} bu unallocated
             </p>
           </div>
-          <span className="text-xs text-slate-600">Click EFP to allocate</span>
+          <span className="text-xs text-slate-600">Grouped by futures month. Click to expand.</span>
         </div>
-        <CorporatePoolTable
-          pool={pool}
-          physicalPositions={physical}
+        <HedgeBookTable hedgeBook={hedgeBook} sites={sites} onRefresh={() => mutate()} />
+      </div>
+
+      {/* Panel 2 — Allocated Futures */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-800">
+          <h2 className="text-sm font-semibold text-slate-200">
+            Allocated Futures{siteFilter && ` \u2014 ${siteFilter}`}
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {filteredAllocations.length} allocation{filteredAllocations.length !== 1 ? "s" : ""} &middot;{" "}
+            {fmtBu(filteredAllocations.reduce((s, a) => s + a.allocatedBushels, 0))} bu allocated
+          </p>
+        </div>
+        <SiteAllocationsTable
+          allocations={filteredAllocations}
+          physicalPositions={filteredPhysical}
           sites={sites}
+          settles={settles}
           onRefresh={() => mutate()}
         />
       </div>
 
-      {/* Panel 2 — Physical Commitments */}
+      {/* Panel 3 — Physical Commitments */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-200">Physical Commitments</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {physical.length} active contract{physical.length !== 1 ? "s" : ""} ·{" "}
-            {fmtMt(physical.reduce((s, p) => s + p.committedMt, 0))} MT committed
-          </p>
+        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-200">
+              Physical Commitments{siteFilter && ` \u2014 ${siteFilter}`}
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {filteredPhysical.length} contract{filteredPhysical.length !== 1 ? "s" : ""} &middot;{" "}
+              {fmtMt(filteredPhysical.reduce((s, p) => s + p.committedMt, 0))} MT committed
+            </p>
+          </div>
+          <button
+            onClick={() => setNewPurchaseOpen((o) => !o)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded-lg text-xs font-medium transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" /> New Purchase
+          </button>
         </div>
-        <PhysicalPositionsTable positions={physical} />
+        {newPurchaseOpen && (
+          <div className="px-5 py-4 border-b border-slate-800">
+            <NewPurchaseForm
+              siteCode={siteFilter}
+              sites={sites}
+              onDone={() => { setNewPurchaseOpen(false); mutate(); }}
+              onCancel={() => setNewPurchaseOpen(false)}
+            />
+          </div>
+        )}
+        <PhysicalPositionsTable positions={filteredPhysical} settles={settles} />
       </div>
 
-      {/* Panel 3 — Locked Positions */}
+      {/* Panel 4 — Locked Positions */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-200">Locked Positions — EFP Executed</h2>
+          <h2 className="text-sm font-semibold text-slate-200">
+            Locked Positions &mdash; EFP Executed{siteFilter && ` \u2014 ${siteFilter}`}
+          </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            {locked.length} EFP ticket{locked.length !== 1 ? "s" : ""} ·{" "}
-            {locked.reduce((s, l) => s + l.lots, 0)} lots locked
+            {filteredLocked.length} EFP ticket{filteredLocked.length !== 1 ? "s" : ""} &middot;{" "}
+            {filteredLocked.reduce((s, l) => s + l.lots, 0)} lots locked
           </p>
         </div>
-        <LockedPositionsTable locked={locked} />
+        <LockedPositionsTable locked={filteredLocked} />
+      </div>
+
+      {/* Panel 5 — Closed Offsets */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-800">
+          <h2 className="text-sm font-semibold text-slate-200">Closed Offsets</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {offsets.length} offset{offsets.length !== 1 ? "s" : ""}
+            {offsets.length > 0 && (
+              <> &middot; Total P&L: <span className={cn("font-semibold",
+                offsets.reduce((s, o) => s + o.pnlUsd, 0) >= 0 ? "text-emerald-400" : "text-red-400")}>
+                {fmtPnl(offsets.reduce((s, o) => s + o.pnlUsd, 0))}
+              </span></>
+            )}
+          </p>
+        </div>
+        <OffsetsTable offsets={offsets} />
       </div>
     </div>
   );

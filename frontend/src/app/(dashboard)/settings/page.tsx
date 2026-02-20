@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   useAdminSites,
   useCommodities,
   useAppSettings,
+  useSuppliers,
+  useSiteSuppliers,
+  useSiteCommodities,
   SiteResponse,
   CommodityResponse,
+  SupplierResponse,
 } from "@/hooks/useSettings";
 import { api } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
@@ -22,6 +26,9 @@ import {
   Wheat,
   Calendar,
   ArrowLeftRight,
+  Truck,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,14 +51,123 @@ const CBOT_LETTERS: Record<string, string> = {
   H: "March", K: "May", N: "July", U: "September", Z: "December",
 };
 
-type Tab = "sites" | "commodities" | "fiscal-year" | "futures-months";
+type Tab = "sites" | "suppliers" | "commodities" | "fiscal-year" | "futures-months";
 
 const TABS: { key: Tab; label: string; icon: typeof Settings }[] = [
   { key: "sites", label: "Sites", icon: Building2 },
+  { key: "suppliers", label: "Suppliers", icon: Truck },
   { key: "commodities", label: "Commodities", icon: Wheat },
   { key: "fiscal-year", label: "Fiscal Year", icon: Calendar },
   { key: "futures-months", label: "Futures Months", icon: ArrowLeftRight },
 ];
+
+// ─── Site Linking Panel ──────────────────────────────────────────────────────
+
+function SiteLinkingPanel({ site }: { site: SiteResponse }) {
+  const { suppliers: allSuppliers } = useSuppliers();
+  const { commodities: allCommodities } = useCommodities();
+  const { suppliers: linkedSuppliers, mutate: mutateSuppliers } = useSiteSuppliers(site.id);
+  const { commodities: linkedCommodities, mutate: mutateCommodities } = useSiteCommodities(site.id);
+  const { toast } = useToast();
+  const [savingS, setSavingS] = useState(false);
+  const [savingC, setSavingC] = useState(false);
+
+  const linkedSupplierIds = new Set(linkedSuppliers.map((s) => s.id));
+  const linkedCommodityIds = new Set(linkedCommodities.map((c) => c.id));
+
+  async function toggleSupplier(supplierId: number) {
+    setSavingS(true);
+    const next = linkedSupplierIds.has(supplierId)
+      ? [...linkedSupplierIds].filter((id) => id !== supplierId)
+      : [...linkedSupplierIds, supplierId];
+    try {
+      await api.put(`/api/v1/corn/sites/${site.id}/suppliers`, next);
+      mutateSuppliers();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Failed to update suppliers", "error");
+    } finally {
+      setSavingS(false);
+    }
+  }
+
+  async function toggleCommodity(commodityId: number) {
+    setSavingC(true);
+    const next = linkedCommodityIds.has(commodityId)
+      ? [...linkedCommodityIds].filter((id) => id !== commodityId)
+      : [...linkedCommodityIds, commodityId];
+    try {
+      await api.put(`/api/v1/corn/sites/${site.id}/commodities`, next);
+      mutateCommodities();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Failed to update commodities", "error");
+    } finally {
+      setSavingC(false);
+    }
+  }
+
+  const activeSuppliers = allSuppliers.filter((s) => s.active);
+  const activeCommodities = allCommodities.filter((c) => c.active);
+
+  return (
+    <div className="px-6 py-4 bg-slate-950/40 border-t border-slate-800/50 space-y-4">
+      {/* Linked Suppliers */}
+      <div>
+        <p className="text-xs font-medium text-slate-400 mb-2">Linked Suppliers {savingS && <span className="text-blue-400 ml-1">saving...</span>}</p>
+        {activeSuppliers.length === 0 ? (
+          <p className="text-xs text-slate-600">No suppliers configured yet</p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {activeSuppliers.map((s) => {
+              const linked = linkedSupplierIds.has(s.id);
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => toggleSupplier(s.id)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                    linked
+                      ? "bg-blue-600/20 text-blue-300 ring-1 ring-blue-500/30"
+                      : "bg-slate-800 text-slate-500 hover:text-slate-300 ring-1 ring-slate-700"
+                  )}
+                >
+                  {s.code} — {s.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Linked Commodities */}
+      <div>
+        <p className="text-xs font-medium text-slate-400 mb-2">Linked Commodities {savingC && <span className="text-blue-400 ml-1">saving...</span>}</p>
+        {activeCommodities.length === 0 ? (
+          <p className="text-xs text-slate-600">No commodities configured yet</p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {activeCommodities.map((c) => {
+              const linked = linkedCommodityIds.has(c.id);
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => toggleCommodity(c.id)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                    linked
+                      ? "bg-emerald-600/20 text-emerald-300 ring-1 ring-emerald-500/30"
+                      : "bg-slate-800 text-slate-500 hover:text-slate-300 ring-1 ring-slate-700"
+                  )}
+                >
+                  {c.code} — {c.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ─── Sites Tab ────────────────────────────────────────────────────────────────
 
@@ -62,6 +178,7 @@ function SitesTab() {
   const [editing, setEditing] = useState<SiteResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ code: "", name: "", country: "Canada", province: "" });
+  const [expandedSiteId, setExpandedSiteId] = useState<number | null>(null);
 
   function field(k: keyof typeof form, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -126,7 +243,7 @@ function SitesTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-400">{sites.length} sites configured</p>
+        <p className="text-sm text-slate-400">{sites.length} sites configured · click a row to manage linked suppliers and commodities</p>
         <button
           onClick={() => (showForm ? cancelForm() : setShowForm(true))}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
@@ -190,7 +307,7 @@ function SitesTab() {
               Cancel
             </button>
             <button type="submit" disabled={submitting} className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
-              {submitting ? "Saving…" : editing ? "Update Site" : "Create Site"}
+              {submitting ? "Saving..." : editing ? "Update Site" : "Create Site"}
             </button>
           </div>
         </form>
@@ -208,34 +325,251 @@ function SitesTab() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-800/50 border-b border-slate-800">
+                    <th className="w-8" />
                     {["Code", "Name", "Province", ""].map((h) => (
                       <th key={h} className="text-left px-3 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-                  {grouped[country].map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="px-3 py-3 font-mono text-xs text-blue-400">{s.code}</td>
-                      <td className="px-3 py-3 text-slate-200">{s.name}</td>
-                      <td className="px-3 py-3 text-slate-400">{s.province ?? "—"}</td>
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-2 justify-end">
-                          <button onClick={() => startEdit(s)} className="text-slate-600 hover:text-blue-400 transition-colors" title="Edit">
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
-                          <button onClick={() => handleDelete(s)} className="text-slate-600 hover:text-red-400 transition-colors" title="Delete">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {grouped[country].map((s) => {
+                    const expanded = expandedSiteId === s.id;
+                    return (
+                      <React.Fragment key={s.id}>
+                        <tr
+                          className={cn("hover:bg-slate-800/40 transition-colors cursor-pointer", expanded && "bg-slate-800/30")}
+                          onClick={() => setExpandedSiteId(expanded ? null : s.id)}
+                        >
+                          <td className="px-2 py-3 text-center">
+                            {expanded ? <ChevronDown className="h-3.5 w-3.5 text-slate-500" /> : <ChevronRight className="h-3.5 w-3.5 text-slate-500" />}
+                          </td>
+                          <td className="px-3 py-3 font-mono text-xs text-blue-400">{s.code}</td>
+                          <td className="px-3 py-3 text-slate-200">{s.name}</td>
+                          <td className="px-3 py-3 text-slate-400">{s.province ?? "\u2014"}</td>
+                          <td className="px-3 py-3">
+                            <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => startEdit(s)} className="text-slate-600 hover:text-blue-400 transition-colors" title="Edit">
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </button>
+                              <button onClick={() => handleDelete(s)} className="text-slate-600 hover:text-red-400 transition-colors" title="Delete">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {expanded && (
+                          <tr>
+                            <td colSpan={5}>
+                              <SiteLinkingPanel site={s} />
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </div>
         ))
+      )}
+    </div>
+  );
+}
+
+// ─── Suppliers Tab ───────────────────────────────────────────────────────────
+
+function SuppliersTab() {
+  const { suppliers, isLoading, mutate } = useSuppliers();
+  const { toast } = useToast();
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<SupplierResponse | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const defaultForm = { code: "", name: "", country: "", contactEmail: "", contactPhone: "" };
+  const [form, setForm] = useState(defaultForm);
+
+  function field(k: keyof typeof form, v: string) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  function startEdit(s: SupplierResponse) {
+    setEditing(s);
+    setForm({
+      code: s.code,
+      name: s.name,
+      country: s.country ?? "",
+      contactEmail: s.contactEmail ?? "",
+      contactPhone: s.contactPhone ?? "",
+    });
+    setShowForm(true);
+  }
+
+  function cancelForm() {
+    setShowForm(false);
+    setEditing(null);
+    setForm(defaultForm);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const payload = {
+        code: form.code,
+        name: form.name,
+        country: form.country || null,
+        contactEmail: form.contactEmail || null,
+        contactPhone: form.contactPhone || null,
+      };
+      if (editing) {
+        await api.put(`/api/v1/suppliers/${editing.id}`, payload);
+        toast("Supplier updated", "success");
+      } else {
+        await api.post("/api/v1/suppliers", payload);
+        toast("Supplier created", "success");
+      }
+      cancelForm();
+      mutate();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Save failed", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDeactivate(s: SupplierResponse) {
+    try {
+      await api.delete(`/api/v1/suppliers/${s.id}`);
+      toast(`${s.code} deactivated`, "success");
+      mutate();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Deactivation failed", "error");
+    }
+  }
+
+  async function handleActivate(s: SupplierResponse) {
+    try {
+      await api.put(`/api/v1/suppliers/${s.id}/activate`, {});
+      toast(`${s.code} activated`, "success");
+      mutate();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Activation failed", "error");
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-400">{suppliers.length} suppliers</p>
+        <button
+          onClick={() => (showForm ? cancelForm() : setShowForm(true))}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {showForm ? "Cancel" : "Add Supplier"}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-slate-200">
+            {editing ? <>Edit <span className="text-blue-400">{editing.code}</span></> : "New Supplier"}
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs text-slate-400">Code</label>
+              <input type="text" maxLength={20} required
+                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                placeholder="e.g. CARG" value={form.code} onChange={(e) => field("code", e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-slate-400">Name</label>
+              <input type="text" maxLength={200} required
+                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                placeholder="e.g. Cargill" value={form.name} onChange={(e) => field("name", e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-slate-400">Country</label>
+              <input type="text"
+                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                placeholder="e.g. Canada" value={form.country} onChange={(e) => field("country", e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-slate-400">Email</label>
+              <input type="email" maxLength={150}
+                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                placeholder="contact@example.com" value={form.contactEmail} onChange={(e) => field("contactEmail", e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-slate-400">Phone</label>
+              <input type="tel" maxLength={30}
+                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                placeholder="+1 204 555 0100" value={form.contactPhone} onChange={(e) => field("contactPhone", e.target.value)} />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={cancelForm} className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">Cancel</button>
+            <button type="submit" disabled={submitting} className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+              {submitting ? "Saving..." : editing ? "Update" : "Create"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {isLoading ? (
+        <SkeletonTable rows={5} cols={7} />
+      ) : suppliers.length === 0 ? (
+        <EmptyState icon={Truck} title="No suppliers" description="Add your first supplier to get started." action={{ label: "Add Supplier", onClick: () => setShowForm(true) }} />
+      ) : (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-800/50 border-b border-slate-800">
+                {["Code", "Name", "Country", "Email", "Phone", "Active", ""].map((h) => (
+                  <th key={h} className="text-left px-3 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {suppliers.map((s) => (
+                <tr key={s.id} className="hover:bg-slate-800/40 transition-colors">
+                  <td className="px-3 py-3 font-mono text-xs text-blue-400">{s.code}</td>
+                  <td className="px-3 py-3 text-slate-200">{s.name}</td>
+                  <td className="px-3 py-3 text-slate-400">{s.country ?? "\u2014"}</td>
+                  <td className="px-3 py-3 text-slate-400 text-xs">{s.contactEmail ?? "\u2014"}</td>
+                  <td className="px-3 py-3 text-slate-400 text-xs">{s.contactPhone ?? "\u2014"}</td>
+                  <td className="px-3 py-3">
+                    <span className={cn(
+                      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                      s.active
+                        ? "text-emerald-400 bg-emerald-500/10 ring-1 ring-emerald-500/20"
+                        : "text-slate-400 bg-slate-500/10 ring-1 ring-slate-500/20"
+                    )}>
+                      {s.active ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2 justify-end">
+                      <button onClick={() => startEdit(s)} className="text-slate-600 hover:text-blue-400 transition-colors" title="Edit">
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
+                      {s.active ? (
+                        <button onClick={() => handleDeactivate(s)} className="text-slate-600 hover:text-red-400 transition-colors" title="Deactivate">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      ) : (
+                        <button onClick={() => handleActivate(s)} className="text-slate-600 hover:text-emerald-400 transition-colors text-xs" title="Activate">
+                          Activate
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
@@ -389,7 +723,7 @@ function CommoditiesTab() {
           <div className="flex justify-end gap-2">
             <button type="button" onClick={cancelForm} className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">Cancel</button>
             <button type="submit" disabled={submitting} className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
-              {submitting ? "Saving…" : editing ? "Update" : "Create"}
+              {submitting ? "Saving..." : editing ? "Update" : "Create"}
             </button>
           </div>
         </form>
@@ -512,7 +846,7 @@ function FiscalYearTab() {
         <div className="p-4 bg-slate-800/50 rounded-lg">
           <p className="text-xs text-slate-500 mb-1">Preview</p>
           <p className="text-sm font-semibold text-slate-200">
-            FY {startYear}/{endYear} = {startLabel} {startYear} – {endLabel} {endYear}
+            FY {startYear}/{endYear} = {startLabel} {startYear} &ndash; {endLabel} {endYear}
           </p>
         </div>
 
@@ -521,7 +855,7 @@ function FiscalYearTab() {
           disabled={saving}
           className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
         >
-          {saving ? "Saving…" : "Save"}
+          {saving ? "Saving..." : "Save"}
         </button>
       </div>
 
@@ -610,7 +944,7 @@ function FuturesMonthsTab() {
           <div className="flex items-center gap-2">
             <button onClick={cancelEdit} className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">Cancel</button>
             <button onClick={handleSave} disabled={saving} className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
-              {saving ? "Saving…" : "Save Mappings"}
+              {saving ? "Saving..." : "Save Mappings"}
             </button>
           </div>
         )}
@@ -669,7 +1003,7 @@ function FuturesMonthsTab() {
       <div className="space-y-1">
         {letters.map((letter) => (
           <p key={letter} className="text-xs text-slate-500">
-            <span className="font-mono text-slate-400">{letter}</span> = {CBOT_LETTERS[letter]} contract → {(active[letter] ?? []).map((m) => MONTH_ABBR[m - 1]).join(", ") || "none"}
+            <span className="font-mono text-slate-400">{letter}</span> = {CBOT_LETTERS[letter]} contract &rarr; {(active[letter] ?? []).map((m) => MONTH_ABBR[m - 1]).join(", ") || "none"}
           </p>
         ))}
       </div>
@@ -687,7 +1021,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div>
         <h1 className="text-xl font-semibold text-slate-100">Settings</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Manage sites, commodities, fiscal year, and futures month mappings</p>
+        <p className="text-sm text-slate-400 mt-0.5">Manage sites, suppliers, commodities, fiscal year, and futures month mappings</p>
       </div>
 
       {/* Tab bar */}
@@ -711,6 +1045,7 @@ export default function SettingsPage() {
 
       {/* Tab content */}
       {tab === "sites" && <SitesTab />}
+      {tab === "suppliers" && <SuppliersTab />}
       {tab === "commodities" && <CommoditiesTab />}
       {tab === "fiscal-year" && <FiscalYearTab />}
       {tab === "futures-months" && <FuturesMonthsTab />}

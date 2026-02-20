@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useState, useMemo } from "react";
 import {
   BookOpen, Plus, Edit2, Trash2, X,
   ChevronDown, ChevronRight, CalendarDays,
@@ -9,11 +9,12 @@ import {
   useBudget, useSites,
   CornBudgetLineResponse,
 } from "@/hooks/useCorn";
-import { useAppSettings } from "@/hooks/useSettings";
+import { useAdminSites, useAppSettings } from "@/hooks/useSettings";
 import { api } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { cn } from "@/lib/utils";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -591,28 +592,51 @@ function BudgetLineRow({ line, onEdit, onDeleted }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 type FormMode = "none" | "single" | "fiscal-year";
+type Book = "CANADA" | "US";
+
+function currentFiscalYear(fyStartMonth: number): string {
+  const now = new Date();
+  const y = now.getMonth() + 1 >= fyStartMonth ? now.getFullYear() : now.getFullYear() - 1;
+  return `${y}/${y + 1}`;
+}
 
 export default function BudgetPage() {
   const { sites } = useSites();
+  const { sites: adminSites } = useAdminSites();
   const { settings } = useAppSettings();
   const fyStartMonth = parseInt(settings.find((s) => s.settingKey === "FISCAL_YEAR_START_MONTH")?.value ?? "7") || 7;
+  const [book, setBook] = useState<Book>("CANADA");
   const [filterSite, setFilterSite] = useState("");
-  const [filterFY, setFilterFY]     = useState("");
+  const [filterFY, setFilterFY]     = useState(() => currentFiscalYear(fyStartMonth));
   const { budget, isLoading, mutate } = useBudget(filterSite || undefined, filterFY || undefined);
   const [formMode, setFormMode]     = useState<FormMode>("none");
   const [editing, setEditing]       = useState<CornBudgetLineResponse | undefined>();
+
+  // Map book to country for filtering
+  const bookCountry = book === "CANADA" ? "Canada" : "US";
+
+  // Filter sites by country from admin sites (which have the country field)
+  const countrySites = useMemo(() => {
+    return adminSites.filter((s) => s.country === bookCountry);
+  }, [adminSites, bookCountry]);
+  const countrySiteCodes = useMemo(() => new Set(countrySites.map((s) => s.code)), [countrySites]);
 
   function openEdit(line: CornBudgetLineResponse) { setEditing(line); setFormMode("single"); }
   function closeForm() { setFormMode("none"); setEditing(undefined); }
   function onSaved() { closeForm(); mutate(); }
 
-  const bySite = budget.reduce<Record<string, CornBudgetLineResponse[]>>((acc, line) => {
+  // Filter budget lines by country (only show lines for sites in the selected country)
+  const filteredBudget = useMemo(() => {
+    return budget.filter((l) => countrySiteCodes.has(l.siteCode));
+  }, [budget, countrySiteCodes]);
+
+  const bySite = filteredBudget.reduce<Record<string, CornBudgetLineResponse[]>>((acc, line) => {
     (acc[line.siteCode] ??= []).push(line);
     return acc;
   }, {});
 
-  const totalBu = budget.reduce((s, l) => s + (l.budgetVolumeBu ?? l.budgetVolumeMt * BUSHELS_PER_MT), 0);
-  const totalMt = budget.reduce((s, l) => s + l.budgetVolumeMt, 0);
+  const totalBu = filteredBudget.reduce((s, l) => s + (l.budgetVolumeBu ?? l.budgetVolumeMt * BUSHELS_PER_MT), 0);
+  const totalMt = filteredBudget.reduce((s, l) => s + l.budgetVolumeMt, 0);
 
   return (
     <div className="space-y-5">
@@ -620,7 +644,7 @@ export default function BudgetPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-slate-100">Procurement Budget</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Fiscal year starting {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][fyStartMonth - 1]} · volume targets by site and month</p>
+          <p className="text-sm text-slate-400 mt-0.5">Fiscal year starting {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][fyStartMonth - 1]} &middot; volume targets by site and month</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => { setFormMode("fiscal-year"); setEditing(undefined); }}
@@ -634,12 +658,32 @@ export default function BudgetPage() {
         </div>
       </div>
 
+      {/* Book toggle */}
+      <div className="flex items-center gap-4">
+        <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl w-fit">
+          {(["CANADA", "US"] as Book[]).map((b) => (
+            <button
+              key={b}
+              onClick={() => { setBook(b); setFilterSite(""); }}
+              className={cn(
+                "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
+                book === b
+                  ? "bg-blue-600 text-white shadow"
+                  : "text-slate-400 hover:text-slate-200"
+              )}
+            >
+              {b === "CANADA" ? "\ud83c\udde8\ud83c\udde6 Canada" : "\ud83c\uddfa\ud83c\uddf8 United States"}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
         <select value={filterSite} onChange={(e) => setFilterSite(e.target.value)}
           className="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-          <option value="">All Sites</option>
-          {sites.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
+          <option value="">All {bookCountry} Sites</option>
+          {countrySites.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
         </select>
         <select value={filterFY} onChange={(e) => setFilterFY(e.target.value)}
           className="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
@@ -657,12 +701,12 @@ export default function BudgetPage() {
       )}
 
       {/* KPIs */}
-      {budget.length > 0 && (
+      {filteredBudget.length > 0 && (
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: "Budget Lines",  value: String(budget.length) },
-            { label: "Total Bushels", value: totalBu > 0 ? `${(totalBu / 1_000_000).toFixed(2)}M bu` : "—" },
-            { label: "Total MT",      value: totalMt > 0 ? `${fmtVol(Math.round(totalMt))} MT` : "—" },
+            { label: "Budget Lines",  value: String(filteredBudget.length) },
+            { label: "Total Bushels", value: totalBu > 0 ? `${(totalBu / 1_000_000).toFixed(2)}M bu` : "\u2014" },
+            { label: "Total MT",      value: totalMt > 0 ? `${fmtVol(Math.round(totalMt))} MT` : "\u2014" },
           ].map(({ label, value }) => (
             <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
               <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{label}</p>
@@ -675,7 +719,7 @@ export default function BudgetPage() {
       {/* Table grouped by site */}
       {isLoading ? (
         <SkeletonTable rows={6} cols={8} />
-      ) : budget.length === 0 ? (
+      ) : filteredBudget.length === 0 ? (
         <EmptyState
           icon={BookOpen}
           title="No budget lines"
@@ -697,9 +741,9 @@ export default function BudgetPage() {
                   </div>
                   <div className="flex gap-4 text-xs text-slate-400">
                     <span>{fmtVol(siteBu)} bu</span>
-                    <span className="text-slate-600">·</span>
+                    <span className="text-slate-600">&middot;</span>
                     <span>{fmtVol(siteMt)} MT</span>
-                    <span className="text-slate-600">·</span>
+                    <span className="text-slate-600">&middot;</span>
                     <span>{lines.length} line{lines.length !== 1 ? "s" : ""}</span>
                   </div>
                 </div>

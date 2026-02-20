@@ -12,4 +12,5 @@ public interface PhysicalContractRepository extends JpaRepository<PhysicalContra
     List<PhysicalContract> findByDeliveryMonthOrderBySiteCodeAsc(String deliveryMonth);
     List<PhysicalContract> findByStatus(PhysicalContractStatus status);
     List<PhysicalContract> findByStatusNotIn(Collection<PhysicalContractStatus> statuses);
+    List<PhysicalContract> findByStatusNotInAndSite_CountryOrderByDeliveryMonth(Collection<PhysicalContractStatus> statuses, String country);
 }

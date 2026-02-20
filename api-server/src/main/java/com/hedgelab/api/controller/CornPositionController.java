@@ -14,10 +14,10 @@ public class CornPositionController {
 
     private final CornPositionService positionService;
 
-    /** Returns the full three-panel position snapshot. */
+    /** Returns the full three-panel position snapshot, optionally filtered by book (CANADA/US). */
     @GetMapping
-    public CornPositionResponse getPositions() {
-        return positionService.getPositions();
+    public CornPositionResponse getPositions(@RequestParam(required = false) String book) {
+        return positionService.getPositions(book);
     }
 
     /** Publishes daily ZC settle prices for MTM calculations. */

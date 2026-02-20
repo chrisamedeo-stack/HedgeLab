@@ -41,7 +41,8 @@ public class EFPService {
                 .boardPrice(req.getBoardPrice()).basisValue(req.getBasisValue())
                 .quantityMt(qtyMt).efpDate(req.getEfpDate())
                 .confirmationRef(req.getConfirmationRef())
-                .status(EFPTicketStatus.CONFIRMED).notes(req.getNotes()).build();
+                .status(EFPTicketStatus.CONFIRMED).notes(req.getNotes())
+                .entryPrice(hedge.getPricePerBushel()).build();
         // Update hedge open lots
         int newOpenLots = Math.max(0, hedge.getOpenLots() - req.getLots());
         hedge.setOpenLots(newOpenLots);

@@ -28,4 +28,5 @@ public class PhysicalContractResponse {
     private BigDecimal allInPerMt;        // $/MT fully priced (when board is locked)
     private LocalDate contractDate;
     private String notes;
+    private String tradeType;               // INDEX or BASIS
 }

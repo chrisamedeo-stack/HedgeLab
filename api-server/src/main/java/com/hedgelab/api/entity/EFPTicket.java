@@ -35,4 +35,7 @@ public class EFPTicket extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     private EFPTicketStatus status;
     private String notes;
+
+    @Column(name = "entry_price", precision = 10, scale = 4)
+    private BigDecimal entryPrice;
 }
