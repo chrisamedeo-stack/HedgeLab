@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, Fragment } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import {
   Activity,
   TrendingUp,
@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronRight,
+  ChevronLeft,
   Zap,
   Lock,
   AlertCircle,
@@ -19,22 +20,28 @@ import {
 import {
   usePositions,
   useSites,
+  useBudget,
   HedgeBookItem,
   SiteAllocationItem,
   PhysicalPositionItem,
   LockedPositionItem,
   OffsetItem,
+  CornBudgetLineResponse,
 } from "@/hooks/useCorn";
-import { useSuppliers } from "@/hooks/useSettings";
+import { useSuppliers, useAppSettings } from "@/hooks/useSettings";
 import { api } from "@/lib/api";
+import {
+  BUSHELS_PER_MT,
+  suggestFuturesMonth,
+  getValidDeliveryMonths,
+  fiscalYearMonths,
+  currentFiscalYear,
+  monthLabel,
+} from "@/lib/corn-utils";
 import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-const BUSHELS_PER_MT = 39.3683;
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
@@ -68,26 +75,6 @@ function centsToUsd(cents: number | null | undefined): string {
 }
 function today(): string {
   return new Date().toISOString().slice(0, 10);
-}
-
-// ─── ZC → delivery month mapping ────────────────────────────────────────────
-
-function getValidDeliveryMonths(futuresMonth: string): string[] {
-  if (!futuresMonth || futuresMonth.length < 5) return [];
-  const upper = futuresMonth.toUpperCase();
-  if (!upper.startsWith("ZC")) return [];
-  const mc = upper[2];
-  const year = 2000 + parseInt(upper.slice(3), 10);
-  if (isNaN(year)) return [];
-  const pad = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
-  switch (mc) {
-    case "H": return [pad(year - 1, 12), pad(year, 1), pad(year, 2)];
-    case "K": return [pad(year, 3), pad(year, 4)];
-    case "N": return [pad(year, 5), pad(year, 6)];
-    case "U": return [pad(year, 7), pad(year, 8)];
-    case "Z": return [pad(year, 9), pad(year, 10), pad(year, 11)];
-    default: return [];
-  }
 }
 
 // ─── Input class ─────────────────────────────────────────────────────────────
@@ -695,14 +682,23 @@ function HedgeBookTable({
   hedgeBook,
   sites,
   onRefresh,
+  autoExpandMonth,
 }: {
   hedgeBook: HedgeBookItem[];
   sites: { code: string; name: string }[];
   onRefresh: () => void;
+  autoExpandMonth?: string | null;
 }) {
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [allocTradeId, setAllocTradeId] = useState<number | null>(null);
   const [offsetTradeId, setOffsetTradeId] = useState<number | null>(null);
+
+  // Auto-expand when a specific futures month is requested
+  useEffect(() => {
+    if (autoExpandMonth) {
+      setExpandedMonth(autoExpandMonth);
+    }
+  }, [autoExpandMonth]);
 
   const groups: FuturesMonthGroup[] = useMemo(() => {
     const map = new Map<string, HedgeBookItem[]>();
@@ -1203,6 +1199,185 @@ function OffsetsTable({ offsets }: { offsets: OffsetItem[] }) {
   );
 }
 
+// ─── Budget Month Navigator ─────────────────────────────────────────────────
+
+function BudgetMonthNavigator({
+  months,
+  selected,
+  onChange,
+}: {
+  months: string[];
+  selected: string | null;
+  onChange: (m: string | null) => void;
+}) {
+  function goPrev() {
+    if (selected === null) {
+      onChange(months[months.length - 1]);
+    } else {
+      const idx = months.indexOf(selected);
+      onChange(idx <= 0 ? null : months[idx - 1]);
+    }
+  }
+  function goNext() {
+    if (selected === null) {
+      onChange(months[0]);
+    } else {
+      const idx = months.indexOf(selected);
+      onChange(idx >= months.length - 1 ? null : months[idx + 1]);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={goPrev}
+        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors border border-slate-700"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <div className="min-w-[120px] text-center">
+        <span className={cn(
+          "text-sm font-semibold",
+          selected ? "text-slate-100" : "text-slate-400"
+        )}>
+          {selected ? monthLabel(selected) : "All Months"}
+        </span>
+      </div>
+      <button
+        onClick={goNext}
+        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors border border-slate-700"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+// ─── Month Coverage Summary ─────────────────────────────────────────────────
+
+function MonthCoverageSummary({
+  budgetMonth,
+  budgetLines,
+  allocations,
+  settles,
+  siteFilter,
+}: {
+  budgetMonth: string;
+  budgetLines: CornBudgetLineResponse[];
+  allocations: SiteAllocationItem[];
+  settles: Record<string, number>;
+  siteFilter: string;
+}) {
+  const summary = useMemo(() => {
+    // Find matching budget lines for this month (and optionally site)
+    let lines = budgetLines.filter((l) => l.budgetMonth === budgetMonth);
+    if (siteFilter) lines = lines.filter((l) => l.siteCode === siteFilter);
+
+    if (lines.length === 0) return null;
+
+    const budgetMt = lines.reduce((s, l) => s + l.budgetVolumeMt, 0);
+    const hedgedMt = lines.reduce((s, l) => s + (l.hedgedVolumeMt ?? 0), 0);
+    const coveragePct = budgetMt > 0 ? (hedgedMt / budgetMt) * 100 : 0;
+
+    // Target all-in: weighted average from budget lines
+    let sumPriceVol = 0, sumVol = 0;
+    for (const l of lines) {
+      if (l.targetAllInPerMt != null && l.budgetVolumeMt > 0) {
+        sumPriceVol += l.targetAllInPerMt * l.budgetVolumeMt;
+        sumVol += l.budgetVolumeMt;
+      }
+    }
+    const targetAllIn = sumVol > 0 ? sumPriceVol / sumVol : null;
+
+    // Market estimate for unhedged portion
+    const futuresMonth = suggestFuturesMonth(budgetMonth);
+    const settleCents = futuresMonth ? settles[futuresMonth] : null;
+    let marketEst: number | null = null;
+    if (settleCents != null) {
+      // Get average basis/freight from budget components
+      let totalBasis = 0, totalFreight = 0, basisCount = 0, freightCount = 0;
+      for (const l of lines) {
+        for (const c of l.components) {
+          const name = c.componentName.toLowerCase();
+          if (name.includes("basis")) {
+            const perMt = c.unit === "$/bu" ? c.targetValue * BUSHELS_PER_MT
+              : c.unit === "\u00a2/bu" ? (c.targetValue / 100) * BUSHELS_PER_MT
+              : c.targetValue;
+            totalBasis += perMt;
+            basisCount++;
+          } else if (name.includes("freight")) {
+            const perMt = c.unit === "$/bu" ? c.targetValue * BUSHELS_PER_MT
+              : c.unit === "\u00a2/bu" ? (c.targetValue / 100) * BUSHELS_PER_MT
+              : c.targetValue;
+            totalFreight += perMt;
+            freightCount++;
+          }
+        }
+      }
+      const avgBasisPerMt = basisCount > 0 ? totalBasis / basisCount : 0;
+      const avgFreightPerMt = freightCount > 0 ? totalFreight / freightCount : 0;
+      const boardPerMt = (settleCents / 100) * BUSHELS_PER_MT;
+      marketEst = boardPerMt + avgBasisPerMt + avgFreightPerMt;
+    }
+
+    return { budgetMt, hedgedMt, coveragePct, targetAllIn, marketEst, futuresMonth };
+  }, [budgetMonth, budgetLines, siteFilter, settles]);
+
+  if (!summary) {
+    return (
+      <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl px-5 py-4">
+        <p className="text-sm text-slate-500">No budget data for {monthLabel(budgetMonth)}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl px-5 py-4 space-y-3">
+      <div className="grid grid-cols-4 gap-4">
+        <div>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Budget</p>
+          <p className="text-lg font-bold tabular-nums text-slate-100">
+            {fmtMt(summary.budgetMt)} <span className="text-xs text-slate-500 font-normal">MT</span>
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Hedged</p>
+          <p className="text-lg font-bold tabular-nums text-slate-100">
+            {fmtMt(summary.hedgedMt)} <span className="text-xs text-slate-500 font-normal">MT</span>
+          </p>
+          <p className="text-xs tabular-nums text-emerald-400 font-medium">
+            {summary.coveragePct.toFixed(0)}% covered
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Target All-In</p>
+          <p className="text-lg font-bold tabular-nums text-slate-100">
+            {summary.targetAllIn != null ? `$${fmt2(summary.targetAllIn)}` : "\u2013"}
+            <span className="text-xs text-slate-500 font-normal">/MT</span>
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-amber-400/80 uppercase tracking-wider mb-1">Market Est (Unhedged)</p>
+          <p className={cn("text-lg font-bold tabular-nums", summary.marketEst != null ? "text-amber-300" : "text-slate-500")}>
+            {summary.marketEst != null ? `$${fmt2(summary.marketEst)}` : "\u2013"}
+            <span className="text-xs text-slate-500 font-normal">/MT</span>
+          </p>
+          {summary.futuresMonth && summary.marketEst != null && (
+            <p className="text-xs text-slate-600">via {summary.futuresMonth} settle</p>
+          )}
+        </div>
+      </div>
+      {/* Coverage progress bar */}
+      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-emerald-500 rounded-full transition-all"
+          style={{ width: `${Math.min(summary.coveragePct, 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 type Book = "CANADA" | "US";
@@ -1213,7 +1388,19 @@ export default function PositionsPage() {
   const { sites } = useSites();
   const [settleOpen, setSettleOpen] = useState(false);
   const [siteFilter, setSiteFilter] = useState("");
+  const [budgetMonth, setBudgetMonth] = useState<string | null>(null);
   const [newPurchaseOpen, setNewPurchaseOpen] = useState(false);
+
+  // Settings for fiscal year
+  const { settings } = useAppSettings();
+  const fyStartMonth = parseInt(settings.find((s) => s.settingKey === "FISCAL_YEAR_START_MONTH")?.value ?? "7") || 7;
+  const fyMonths = useMemo(() => fiscalYearMonths(currentFiscalYear(fyStartMonth), fyStartMonth), [fyStartMonth]);
+
+  // Budget data for coverage summary
+  const { budget: budgetLines } = useBudget(siteFilter || undefined, currentFiscalYear(fyStartMonth) || undefined);
+
+  // Derived futures month from selected budget month
+  const activeFuturesMonth = budgetMonth ? suggestFuturesMonth(budgetMonth) : null;
 
   const hedgeBook   = positions?.hedgeBook         ?? [];
   const allocations = positions?.siteAllocations   ?? [];
@@ -1222,19 +1409,33 @@ export default function PositionsPage() {
   const offsets     = positions?.offsets            ?? [];
   const settles     = positions?.latestSettles      ?? {};
 
-  // Client-side site filter
-  const filteredAllocations = useMemo(
-    () => siteFilter ? allocations.filter((a) => a.siteCode === siteFilter) : allocations,
-    [allocations, siteFilter]
-  );
-  const filteredPhysical = useMemo(
-    () => siteFilter ? physical.filter((p) => p.siteCode === siteFilter) : physical,
-    [physical, siteFilter]
-  );
-  const filteredLocked = useMemo(
-    () => siteFilter ? locked.filter((l) => l.siteCode === siteFilter) : locked,
-    [locked, siteFilter]
-  );
+  // Hedge book filtered by budget month
+  const filteredHedgeBook = useMemo(() => {
+    if (!activeFuturesMonth) return hedgeBook;
+    return hedgeBook.filter((h) => h.futuresMonth === activeFuturesMonth);
+  }, [hedgeBook, activeFuturesMonth]);
+
+  // Client-side site + month filter
+  const filteredAllocations = useMemo(() => {
+    let result = allocations;
+    if (siteFilter) result = result.filter((a) => a.siteCode === siteFilter);
+    if (budgetMonth) result = result.filter((a) => a.budgetMonth === budgetMonth);
+    return result;
+  }, [allocations, siteFilter, budgetMonth]);
+
+  const filteredPhysical = useMemo(() => {
+    let result = physical;
+    if (siteFilter) result = result.filter((p) => p.siteCode === siteFilter);
+    if (budgetMonth) result = result.filter((p) => p.deliveryMonth === budgetMonth);
+    return result;
+  }, [physical, siteFilter, budgetMonth]);
+
+  const filteredLocked = useMemo(() => {
+    let result = locked;
+    if (siteFilter) result = result.filter((l) => l.siteCode === siteFilter);
+    if (budgetMonth) result = result.filter((l) => l.deliveryMonth === budgetMonth);
+    return result;
+  }, [locked, siteFilter, budgetMonth]);
 
   // Unique sites from data
   const dataSites = useMemo(() => {
@@ -1255,6 +1456,7 @@ export default function PositionsPage() {
   }, [hedgeBook, allocations]);
 
   const bookLabel = book === "CANADA" ? "Canada" : "US";
+  const filterLabel = [siteFilter, budgetMonth ? monthLabel(budgetMonth) : ""].filter(Boolean).join(" \u2014 ");
 
   if (isLoading) {
     return (
@@ -1288,13 +1490,13 @@ export default function PositionsPage() {
         </button>
       </div>
 
-      {/* Book toggle + site filter */}
+      {/* Book toggle */}
       <div className="flex items-center gap-4">
         <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl w-fit">
           {(["CANADA", "US"] as Book[]).map((b) => (
             <button
               key={b}
-              onClick={() => { setBook(b); setSiteFilter(""); }}
+              onClick={() => { setBook(b); setSiteFilter(""); setBudgetMonth(null); }}
               className={cn(
                 "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
                 book === b ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
@@ -1304,16 +1506,6 @@ export default function PositionsPage() {
             </button>
           ))}
         </div>
-        {dataSites.length > 0 && (
-          <select
-            value={siteFilter}
-            onChange={(e) => setSiteFilter(e.target.value)}
-            className="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="">All Sites</option>
-            {dataSites.map((code) => <option key={code} value={code}>{code}</option>)}
-          </select>
-        )}
       </div>
 
       {/* Settle publisher */}
@@ -1329,22 +1521,65 @@ export default function PositionsPage() {
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-slate-200">Hedge Book &mdash; {bookLabel}</h2>
+            <h2 className="text-sm font-semibold text-slate-200">
+              Hedge Book &mdash; {bookLabel}
+              {activeFuturesMonth && <span className="ml-2 text-blue-400">({activeFuturesMonth})</span>}
+            </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              {hedgeBook.length} trade{hedgeBook.length !== 1 ? "s" : ""} &middot;{" "}
-              {fmtBu(hedgeBook.reduce((s, h) => s + h.unallocatedBushels, 0))} bu unallocated
+              {filteredHedgeBook.length} trade{filteredHedgeBook.length !== 1 ? "s" : ""} &middot;{" "}
+              {fmtBu(filteredHedgeBook.reduce((s, h) => s + h.unallocatedBushels, 0))} bu unallocated
             </p>
           </div>
           <span className="text-xs text-slate-600">Grouped by futures month. Click to expand.</span>
         </div>
-        <HedgeBookTable hedgeBook={hedgeBook} sites={sites} onRefresh={() => mutate()} />
+        <HedgeBookTable
+          hedgeBook={filteredHedgeBook}
+          sites={sites}
+          onRefresh={() => mutate()}
+          autoExpandMonth={activeFuturesMonth}
+        />
       </div>
 
-      {/* Panel 2 — Allocated Futures */}
+      {/* ─── Site Filter + Month Navigator ────────────────────────────────── */}
+      <div className="flex items-center gap-4 bg-slate-900/50 border border-slate-800 rounded-xl px-5 py-3">
+        {dataSites.length > 0 && (
+          <select
+            value={siteFilter}
+            onChange={(e) => setSiteFilter(e.target.value)}
+            className="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="">All</option>
+            {dataSites.map((code) => <option key={code} value={code}>{code}</option>)}
+          </select>
+        )}
+        <BudgetMonthNavigator
+          months={fyMonths}
+          selected={budgetMonth}
+          onChange={setBudgetMonth}
+        />
+        {budgetMonth && (
+          <span className="text-xs text-slate-600">
+            Futures: <span className="text-blue-400 font-mono">{activeFuturesMonth}</span>
+          </span>
+        )}
+      </div>
+
+      {/* Month Coverage Summary — only when a specific month is selected */}
+      {budgetMonth && (
+        <MonthCoverageSummary
+          budgetMonth={budgetMonth}
+          budgetLines={budgetLines}
+          allocations={filteredAllocations}
+          settles={settles}
+          siteFilter={siteFilter}
+        />
+      )}
+
+      {/* Panel 2 — Hedges (renamed from Allocated Futures) */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800">
           <h2 className="text-sm font-semibold text-slate-200">
-            Allocated Futures{siteFilter && ` \u2014 ${siteFilter}`}
+            Hedges{filterLabel && ` \u2014 ${filterLabel}`}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {filteredAllocations.length} allocation{filteredAllocations.length !== 1 ? "s" : ""} &middot;{" "}
@@ -1365,7 +1600,7 @@ export default function PositionsPage() {
         <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-slate-200">
-              Physical Commitments{siteFilter && ` \u2014 ${siteFilter}`}
+              Physical Commitments{filterLabel && ` \u2014 ${filterLabel}`}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               {filteredPhysical.length} contract{filteredPhysical.length !== 1 ? "s" : ""} &middot;{" "}
@@ -1396,7 +1631,7 @@ export default function PositionsPage() {
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800">
           <h2 className="text-sm font-semibold text-slate-200">
-            Locked Positions &mdash; EFP Executed{siteFilter && ` \u2014 ${siteFilter}`}
+            Locked Positions &mdash; EFP Executed{filterLabel && ` \u2014 ${filterLabel}`}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {filteredLocked.length} EFP ticket{filteredLocked.length !== 1 ? "s" : ""} &middot;{" "}
@@ -1406,7 +1641,7 @@ export default function PositionsPage() {
         <LockedPositionsTable locked={filteredLocked} />
       </div>
 
-      {/* Panel 5 — Closed Offsets */}
+      {/* Panel 5 — Closed Offsets (no month filter) */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800">
           <h2 className="text-sm font-semibold text-slate-200">Closed Offsets</h2>

@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -25,6 +26,22 @@ public class CornBudgetLineResponse {
     /** Computed: sum of all components converted to $/MT */
     private BigDecimal targetAllInPerMt;
 
+    /** Computed: targetAllInPerMt × budgetVolumeMt */
+    private BigDecimal totalNotionalSpend;
+
+    /** Forecast fields */
+    private BigDecimal forecastVolumeMt;
+    private BigDecimal forecastVolumeBu;
+
+    /** Computed: forecastMt − budgetMt */
+    private BigDecimal forecastVarianceMt;
+
+    /** Hedged volume from allocations for this site + month */
+    private BigDecimal hedgedVolumeMt;
+
+    /** True if hedgedMt > (forecastMt ?? budgetMt) */
+    private Boolean overHedged;
+
     private List<ComponentDto> components;
 
     @Data
@@ -37,5 +54,16 @@ public class CornBudgetLineResponse {
         /** Component value expressed in $/MT for the all-in total */
         private BigDecimal valuePerMt;
         private Integer displayOrder;
+    }
+
+    @Data
+    @Builder
+    public static class ForecastHistoryDto {
+        private Long id;
+        private BigDecimal forecastMt;
+        private BigDecimal forecastBu;
+        private Instant recordedAt;
+        private String recordedBy;
+        private String notes;
     }
 }

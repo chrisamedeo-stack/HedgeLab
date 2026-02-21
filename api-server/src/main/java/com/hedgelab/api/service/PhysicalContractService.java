@@ -64,11 +64,11 @@ public class PhysicalContractService {
         if (mt == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "Provide quantityMt or quantityBu");
 
-        long count = contractRepository.count() + 1;
+        long nextNum = contractRepository.findMaxId() + 1;
         String ref = String.format("PC-%s-%s-%03d",
                 req.getSiteCode(),
                 req.getDeliveryMonth() != null ? req.getDeliveryMonth().replace("-", "") : "0000",
-                count);
+                nextNum);
 
         var contract = PhysicalContract.builder()
                 .contractRef(ref)

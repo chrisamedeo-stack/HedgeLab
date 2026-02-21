@@ -160,7 +160,7 @@ public class SettlementService {
 
     private String generateInvoiceNumber() {
         String monthStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM"));
-        long count = invoiceRepo.count() + 1;
-        return String.format("INV-%s-%05d", monthStr, count);
+        long nextNum = invoiceRepo.findMaxId() + 1;
+        return String.format("INV-%s-%05d", monthStr, nextNum);
     }
 }

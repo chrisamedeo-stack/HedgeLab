@@ -64,6 +64,7 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
     siteCode: "", supplierName: "", deliveryMonth: "", futuresRef: "",
     quantityBu: "", basisCentsBu: "", freightPerMt: "", currency: "USD",
     contractDate: new Date().toISOString().slice(0, 10), notes: "",
+    tradeType: "BASIS" as "INDEX" | "BASIS",
   });
 
   function f(k: keyof typeof form, v: string) { setForm((p) => ({ ...p, [k]: v })); }
@@ -85,11 +86,12 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
         deliveryMonth: form.deliveryMonth,
         futuresRef: form.futuresRef || null,
         quantityBu: buVal,
-        basisCentsBu: !isNaN(basis) ? basis * 100 : null,
+        basisCentsBu: form.tradeType === "BASIS" && !isNaN(basis) ? basis * 100 : null,
         freightPerMt: parseFloat(form.freightPerMt) || null,
         currency: form.currency,
         contractDate: form.contractDate || null,
         notes: form.notes || null,
+        tradeType: form.tradeType,
       });
       toast("Contract created", "success");
       onSaved();
@@ -107,6 +109,28 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
         <button type="button" onClick={onCancel} className="text-slate-500 hover:text-slate-300 transition-colors">
           <X className="h-4 w-4" />
         </button>
+      </div>
+
+      {/* Trade Type Toggle */}
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-slate-400">Trade Type:</span>
+        <div className="flex gap-1 p-0.5 bg-slate-800 border border-slate-700 rounded-lg">
+          {(["BASIS", "INDEX"] as const).map((t) => (
+            <button key={t} type="button"
+              onClick={() => f("tradeType", t)}
+              className={cn(
+                "px-3 py-1 rounded-md text-xs font-medium transition-colors",
+                form.tradeType === t
+                  ? t === "BASIS" ? "bg-blue-600 text-white" : "bg-amber-600 text-white"
+                  : "text-slate-400 hover:text-slate-200"
+              )}>{t}</button>
+          ))}
+        </div>
+        <span className="text-xs text-slate-500">
+          {form.tradeType === "INDEX"
+            ? "Committed at floating market/index price"
+            : "Has basis component relative to futures"}
+        </span>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -151,18 +175,22 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
           </select>
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs text-slate-400">Basis ($/bu)</label>
-          <input type="number" step="0.0025" placeholder="e.g. -0.25" value={form.basisCentsBu}
-            onChange={(e) => f("basisCentsBu", e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-slate-400">Against Futures</label>
-          <input type="text" placeholder="e.g. ZCN26" value={form.futuresRef}
-            onChange={(e) => f("futuresRef", e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
-        </div>
+        {form.tradeType === "BASIS" && (
+          <div className="space-y-1">
+            <label className="text-xs text-slate-400">Basis ($/bu)</label>
+            <input type="number" step="0.0025" placeholder="e.g. -0.25" value={form.basisCentsBu}
+              onChange={(e) => f("basisCentsBu", e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+          </div>
+        )}
+        {form.tradeType === "BASIS" && (
+          <div className="space-y-1">
+            <label className="text-xs text-slate-400">Against Futures</label>
+            <input type="text" placeholder="e.g. ZCN26" value={form.futuresRef}
+              onChange={(e) => f("futuresRef", e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+          </div>
+        )}
         <div className="space-y-1">
           <label className="text-xs text-slate-400">Freight ($/MT)</label>
           <input type="number" step="0.01" min="0" placeholder="Optional" value={form.freightPerMt}
@@ -182,7 +210,12 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
         </div>
       </div>
 
-      {!isNaN(basis) && form.futuresRef && (
+      {form.tradeType === "INDEX" && (
+        <p className="text-xs text-amber-400/80">
+          INDEX contract — priced at floating market/settle price at delivery. No basis component.
+        </p>
+      )}
+      {form.tradeType === "BASIS" && !isNaN(basis) && form.futuresRef && (
         <p className="text-xs text-slate-500">
           Basis: <span className="text-blue-400 font-medium">{fmtCents(basis)}/bu</span> under{" "}
           <span className="text-blue-400 font-medium">{form.futuresRef}</span>
@@ -293,7 +326,17 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
         </button>
 
         <div className="w-44 min-w-0">
-          <p className="text-sm font-mono font-medium text-slate-200 truncate">{contract.contractRef}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-mono font-medium text-slate-200 truncate">{contract.contractRef}</p>
+            {contract.tradeType && (
+              <span className={cn(
+                "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
+                contract.tradeType === "INDEX"
+                  ? "bg-amber-500/20 text-amber-400"
+                  : "bg-blue-500/20 text-blue-400"
+              )}>{contract.tradeType}</span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 truncate">{contract.supplierName ?? "—"}</p>
         </div>
 
@@ -308,7 +351,9 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
         </div>
 
         <div className="w-36 min-w-0 hidden md:block">
-          {contract.basisCentsBu != null ? (
+          {contract.tradeType === "INDEX" ? (
+            <p className="text-sm text-amber-500/60 italic">N/A (Index)</p>
+          ) : contract.basisCentsBu != null ? (
             <>
               <p className="text-sm tabular-nums text-slate-300">{fmtCents(contract.basisCentsBu)}/bu</p>
               <p className="text-xs text-slate-500">{contract.futuresRef ?? "—"}</p>
@@ -331,7 +376,7 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
 
         <div className="ml-auto flex items-center gap-3 flex-shrink-0">
           <StatusBadge status={contract.status} />
-          {!isCancelled && contract.status === "OPEN" && (
+          {!isCancelled && contract.status === "OPEN" && contract.tradeType !== "INDEX" && (
             <button
               onClick={() => { setLockingBasis((v) => !v); setExpanded(true); }}
               className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs rounded-lg transition-colors">

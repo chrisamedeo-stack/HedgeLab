@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TradeRepository extends JpaRepository<Trade, Long>, JpaSpecificationExecutor<Trade> {
+    @Query("SELECT COALESCE(MAX(t.id), 0) FROM Trade t")
+    long findMaxId();
     Optional<Trade> findByTradeReference(String tradeReference);
     boolean existsByTradeReference(String tradeReference);
     List<Trade> findByCounterpartyAndStatus(Counterparty counterparty, TradeStatus status);

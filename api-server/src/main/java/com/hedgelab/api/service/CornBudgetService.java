@@ -1,12 +1,18 @@
 package com.hedgelab.api.service;
 
+import com.hedgelab.api.dto.request.BatchForecastUpdateRequest;
 import com.hedgelab.api.dto.request.SaveBudgetLineRequest;
 import com.hedgelab.api.dto.response.CornBudgetLineResponse;
 import com.hedgelab.api.dto.response.CornBudgetLineResponse.ComponentDto;
+import com.hedgelab.api.dto.response.CornBudgetLineResponse.ForecastHistoryDto;
 import com.hedgelab.api.entity.CornBudgetComponent;
 import com.hedgelab.api.entity.CornBudgetLine;
+import com.hedgelab.api.entity.CornForecastHistory;
+import com.hedgelab.api.entity.HedgeAllocation;
 import com.hedgelab.api.entity.Site;
 import com.hedgelab.api.repository.CornBudgetLineRepository;
+import com.hedgelab.api.repository.CornForecastHistoryRepository;
+import com.hedgelab.api.repository.HedgeAllocationRepository;
 import com.hedgelab.api.repository.SiteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,8 +22,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Instant;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,10 +32,13 @@ public class CornBudgetService {
 
     private static final BigDecimal BUSHELS_PER_MT   = new BigDecimal("39.3683");
     private static final BigDecimal CENTS_PER_DOLLAR = new BigDecimal("100");
+    private static final BigDecimal BUSHELS_PER_LOT  = new BigDecimal("5000");
 
-    private final CornBudgetLineRepository budgetRepo;
-    private final SiteRepository           siteRepo;
-    private final AppSettingService        appSettingService;
+    private final CornBudgetLineRepository      budgetRepo;
+    private final SiteRepository                 siteRepo;
+    private final AppSettingService              appSettingService;
+    private final HedgeAllocationRepository      allocationRepo;
+    private final CornForecastHistoryRepository  forecastHistoryRepo;
 
     // ─── Queries ──────────────────────────────────────────────────────────────
 
@@ -47,12 +56,36 @@ public class CornBudgetService {
         } else {
             lines = budgetRepo.findAllByOrderBySiteCodeAscBudgetMonthAsc();
         }
-        return lines.stream().map(this::toResponse).collect(Collectors.toList());
+
+        // Pre-load hedged volumes to avoid N+1
+        Map<String, BigDecimal> hedgedMap = buildHedgedMap(lines);
+
+        return lines.stream()
+                .map(l -> toResponse(l, hedgedMap))
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public CornBudgetLineResponse getById(Long id) {
-        return toResponse(findOrThrow(id));
+        CornBudgetLine line = findOrThrow(id);
+        Map<String, BigDecimal> hedgedMap = buildHedgedMap(List.of(line));
+        return toResponse(line, hedgedMap);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ForecastHistoryDto> getForecastHistory(Long budgetLineId) {
+        findOrThrow(budgetLineId); // ensure exists
+        return forecastHistoryRepo.findByBudgetLineIdOrderByRecordedAtDesc(budgetLineId)
+                .stream()
+                .map(h -> ForecastHistoryDto.builder()
+                        .id(h.getId())
+                        .forecastMt(h.getForecastMt())
+                        .forecastBu(h.getForecastBu())
+                        .recordedAt(h.getRecordedAt())
+                        .recordedBy(h.getRecordedBy())
+                        .notes(h.getNotes())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     // ─── Mutations ────────────────────────────────────────────────────────────
@@ -72,6 +105,15 @@ public class CornBudgetService {
             bu = mt.multiply(BUSHELS_PER_MT).setScale(2, RoundingMode.HALF_UP);
         }
 
+        // Derive forecast units
+        BigDecimal forecastMt = req.getForecastVolumeMt();
+        BigDecimal forecastBu = req.getForecastVolumeBu();
+        if (forecastMt != null && forecastBu == null) {
+            forecastBu = forecastMt.multiply(BUSHELS_PER_MT).setScale(2, RoundingMode.HALF_UP);
+        } else if (forecastBu != null && forecastMt == null) {
+            forecastMt = forecastBu.divide(BUSHELS_PER_MT, 4, RoundingMode.HALF_UP);
+        }
+
         String explicitFy = req.getFiscalYear() != null ? req.getFiscalYear() : req.getCropYear();
         CornBudgetLine line = CornBudgetLine.builder()
                 .site(site)
@@ -80,12 +122,22 @@ public class CornBudgetService {
                 .futuresMonth(req.getFuturesMonth())
                 .budgetVolumeMt(mt)
                 .budgetVolumeBu(bu)
+                .forecastVolumeMt(forecastMt)
+                .forecastVolumeBu(forecastBu)
                 .cropYear(resolveFiscalYear(req.getBudgetMonth(), explicitFy))
                 .notes(req.getNotes())
                 .build();
 
         applyComponents(line, req);
-        return toResponse(budgetRepo.save(line));
+        CornBudgetLine saved = budgetRepo.save(line);
+
+        // Log forecast history if forecast provided
+        if (forecastMt != null) {
+            logForecastHistory(saved, forecastMt, forecastBu, req.getForecastNotes());
+        }
+
+        Map<String, BigDecimal> hedgedMap = buildHedgedMap(List.of(saved));
+        return toResponse(saved, hedgedMap);
     }
 
     @Transactional
@@ -113,6 +165,24 @@ public class CornBudgetService {
         if (mt != null) line.setBudgetVolumeMt(mt);
         if (bu != null) line.setBudgetVolumeBu(bu);
 
+        // Forecast: derive missing unit, only log history if changed
+        BigDecimal forecastMt = req.getForecastVolumeMt();
+        BigDecimal forecastBu = req.getForecastVolumeBu();
+        if (forecastMt != null && forecastBu == null) {
+            forecastBu = forecastMt.multiply(BUSHELS_PER_MT).setScale(2, RoundingMode.HALF_UP);
+        } else if (forecastBu != null && forecastMt == null) {
+            forecastMt = forecastBu.divide(BUSHELS_PER_MT, 4, RoundingMode.HALF_UP);
+        }
+        if (forecastMt != null) {
+            boolean changed = line.getForecastVolumeMt() == null
+                    || line.getForecastVolumeMt().compareTo(forecastMt) != 0;
+            line.setForecastVolumeMt(forecastMt);
+            line.setForecastVolumeBu(forecastBu);
+            if (changed) {
+                logForecastHistory(line, forecastMt, forecastBu, req.getForecastNotes());
+            }
+        }
+
         if (req.getNotes() != null) line.setNotes(req.getNotes());
 
         String explicitFy = req.getFiscalYear() != null ? req.getFiscalYear() : req.getCropYear();
@@ -124,7 +194,44 @@ public class CornBudgetService {
             applyComponents(line, req);
         }
 
-        return toResponse(budgetRepo.save(line));
+        CornBudgetLine saved = budgetRepo.save(line);
+        Map<String, BigDecimal> hedgedMap = buildHedgedMap(List.of(saved));
+        return toResponse(saved, hedgedMap);
+    }
+
+    @Transactional
+    public List<CornBudgetLineResponse> batchForecastUpdate(BatchForecastUpdateRequest req) {
+        Instant now = Instant.now();
+        List<CornBudgetLine> updated = new ArrayList<>();
+
+        for (var upd : req.getUpdates()) {
+            CornBudgetLine line = findOrThrow(upd.getBudgetLineId());
+            BigDecimal forecastMt = upd.getForecastVolumeMt();
+            BigDecimal forecastBu = forecastMt.multiply(BUSHELS_PER_MT).setScale(2, RoundingMode.HALF_UP);
+
+            boolean changed = line.getForecastVolumeMt() == null
+                    || line.getForecastVolumeMt().compareTo(forecastMt) != 0;
+
+            line.setForecastVolumeMt(forecastMt);
+            line.setForecastVolumeBu(forecastBu);
+            budgetRepo.save(line);
+
+            if (changed) {
+                forecastHistoryRepo.save(CornForecastHistory.builder()
+                        .budgetLine(line)
+                        .forecastMt(forecastMt)
+                        .forecastBu(forecastBu)
+                        .recordedAt(now)
+                        .notes(req.getNote())
+                        .build());
+            }
+            updated.add(line);
+        }
+
+        Map<String, BigDecimal> hedgedMap = buildHedgedMap(updated);
+        return updated.stream()
+                .map(l -> toResponse(l, hedgedMap))
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -164,10 +271,49 @@ public class CornBudgetService {
                         .multiply(BUSHELS_PER_MT)
                         .setScale(4, RoundingMode.HALF_UP);
         }
+        if (u.equals("$/bu") || u.equals("usd/bu")) {
+            return value.multiply(BUSHELS_PER_MT)
+                        .setScale(4, RoundingMode.HALF_UP);
+        }
         return value.setScale(4, RoundingMode.HALF_UP);
     }
 
-    private CornBudgetLineResponse toResponse(CornBudgetLine line) {
+    /**
+     * Build a map of hedged MT keyed by "siteCode|budgetMonth" from hedge allocations.
+     * Converts allocated lots to MT: lots × 5000 bu / 39.3683 bu/MT.
+     */
+    private Map<String, BigDecimal> buildHedgedMap(List<CornBudgetLine> lines) {
+        Set<String> siteCodes = lines.stream()
+                .map(l -> l.getSite().getCode())
+                .collect(Collectors.toSet());
+
+        if (siteCodes.isEmpty()) return Collections.emptyMap();
+
+        Map<String, BigDecimal> hedgedMap = new HashMap<>();
+        for (String sc : siteCodes) {
+            List<HedgeAllocation> allocations = allocationRepo.findBySite_CodeOrderByBudgetMonthAsc(sc);
+            for (HedgeAllocation a : allocations) {
+                String key = sc + "|" + a.getBudgetMonth();
+                BigDecimal mt = BUSHELS_PER_LOT
+                        .multiply(BigDecimal.valueOf(a.getAllocatedLots()))
+                        .divide(BUSHELS_PER_MT, 4, RoundingMode.HALF_UP);
+                hedgedMap.merge(key, mt, BigDecimal::add);
+            }
+        }
+        return hedgedMap;
+    }
+
+    private void logForecastHistory(CornBudgetLine line, BigDecimal forecastMt, BigDecimal forecastBu, String notes) {
+        forecastHistoryRepo.save(CornForecastHistory.builder()
+                .budgetLine(line)
+                .forecastMt(forecastMt)
+                .forecastBu(forecastBu)
+                .recordedAt(Instant.now())
+                .notes(notes)
+                .build());
+    }
+
+    private CornBudgetLineResponse toResponse(CornBudgetLine line, Map<String, BigDecimal> hedgedMap) {
         List<ComponentDto> compDtos = line.getComponents().stream().map(c -> {
             BigDecimal perMt = toUsdPerMt(c.getTargetValue(), c.getUnit());
             return ComponentDto.builder()
@@ -185,6 +331,36 @@ public class CornBudgetService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
 
+        BigDecimal targetAllInPerMt = allIn.compareTo(BigDecimal.ZERO) == 0 ? null : allIn;
+
+        // Total notional spend = targetAllInPerMt × budgetVolumeMt
+        BigDecimal totalNotionalSpend = null;
+        if (targetAllInPerMt != null && line.getBudgetVolumeMt() != null) {
+            totalNotionalSpend = targetAllInPerMt.multiply(line.getBudgetVolumeMt())
+                    .setScale(2, RoundingMode.HALF_UP);
+        }
+
+        // Forecast variance = forecastMt − budgetMt
+        BigDecimal forecastVarianceMt = null;
+        if (line.getForecastVolumeMt() != null && line.getBudgetVolumeMt() != null) {
+            forecastVarianceMt = line.getForecastVolumeMt().subtract(line.getBudgetVolumeMt())
+                    .setScale(4, RoundingMode.HALF_UP);
+        }
+
+        // Hedged volume from pre-loaded map
+        String hedgeKey = line.getSite().getCode() + "|" + line.getBudgetMonth();
+        BigDecimal hedgedMt = hedgedMap.getOrDefault(hedgeKey, null);
+
+        // Over-hedged: hedgedMt > (forecastMt ?? budgetMt)
+        Boolean overHedged = null;
+        if (hedgedMt != null) {
+            BigDecimal reference = line.getForecastVolumeMt() != null
+                    ? line.getForecastVolumeMt() : line.getBudgetVolumeMt();
+            if (reference != null) {
+                overHedged = hedgedMt.compareTo(reference) > 0;
+            }
+        }
+
         return CornBudgetLineResponse.builder()
                 .id(line.getId())
                 .siteCode(line.getSite().getCode())
@@ -197,7 +373,13 @@ public class CornBudgetService {
                 .cropYear(line.getCropYear())
                 .fiscalYear(line.getCropYear()) // cropYear column stores the fiscal year value
                 .notes(line.getNotes())
-                .targetAllInPerMt(allIn.compareTo(BigDecimal.ZERO) == 0 ? null : allIn)
+                .targetAllInPerMt(targetAllInPerMt)
+                .totalNotionalSpend(totalNotionalSpend)
+                .forecastVolumeMt(line.getForecastVolumeMt())
+                .forecastVolumeBu(line.getForecastVolumeBu())
+                .forecastVarianceMt(forecastVarianceMt)
+                .hedgedVolumeMt(hedgedMt)
+                .overHedged(overHedged)
                 .components(compDtos)
                 .build();
     }

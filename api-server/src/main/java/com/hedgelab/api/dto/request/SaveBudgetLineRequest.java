@@ -18,6 +18,10 @@ public class SaveBudgetLineRequest {
     private String cropYear;        // kept for backward compat — use fiscalYear going forward
     private String notes;
 
+    private BigDecimal forecastVolumeMt;
+    private BigDecimal forecastVolumeBu;
+    private String forecastNotes;
+
     private List<ComponentDto> components;
 
     @Data

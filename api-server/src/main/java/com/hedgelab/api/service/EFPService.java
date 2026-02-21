@@ -31,8 +31,8 @@ public class EFPService {
     public EFPTicketResponse create(CreateEFPRequest req) {
         var hedge = hedgeRepository.findById(req.getHedgeTradeId()).orElseThrow();
         var contract = contractRepository.findById(req.getPhysicalContractId()).orElseThrow();
-        long count = efpRepository.count() + 1;
-        String ref = String.format("EFP-%d-%03d", req.getEfpDate().getYear(), count);
+        long nextNum = efpRepository.findMaxId() + 1;
+        String ref = String.format("EFP-%d-%03d", req.getEfpDate().getYear(), nextNum);
         BigDecimal qtyMt = BigDecimal.valueOf((long) req.getLots() * BUSHELS_PER_LOT)
                 .divide(BUSHELS_PER_MT, 4, RoundingMode.HALF_UP);
         var efp = EFPTicket.builder()

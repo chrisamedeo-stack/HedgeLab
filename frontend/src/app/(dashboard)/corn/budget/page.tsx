@@ -3,14 +3,23 @@
 import { Fragment, useState, useMemo } from "react";
 import {
   BookOpen, Plus, Edit2, Trash2, X,
-  ChevronDown, ChevronRight, CalendarDays,
+  ChevronDown, ChevronRight, CalendarDays, RefreshCw, Check,
 } from "lucide-react";
 import {
-  useBudget, useSites,
-  CornBudgetLineResponse,
+  useBudget, useSites, useForecastHistory,
+  CornBudgetLineResponse, ForecastHistoryDto,
 } from "@/hooks/useCorn";
 import { useAdminSites, useAppSettings } from "@/hooks/useSettings";
 import { api } from "@/lib/api";
+import {
+  BUSHELS_PER_MT,
+  suggestFuturesMonth,
+  deriveFiscalYear,
+  fiscalYearMonths,
+  availableFiscalYears,
+  currentFiscalYear,
+  monthLabel,
+} from "@/lib/corn-utils";
 import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -32,62 +41,29 @@ const PRESET_COMPONENTS = [
   { name: "FX Premium",      unit: "$/MT" },
   { name: "Quality Premium", unit: "$/MT" },
 ];
-const BUSHELS_PER_MT = 39.3683;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function suggestFuturesMonth(budgetMonth: string): string {
-  if (!budgetMonth || budgetMonth.length < 7) return "";
-  const year  = parseInt(budgetMonth.slice(0, 4));
-  const month = parseInt(budgetMonth.slice(5, 7));
-  const yy = (y: number) => String(y).slice(-2);
-  if (month <= 2)  return `ZCH${yy(year)}`;
-  if (month <= 4)  return `ZCK${yy(year)}`;
-  if (month <= 6)  return `ZCN${yy(year)}`;
-  if (month <= 8)  return `ZCU${yy(year)}`;
-  if (month <= 11) return `ZCZ${yy(year)}`;
-  return `ZCH${yy(year + 1)}`;
-}
-
-/** Configurable fiscal year derivation */
-function deriveFiscalYear(budgetMonth: string, fyStartMonth = 7): string {
-  if (!budgetMonth) return "";
-  const year  = parseInt(budgetMonth.slice(0, 4));
-  const month = parseInt(budgetMonth.slice(5, 7));
-  const start = month >= fyStartMonth ? year : year - 1;
-  return `${start}/${start + 1}`;
-}
-
-/** All 12 months of a configurable FY */
-function fiscalYearMonths(fy: string, fyStartMonth = 7): string[] {
-  if (!fy.includes("/")) return [];
-  const sy = parseInt(fy.split("/")[0]);
-  const months: string[] = [];
-  for (let i = 0; i < 12; i++) {
-    const m = ((fyStartMonth - 1 + i) % 12) + 1;
-    const y = m >= fyStartMonth ? sy : sy + 1;
-    months.push(`${y}-${String(m).padStart(2, "0")}`);
-  }
-  return months;
-}
-
-function availableFiscalYears(fyStartMonth = 7): string[] {
-  const now = new Date();
-  const y = now.getMonth() + 1 >= fyStartMonth ? now.getFullYear() : now.getFullYear() - 1;
-  return Array.from({ length: 7 }, (_, i) => `${y - 2 + i}/${y - 1 + i}`);
+/** Compute notional spend with client-side fallback */
+function lineNotional(l: CornBudgetLineResponse): number | null {
+  return l.totalNotionalSpend
+    ?? (l.targetAllInPerMt != null && l.budgetVolumeMt != null ? l.targetAllInPerMt * l.budgetVolumeMt : null);
 }
 
 function fmtVol(n: number | null | undefined): string {
-  if (n == null || n === 0) return "—";
+  if (n == null || n === 0) return "\u2014";
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 function fmtPrice(n: number | null | undefined): string {
-  if (n == null) return "—";
+  if (n == null) return "\u2014";
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-function monthLabel(ym: string): string {
-  if (!ym || ym.length < 7) return ym;
-  return new Date(ym + "-01").toLocaleString("en-US", { month: "short", year: "2-digit" });
+function fmtDollars(n: number | null | undefined): string {
+  if (n == null) return "\u2014";
+  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
+  return `$${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+}
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
 }
 
 // ─── Component Editor ─────────────────────────────────────────────────────────
@@ -128,7 +104,7 @@ function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onChange: (
                 <th className="px-3 py-2 text-left text-xs text-slate-500 font-medium">Component</th>
                 <th className="px-3 py-2 text-left text-xs text-slate-500 font-medium w-28">Unit</th>
                 <th className="px-3 py-2 text-right text-xs text-slate-500 font-medium w-32">Target Value</th>
-                <th className="px-3 py-2 text-right text-xs text-slate-500 font-medium w-28">≈ $/MT</th>
+                <th className="px-3 py-2 text-right text-xs text-slate-500 font-medium w-28">&asymp; $/MT</th>
                 <th className="w-8" />
               </tr>
             </thead>
@@ -154,7 +130,7 @@ function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onChange: (
                         className="w-full bg-transparent text-slate-200 text-right placeholder:text-slate-600 focus:outline-none tabular-nums" />
                     </td>
                     <td className="px-3 py-1.5 text-right text-slate-400 tabular-nums text-xs">
-                      {perMt != null ? fmtPrice(perMt) : "—"}
+                      {perMt != null ? fmtPrice(perMt) : "\u2014"}
                     </td>
                     <td className="px-3 py-1.5 text-center">
                       <button type="button" onClick={() => removeRow(r.key)} className="text-slate-600 hover:text-red-400 transition-colors">
@@ -169,7 +145,7 @@ function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onChange: (
               <tr className="bg-slate-800/40 border-t border-slate-700">
                 <td colSpan={3} className="px-3 py-2 text-xs text-slate-500 text-right font-medium">All-in target</td>
                 <td className="px-3 py-2 text-right font-bold text-blue-400 tabular-nums text-sm">
-                  {totalPerMt > 0 ? `$${fmtPrice(totalPerMt)}` : "—"}
+                  {totalPerMt > 0 ? `$${fmtPrice(totalPerMt)}` : "\u2014"}
                 </td>
                 <td />
               </tr>
@@ -220,6 +196,7 @@ function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editing, fyS
   const { sites } = useSites();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const [volumeUnit, setVolumeUnit] = useState<"BU" | "MT">("BU");
   const [form, setForm] = useState({
     siteCode:      editing?.siteCode ?? defaultSite ?? "",
     commodityCode: editing?.commodityCode ?? "CORN-ZC",
@@ -227,6 +204,8 @@ function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editing, fyS
     futuresMonth:  editing?.futuresMonth ?? "",
     budgetVolumeBu: editing?.budgetVolumeBu != null ? String(editing.budgetVolumeBu)
       : editing?.budgetVolumeMt != null ? String(Math.round(editing.budgetVolumeMt * BUSHELS_PER_MT)) : "",
+    budgetVolumeMt: editing?.budgetVolumeMt != null ? String(editing.budgetVolumeMt) : "",
+    forecastVolumeMt: editing?.forecastVolumeMt != null ? String(editing.forecastVolumeMt) : "",
     notes: editing?.notes ?? "",
   });
   const [components, setComponents] = useState<ComponentRow[]>(
@@ -241,19 +220,25 @@ function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editing, fyS
     });
   }
 
-  const buVal = parseFloat(form.budgetVolumeBu) || 0;
-  const mtVal = buVal > 0 ? buVal / BUSHELS_PER_MT : 0;
+  const buVal = volumeUnit === "BU"
+    ? (parseFloat(form.budgetVolumeBu) || 0)
+    : (parseFloat(form.budgetVolumeMt) || 0) * BUSHELS_PER_MT;
+  const mtVal = volumeUnit === "MT"
+    ? (parseFloat(form.budgetVolumeMt) || 0)
+    : (parseFloat(form.budgetVolumeBu) || 0) / BUSHELS_PER_MT;
   const fiscalYear = deriveFiscalYear(form.budgetMonth, fyStartMonth);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const forecastMt = parseFloat(form.forecastVolumeMt) || null;
       const payload = {
         siteCode: form.siteCode, commodityCode: form.commodityCode,
         budgetMonth: form.budgetMonth, futuresMonth: form.futuresMonth || null,
         budgetVolumeBu: buVal || null, budgetVolumeMt: mtVal || null,
         fiscalYear: fiscalYear || null, notes: form.notes || null,
+        forecastVolumeMt: forecastMt,
         components: components.map((r, i) => ({ componentName: r.componentName, unit: r.unit, targetValue: parseFloat(r.targetValue), displayOrder: i + 1 }))
           .filter((c) => c.componentName && !isNaN(c.targetValue)),
       };
@@ -280,7 +265,7 @@ function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editing, fyS
           <label className="text-xs text-slate-400">Site</label>
           <select value={form.siteCode} onChange={(e) => field("siteCode", e.target.value)} required
             className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-            <option value="">— Select —</option>
+            <option value="">&mdash; Select &mdash;</option>
             {sites.map((s) => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}
           </select>
         </div>
@@ -302,38 +287,60 @@ function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editing, fyS
             className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-slate-400">Volume (bushels)</label>
-          <input type="number" step="1" min="0" placeholder="e.g. 196,842"
-            value={form.budgetVolumeBu} onChange={(e) => field("budgetVolumeBu", e.target.value)} required
-            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+          <div className="flex items-center justify-between">
+            <label className="text-xs text-slate-400">Volume ({volumeUnit === "BU" ? "bushels" : "MT"})</label>
+            <button type="button" onClick={() => setVolumeUnit(volumeUnit === "BU" ? "MT" : "BU")}
+              className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+              Switch to {volumeUnit === "BU" ? "MT" : "BU"}
+            </button>
+          </div>
+          {volumeUnit === "BU" ? (
+            <input type="number" step="1" min="0" placeholder="e.g. 196,842"
+              value={form.budgetVolumeBu} onChange={(e) => field("budgetVolumeBu", e.target.value)} required
+              className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+          ) : (
+            <input type="number" step="any" min="0" placeholder="e.g. 5,000"
+              value={form.budgetVolumeMt} onChange={(e) => field("budgetVolumeMt", e.target.value)} required
+              className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+          )}
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-slate-400">MT equivalent (auto)</label>
+          <label className="text-xs text-slate-400">{volumeUnit === "BU" ? "MT" : "BU"} equivalent (auto)</label>
           <div className="bg-slate-800/50 border border-slate-700/50 text-slate-400 rounded-lg px-3 py-2 text-sm tabular-nums">
-            {mtVal > 0 ? `${mtVal.toLocaleString("en-US", { maximumFractionDigits: 1 })} MT` : "—"}
+            {volumeUnit === "BU"
+              ? (mtVal > 0 ? `${mtVal.toLocaleString("en-US", { maximumFractionDigits: 1 })} MT` : "\u2014")
+              : (buVal > 0 ? `${buVal.toLocaleString("en-US", { maximumFractionDigits: 0 })} bu` : "\u2014")}
           </div>
         </div>
       </div>
       {form.budgetMonth && (
         <p className="text-xs text-slate-500">
           Fiscal year: <span className="text-slate-300 font-medium">{fiscalYear}</span>
-          {form.futuresMonth && <> · Futures: <span className="text-blue-400 font-medium">{form.futuresMonth}</span></>}
+          {form.futuresMonth && <> &middot; Futures: <span className="text-blue-400 font-medium">{form.futuresMonth}</span></>}
         </p>
       )}
       <div className="space-y-2">
         <label className="text-xs text-slate-400 block">Cost Components (optional)</label>
         <ComponentEditor rows={components} onChange={setComponents} />
       </div>
-      <div className="space-y-1">
-        <label className="text-xs text-slate-400">Notes</label>
-        <input type="text" placeholder="Optional" value={form.notes} onChange={(e) => field("notes", e.target.value)}
-          className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <label className="text-xs text-slate-400">Forecast Volume (MT, optional)</label>
+          <input type="number" step="any" min="0" placeholder="e.g. 4,500"
+            value={form.forecastVolumeMt} onChange={(e) => field("forecastVolumeMt", e.target.value)}
+            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-slate-400">Notes</label>
+          <input type="text" placeholder="Optional" value={form.notes} onChange={(e) => field("notes", e.target.value)}
+            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+        </div>
       </div>
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancel} className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">Cancel</button>
         <button type="submit" disabled={submitting}
           className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
-          {submitting ? "Saving…" : editing ? "Update" : "Create"}
+          {submitting ? "Saving\u2026" : editing ? "Update" : "Create"}
         </button>
       </div>
     </form>
@@ -346,11 +353,12 @@ function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSaved: () =
   const { sites } = useSites();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const [volumeUnit, setVolumeUnit] = useState<"BU" | "MT">("BU");
   const [config, setConfig] = useState({ siteCode: "", commodityCode: "CORN-ZC", fiscalYear: availableFiscalYears(fyStartMonth)[2] });
   const [components, setComponents] = useState<ComponentRow[]>([]);
-  type MRow = { budgetVolumeBu: string; futuresMonth: string; notes: string };
+  type MRow = { volume: string; futuresMonth: string; notes: string; forecastMt: string };
   const mkRows = (fy: string) =>
-    Object.fromEntries(fiscalYearMonths(fy, fyStartMonth).map((m) => [m, { budgetVolumeBu: "", futuresMonth: suggestFuturesMonth(m), notes: "" }]));
+    Object.fromEntries(fiscalYearMonths(fy, fyStartMonth).map((m) => [m, { volume: "", futuresMonth: suggestFuturesMonth(m), notes: "", forecastMt: "" }]));
   const [rows, setRows] = useState<Record<string, MRow>>(() => mkRows(config.fiscalYear));
 
   const sharedTotalPerMt = components.reduce((sum, r) => {
@@ -365,12 +373,21 @@ function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSaved: () =
     setRows(mkRows(fy));
   }
   function updateRow(m: string, f: keyof MRow, v: string) { setRows((r) => ({ ...r, [m]: { ...r[m], [f]: v } })); }
-  function applyAll(v: string) { setRows((r) => Object.fromEntries(Object.entries(r).map(([m, row]) => [m, { ...row, budgetVolumeBu: v }]))); }
+  function applyAll(v: string) { setRows((r) => Object.fromEntries(Object.entries(r).map(([m, row]) => [m, { ...row, volume: v }]))); }
 
   const months = fiscalYearMonths(config.fiscalYear, fyStartMonth);
-  const totalBu = months.reduce((s, m) => s + (parseFloat(rows[m]?.budgetVolumeBu) || 0), 0);
-  const totalMt = totalBu / BUSHELS_PER_MT;
-  const filledCount = months.filter((m) => parseFloat(rows[m]?.budgetVolumeBu) > 0).length;
+
+  const totals = useMemo(() => {
+    let totalBu = 0, totalMt = 0;
+    for (const m of months) {
+      const raw = parseFloat(rows[m]?.volume) || 0;
+      if (volumeUnit === "BU") { totalBu += raw; totalMt += raw / BUSHELS_PER_MT; }
+      else { totalMt += raw; totalBu += raw * BUSHELS_PER_MT; }
+    }
+    return { totalBu, totalMt };
+  }, [months, rows, volumeUnit]);
+
+  const filledCount = months.filter((m) => parseFloat(rows[m]?.volume) > 0).length;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -378,11 +395,15 @@ function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSaved: () =
     const sharedComponentPayload = components
       .map((r, i) => ({ componentName: r.componentName, unit: r.unit, targetValue: parseFloat(r.targetValue), displayOrder: i + 1 }))
       .filter((c) => c.componentName && !isNaN(c.targetValue));
-    const lines = months.filter((m) => parseFloat(rows[m]?.budgetVolumeBu) > 0).map((m) => {
-      const bu = parseFloat(rows[m].budgetVolumeBu);
+    const lines = months.filter((m) => parseFloat(rows[m]?.volume) > 0).map((m) => {
+      const raw = parseFloat(rows[m].volume);
+      const bu = volumeUnit === "BU" ? raw : raw * BUSHELS_PER_MT;
+      const mt = volumeUnit === "MT" ? raw : raw / BUSHELS_PER_MT;
+      const forecastMt = parseFloat(rows[m].forecastMt) || null;
       return { siteCode: config.siteCode, commodityCode: config.commodityCode, budgetMonth: m,
-        futuresMonth: rows[m].futuresMonth || null, budgetVolumeBu: bu, budgetVolumeMt: bu / BUSHELS_PER_MT,
+        futuresMonth: rows[m].futuresMonth || null, budgetVolumeBu: bu, budgetVolumeMt: mt,
         fiscalYear: config.fiscalYear, notes: rows[m].notes || null,
+        forecastVolumeMt: forecastMt,
         components: sharedComponentPayload };
     });
     if (lines.length === 0) { toast("Enter volume for at least one month", "error"); return; }
@@ -410,7 +431,7 @@ function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSaved: () =
           <label className="text-xs text-slate-400">Site</label>
           <select value={config.siteCode} onChange={(e) => setConfig((c) => ({ ...c, siteCode: e.target.value }))} required
             className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-            <option value="">— Select —</option>
+            <option value="">&mdash; Select &mdash;</option>
             {sites.map((s) => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}
           </select>
         </div>
@@ -439,12 +460,16 @@ function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSaved: () =
       <div className="rounded-lg bg-slate-800/40 border border-slate-700/50 px-4 py-3 space-y-1">
         <div className="flex items-center gap-2">
           <label className="text-xs text-slate-400 whitespace-nowrap">Default volume:</label>
-          <input type="number" placeholder="bushels" step="1" min="0"
+          <input type="number" placeholder={volumeUnit === "BU" ? "bushels" : "MT"} step={volumeUnit === "BU" ? "1" : "any"} min="0"
             className="w-32 bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-600"
             onChange={(e) => applyAll(e.target.value)} />
-          <span className="text-xs text-slate-600">bu/month</span>
+          <span className="text-xs text-slate-600">{volumeUnit === "BU" ? "bu" : "MT"}/month</span>
+          <button type="button" onClick={() => setVolumeUnit(volumeUnit === "BU" ? "MT" : "BU")}
+            className="text-xs text-blue-400 hover:text-blue-300 transition-colors ml-2">
+            Switch to {volumeUnit === "BU" ? "MT" : "BU"}
+          </button>
         </div>
-        <p className="text-xs text-slate-600">Sets all months — override individually below</p>
+        <p className="text-xs text-slate-600">Sets all months &mdash; override individually below</p>
       </div>
       {/* Monthly Grid */}
       <div className="rounded-lg border border-slate-700 overflow-hidden">
@@ -452,8 +477,9 @@ function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSaved: () =
           <thead>
             <tr className="bg-slate-800/60 border-b border-slate-700">
               <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium w-20">Month</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">Bushels</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-28">MT (auto)</th>
+              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">{volumeUnit === "BU" ? "Bushels" : "MT"}</th>
+              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-28">{volumeUnit === "BU" ? "MT (auto)" : "BU (auto)"}</th>
+              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-28">Fcst MT</th>
               <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-36">All-in</th>
               <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium w-28">Futures Ref</th>
               <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium">Notes</th>
@@ -461,19 +487,30 @@ function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSaved: () =
           </thead>
           <tbody className="divide-y divide-slate-800">
             {months.map((m) => {
-              const row = rows[m] ?? { budgetVolumeBu: "", futuresMonth: "", notes: "" };
-              const bu  = parseFloat(row.budgetVolumeBu) || 0;
-              const mt  = bu > 0 ? bu / BUSHELS_PER_MT : 0;
+              const row = rows[m] ?? { volume: "", futuresMonth: "", notes: "", forecastMt: "" };
+              const raw  = parseFloat(row.volume) || 0;
+              const bu = volumeUnit === "BU" ? raw : raw * BUSHELS_PER_MT;
+              const mt = volumeUnit === "MT" ? raw : raw / BUSHELS_PER_MT;
+              const autoVal = volumeUnit === "BU" ? mt : bu;
               return (
                 <tr key={m} className={m.endsWith("-07") ? "border-t-2 border-blue-500/30" : ""}>
                   <td className="px-3 py-2 font-medium text-slate-300 whitespace-nowrap">{monthLabel(m)}</td>
                   <td className="px-3 py-1.5">
-                    <input type="number" step="1" min="0" placeholder="0" value={row.budgetVolumeBu}
-                      onChange={(e) => updateRow(m, "budgetVolumeBu", e.target.value)}
+                    <input type="number" step={volumeUnit === "BU" ? "1" : "any"} min="0" placeholder="0" value={row.volume}
+                      onChange={(e) => updateRow(m, "volume", e.target.value)}
                       className="w-full bg-transparent text-slate-200 text-right tabular-nums placeholder:text-slate-700 focus:outline-none" />
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums text-slate-500 text-xs">
-                    {mt > 0 ? mt.toLocaleString("en-US", { maximumFractionDigits: 1 }) : "—"}
+                    {autoVal > 0
+                      ? (volumeUnit === "BU"
+                          ? autoVal.toLocaleString("en-US", { maximumFractionDigits: 1 })
+                          : autoVal.toLocaleString("en-US", { maximumFractionDigits: 0 }))
+                      : "\u2014"}
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <input type="number" step="any" min="0" placeholder="\u2014" value={row.forecastMt}
+                      onChange={(e) => updateRow(m, "forecastMt", e.target.value)}
+                      className="w-full bg-transparent text-slate-300 text-right tabular-nums placeholder:text-slate-700 focus:outline-none text-xs" />
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums text-xs">
                     {sharedTotalPerMt > 0 ? (
@@ -482,7 +519,7 @@ function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSaved: () =
                         <br />
                         <span className="text-slate-500">${fmtPrice(sharedTotalPerMt)}/MT</span>
                       </div>
-                    ) : <span className="text-slate-700">—</span>}
+                    ) : <span className="text-slate-700">&mdash;</span>}
                   </td>
                   <td className="px-3 py-1.5">
                     <input type="text" placeholder="e.g. ZCN26" value={row.futuresMonth}
@@ -502,11 +539,16 @@ function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSaved: () =
             <tr className="bg-slate-800/50 border-t border-slate-700">
               <td className="px-3 py-2 text-xs text-slate-500 font-medium">Total</td>
               <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-200 text-sm">
-                {totalBu > 0 ? totalBu.toLocaleString("en-US", { maximumFractionDigits: 0 }) : "—"}
+                {(volumeUnit === "BU" ? totals.totalBu : totals.totalMt) > 0
+                  ? (volumeUnit === "BU" ? totals.totalBu : totals.totalMt).toLocaleString("en-US", { maximumFractionDigits: 0 })
+                  : "\u2014"}
               </td>
               <td className="px-3 py-2 text-right tabular-nums text-slate-400 text-xs">
-                {totalMt > 0 ? totalMt.toLocaleString("en-US", { maximumFractionDigits: 0 }) : "—"}
+                {(volumeUnit === "BU" ? totals.totalMt : totals.totalBu) > 0
+                  ? (volumeUnit === "BU" ? totals.totalMt : totals.totalBu).toLocaleString("en-US", { maximumFractionDigits: 0 })
+                  : "\u2014"}
               </td>
+              <td />
               <td className="px-3 py-2 text-right tabular-nums text-xs">
                 {sharedTotalPerMt > 0 ? <span className="text-blue-400 font-medium">${fmtPrice(sharedTotalPerMt)}/MT</span> : ""}
               </td>
@@ -519,10 +561,202 @@ function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSaved: () =
         <button type="button" onClick={onCancel} className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">Cancel</button>
         <button type="submit" disabled={submitting}
           className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
-          {submitting ? "Saving…" : `Save ${filledCount} month${filledCount !== 1 ? "s" : ""}`}
+          {submitting ? "Saving\u2026" : `Save ${filledCount} month${filledCount !== 1 ? "s" : ""}`}
         </button>
       </div>
     </form>
+  );
+}
+
+// ─── Forecast Update Grid ─────────────────────────────────────────────────────
+
+function ForecastUpdateGrid({ lines, onSaved, onCancel }: {
+  lines: CornBudgetLineResponse[]; onSaved: () => void; onCancel: () => void;
+}) {
+  const { toast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
+  const [note, setNote] = useState("");
+  const [forecasts, setForecasts] = useState<Record<number, string>>(() =>
+    Object.fromEntries(lines.map((l) => [l.id, l.forecastVolumeMt != null ? String(l.forecastVolumeMt) : String(l.budgetVolumeMt ?? "")]))
+  );
+
+  function updateForecast(id: number, v: string) {
+    setForecasts((f) => ({ ...f, [id]: v }));
+  }
+
+  const changedLines = lines.filter((l) => {
+    const newVal = parseFloat(forecasts[l.id]) || 0;
+    const oldVal = l.forecastVolumeMt ?? l.budgetVolumeMt ?? 0;
+    return Math.abs(newVal - oldVal) > 0.001;
+  });
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (changedLines.length === 0) { toast("No changes to save", "error"); return; }
+    setSubmitting(true);
+    try {
+      await api.post("/api/v1/corn/budget/forecast-batch", {
+        note: note || null,
+        updates: changedLines.map((l) => ({
+          budgetLineId: l.id,
+          forecastVolumeMt: parseFloat(forecasts[l.id]) || 0,
+        })),
+      });
+      toast(`${changedLines.length} forecast${changedLines.length !== 1 ? "s" : ""} updated`, "success");
+      onSaved();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Forecast update failed", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-200">Update Forecasts</h2>
+        <button type="button" onClick={onCancel} className="text-slate-500 hover:text-slate-300 transition-colors"><X className="h-4 w-4" /></button>
+      </div>
+      <div className="space-y-1">
+        <label className="text-xs text-slate-400">Update Note</label>
+        <input type="text" placeholder="e.g. March review" value={note} onChange={(e) => setNote(e.target.value)}
+          className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+      </div>
+      <div className="rounded-lg border border-slate-700 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-slate-800/60 border-b border-slate-700">
+              <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium">Month</th>
+              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">Budget MT</th>
+              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">Current Fcst MT</th>
+              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">New Forecast MT</th>
+              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-28">BU equiv</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            {lines.map((l) => {
+              const newVal = parseFloat(forecasts[l.id]) || 0;
+              const oldVal = l.forecastVolumeMt ?? l.budgetVolumeMt ?? 0;
+              const changed = Math.abs(newVal - oldVal) > 0.001;
+              return (
+                <tr key={l.id} className={changed ? "bg-blue-500/5" : ""}>
+                  <td className="px-3 py-2 text-slate-300 whitespace-nowrap">{monthLabel(l.budgetMonth)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-slate-500">{fmtVol(l.budgetVolumeMt)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-slate-400">{l.forecastVolumeMt != null ? fmtVol(l.forecastVolumeMt) : "\u2014"}</td>
+                  <td className="px-3 py-1.5">
+                    <input type="number" step="any" min="0" value={forecasts[l.id]}
+                      onChange={(e) => updateForecast(l.id, e.target.value)}
+                      className="w-full bg-transparent text-slate-200 text-right tabular-nums focus:outline-none" />
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-slate-500 text-xs">
+                    {newVal > 0 ? fmtVol(Math.round(newVal * BUSHELS_PER_MT)) : "\u2014"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-slate-500">{changedLines.length} month{changedLines.length !== 1 ? "s" : ""} changed</p>
+        <div className="flex gap-2">
+          <button type="button" onClick={onCancel} className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">Cancel</button>
+          <button type="submit" disabled={submitting || changedLines.length === 0}
+            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+            {submitting ? "Saving\u2026" : `Update ${changedLines.length} forecast${changedLines.length !== 1 ? "s" : ""}`}
+          </button>
+        </div>
+      </div>
+    </form>
+  );
+}
+
+// ─── Inline Forecast Edit ─────────────────────────────────────────────────────
+
+function InlineForecastEdit({ line, onSaved, onCancel }: {
+  line: CornBudgetLineResponse; onSaved: () => void; onCancel: () => void;
+}) {
+  const { toast } = useToast();
+  const [value, setValue] = useState(String(line.forecastVolumeMt ?? line.budgetVolumeMt ?? ""));
+  const [noteText, setNoteText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSave() {
+    setSubmitting(true);
+    try {
+      await api.put(`/api/v1/corn/budget/${line.id}`, {
+        forecastVolumeMt: parseFloat(value) || null,
+        forecastNotes: noteText || null,
+      });
+      toast("Forecast updated", "success");
+      onSaved();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Update failed", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <input type="number" step="any" min="0" value={value}
+        onChange={(e) => setValue(e.target.value)} autoFocus
+        className="w-20 bg-slate-800 border border-slate-600 text-slate-200 text-right tabular-nums rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500" />
+      <input type="text" placeholder="Note" value={noteText}
+        onChange={(e) => setNoteText(e.target.value)}
+        className="w-24 bg-slate-800 border border-slate-700 text-slate-300 rounded px-2 py-1 text-xs focus:outline-none placeholder:text-slate-600" />
+      <button onClick={handleSave} disabled={submitting}
+        className="text-emerald-400 hover:text-emerald-300 transition-colors"><Check className="h-3.5 w-3.5" /></button>
+      <button onClick={onCancel}
+        className="text-slate-500 hover:text-slate-300 transition-colors"><X className="h-3.5 w-3.5" /></button>
+    </div>
+  );
+}
+
+// ─── Forecast History Timeline ────────────────────────────────────────────────
+
+function ForecastHistoryTimeline({ budgetLineId }: { budgetLineId: number }) {
+  const { history, isLoading } = useForecastHistory(budgetLineId);
+  const [showAll, setShowAll] = useState(false);
+
+  if (isLoading) return <p className="text-xs text-slate-600 py-2">Loading history...</p>;
+  if (history.length === 0) return null;
+
+  const visible = showAll ? history : history.slice(0, 10);
+
+  return (
+    <div className="mt-3 pt-3 border-t border-slate-800/50">
+      <p className="text-xs text-slate-500 font-medium mb-2">Forecast History</p>
+      <div className="rounded-lg border border-slate-800 overflow-hidden">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-slate-800/40">
+              <th className="px-3 py-1.5 text-left text-slate-500 font-medium">Date</th>
+              <th className="px-3 py-1.5 text-left text-slate-500 font-medium">By</th>
+              <th className="px-3 py-1.5 text-right text-slate-500 font-medium">Forecast MT</th>
+              <th className="px-3 py-1.5 text-right text-slate-500 font-medium">BU equiv</th>
+              <th className="px-3 py-1.5 text-left text-slate-500 font-medium">Note</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800/50">
+            {visible.map((h) => (
+              <tr key={h.id}>
+                <td className="px-3 py-1.5 text-slate-400 whitespace-nowrap">{fmtDate(h.recordedAt)}</td>
+                <td className="px-3 py-1.5 text-slate-500">{h.recordedBy ?? "\u2014"}</td>
+                <td className="px-3 py-1.5 text-right tabular-nums text-slate-300">{fmtVol(h.forecastMt)}</td>
+                <td className="px-3 py-1.5 text-right tabular-nums text-slate-500">{fmtVol(h.forecastBu)}</td>
+                <td className="px-3 py-1.5 text-slate-500">{h.notes ?? ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {!showAll && history.length > 10 && (
+        <button onClick={() => setShowAll(true)} className="text-xs text-blue-400 hover:text-blue-300 mt-1 transition-colors">
+          Show all ({history.length})
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -532,6 +766,7 @@ function BudgetLineRow({ line, onEdit, onDeleted }: {
   line: CornBudgetLineResponse; onEdit: (l: CornBudgetLineResponse) => void; onDeleted: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [editingForecast, setEditingForecast] = useState(false);
   const { toast } = useToast();
 
   async function handleDelete() {
@@ -543,6 +778,7 @@ function BudgetLineRow({ line, onEdit, onDeleted }: {
   }
 
   const buVal = line.budgetVolumeBu ?? (line.budgetVolumeMt * BUSHELS_PER_MT);
+  const notional = lineNotional(line);
 
   return (
     <>
@@ -553,13 +789,45 @@ function BudgetLineRow({ line, onEdit, onDeleted }: {
           </button>
         </td>
         <td className="px-4 py-3 text-slate-300">{monthLabel(line.budgetMonth)}</td>
-        <td className="px-4 py-3 text-slate-400 font-mono text-xs">{line.futuresMonth ?? "—"}</td>
+        <td className="px-4 py-3 text-slate-400 font-mono text-xs">{line.futuresMonth ?? "\u2014"}</td>
         <td className="px-4 py-3 tabular-nums text-slate-200 text-right">{fmtVol(buVal)}</td>
         <td className="px-4 py-3 tabular-nums text-slate-500 text-right text-xs">{fmtVol(line.budgetVolumeMt)}</td>
         <td className="px-4 py-3 text-right">
           {line.targetAllInPerMt != null
             ? <span className="text-blue-400 font-semibold tabular-nums">${fmtPrice(line.targetAllInPerMt)}</span>
-            : <span className="text-slate-600">—</span>}
+            : <span className="text-slate-600">&mdash;</span>}
+        </td>
+        <td className="px-4 py-3 text-right">
+          {notional != null
+            ? <span className="text-emerald-400 tabular-nums text-xs">{fmtDollars(notional)}</span>
+            : <span className="text-slate-600">&mdash;</span>}
+        </td>
+        <td className="px-4 py-3 text-right">
+          {editingForecast ? (
+            <InlineForecastEdit line={line} onSaved={() => { setEditingForecast(false); onDeleted(); }} onCancel={() => setEditingForecast(false)} />
+          ) : (
+            <button onClick={() => setEditingForecast(true)} className="tabular-nums text-xs text-slate-300 hover:text-blue-400 transition-colors cursor-pointer">
+              {line.forecastVolumeMt != null ? fmtVol(line.forecastVolumeMt) : "\u2014"}
+            </button>
+          )}
+        </td>
+        <td className="px-4 py-3 text-right">
+          {line.forecastVarianceMt != null ? (
+            <span className={cn("tabular-nums text-xs font-medium",
+              line.forecastVarianceMt < 0 ? "text-red-400" : line.forecastVarianceMt > 0 ? "text-green-400" : "text-slate-500")}>
+              {line.forecastVarianceMt > 0 ? "+" : ""}{fmtVol(line.forecastVarianceMt)}
+            </span>
+          ) : <span className="text-slate-600 text-xs">&mdash;</span>}
+        </td>
+        <td className="px-4 py-3 tabular-nums text-slate-400 text-right text-xs">
+          {line.hedgedVolumeMt != null ? fmtVol(line.hedgedVolumeMt) : "\u2014"}
+        </td>
+        <td className="px-4 py-3 text-center">
+          {line.overHedged && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-orange-500/10 ring-1 ring-orange-500/30 text-orange-400 text-xs font-medium">
+              Over
+            </span>
+          )}
         </td>
         <td className="px-4 py-3 text-slate-500 text-xs">{line.notes ?? ""}</td>
         <td className="px-4 py-3">
@@ -569,19 +837,22 @@ function BudgetLineRow({ line, onEdit, onDeleted }: {
           </div>
         </td>
       </tr>
-      {expanded && line.components.length > 0 && (
+      {expanded && (
         <tr>
-          <td colSpan={8} className="px-8 py-3 bg-slate-950/40 border-t border-slate-800/50">
-            <div className="space-y-1">
-              {line.components.map((c) => (
-                <div key={c.id} className="flex items-center gap-4 text-xs">
-                  <span className="text-slate-400 w-40">{c.componentName}</span>
-                  <span className="text-slate-500 w-16">{c.unit}</span>
-                  <span className="tabular-nums text-slate-300 w-20 text-right">{fmtPrice(c.targetValue)}</span>
-                  <span className="tabular-nums text-slate-500 w-24 text-right">≈ ${fmtPrice(c.valuePerMt)}/MT</span>
-                </div>
-              ))}
-            </div>
+          <td colSpan={13} className="px-8 py-3 bg-slate-950/40 border-t border-slate-800/50">
+            {line.components.length > 0 && (
+              <div className="space-y-1">
+                {line.components.map((c) => (
+                  <div key={c.id} className="flex items-center gap-4 text-xs">
+                    <span className="text-slate-400 w-40">{c.componentName}</span>
+                    <span className="text-slate-500 w-16">{c.unit}</span>
+                    <span className="tabular-nums text-slate-300 w-20 text-right">{fmtPrice(c.targetValue)}</span>
+                    <span className="tabular-nums text-slate-500 w-24 text-right">&asymp; ${fmtPrice(c.valuePerMt)}/MT</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <ForecastHistoryTimeline budgetLineId={line.id} />
           </td>
         </tr>
       )}
@@ -591,14 +862,8 @@ function BudgetLineRow({ line, onEdit, onDeleted }: {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type FormMode = "none" | "single" | "fiscal-year";
+type FormMode = "none" | "single" | "fiscal-year" | "forecast-grid";
 type Book = "CANADA" | "US";
-
-function currentFiscalYear(fyStartMonth: number): string {
-  const now = new Date();
-  const y = now.getMonth() + 1 >= fyStartMonth ? now.getFullYear() : now.getFullYear() - 1;
-  return `${y}/${y + 1}`;
-}
 
 export default function BudgetPage() {
   const { sites } = useSites();
@@ -638,15 +903,56 @@ export default function BudgetPage() {
   const totalBu = filteredBudget.reduce((s, l) => s + (l.budgetVolumeBu ?? l.budgetVolumeMt * BUSHELS_PER_MT), 0);
   const totalMt = filteredBudget.reduce((s, l) => s + l.budgetVolumeMt, 0);
 
+  // Weighted average price
+  const wtdAvg = useMemo(() => {
+    let sumPriceVol = 0, sumVol = 0;
+    for (const l of filteredBudget) {
+      if (l.targetAllInPerMt != null && l.budgetVolumeMt > 0) {
+        sumPriceVol += l.targetAllInPerMt * l.budgetVolumeMt;
+        sumVol += l.budgetVolumeMt;
+      }
+    }
+    if (sumVol === 0) return null;
+    return sumPriceVol / sumVol;
+  }, [filteredBudget]);
+
+  // Total notional spend (with client-side fallback)
+  const totalNotional = useMemo(() => {
+    return filteredBudget.reduce((s, l) => s + (lineNotional(l) ?? 0), 0);
+  }, [filteredBudget]);
+
+  // Forecast vs Budget variance
+  const totalForecastVariance = useMemo(() => {
+    let total = 0;
+    let hasForecast = false;
+    for (const l of filteredBudget) {
+      if (l.forecastVarianceMt != null) {
+        total += l.forecastVarianceMt;
+        hasForecast = true;
+      }
+    }
+    return hasForecast ? total : null;
+  }, [filteredBudget]);
+
+  // Lines for the forecast grid (current site filter + fiscal year)
+  const forecastGridLines = useMemo(() => {
+    if (filterSite) return filteredBudget.filter((l) => l.siteCode === filterSite);
+    return filteredBudget;
+  }, [filteredBudget, filterSite]);
+
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">Procurement Budget</h1>
+          <h1 className="text-xl font-semibold text-slate-100">Budgets &amp; Forecasts</h1>
           <p className="text-sm text-slate-400 mt-0.5">Fiscal year starting {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][fyStartMonth - 1]} &middot; volume targets by site and month</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => { setFormMode("forecast-grid"); setEditing(undefined); }}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors">
+            <RefreshCw className="h-4 w-4" /> Update Forecasts
+          </button>
           <button onClick={() => { setFormMode("fiscal-year"); setEditing(undefined); }}
             className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors">
             <CalendarDays className="h-4 w-4" /> Full Year
@@ -682,7 +988,7 @@ export default function BudgetPage() {
       <div className="flex gap-3 flex-wrap">
         <select value={filterSite} onChange={(e) => setFilterSite(e.target.value)}
           className="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-          <option value="">All {bookCountry} Sites</option>
+          <option value="">All</option>
           {countrySites.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
         </select>
         <select value={filterFY} onChange={(e) => setFilterFY(e.target.value)}
@@ -699,26 +1005,59 @@ export default function BudgetPage() {
       {formMode === "fiscal-year" && (
         <FiscalYearGrid onSaved={onSaved} onCancel={closeForm} fyStartMonth={fyStartMonth} />
       )}
+      {formMode === "forecast-grid" && forecastGridLines.length > 0 && (
+        <ForecastUpdateGrid lines={forecastGridLines} onSaved={onSaved} onCancel={closeForm} />
+      )}
 
       {/* KPIs */}
       {filteredBudget.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { label: "Budget Lines",  value: String(filteredBudget.length) },
-            { label: "Total Bushels", value: totalBu > 0 ? `${(totalBu / 1_000_000).toFixed(2)}M bu` : "\u2014" },
-            { label: "Total MT",      value: totalMt > 0 ? `${fmtVol(Math.round(totalMt))} MT` : "\u2014" },
-          ].map(({ label, value }) => (
-            <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{label}</p>
-              <p className="text-2xl font-bold tabular-nums text-slate-100">{value}</p>
-            </div>
-          ))}
+        <div className="grid grid-cols-5 gap-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Budget Lines</p>
+            <p className="text-2xl font-bold tabular-nums text-slate-100">{filteredBudget.length}</p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Volume</p>
+            <p className="text-2xl font-bold tabular-nums text-slate-100">
+              {totalBu > 0 ? `${(totalBu / 1_000_000).toFixed(2)}M bu` : "\u2014"}
+            </p>
+            <p className="text-xs text-slate-400 tabular-nums mt-0.5">
+              {totalMt > 0 ? `${fmtVol(Math.round(totalMt))} MT` : ""}
+            </p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Wtd Avg Price</p>
+            <p className="text-2xl font-bold tabular-nums text-slate-100">
+              {wtdAvg != null ? `$${fmtPrice(wtdAvg)}/MT` : "\u2014"}
+            </p>
+            <p className="text-xs text-slate-400 tabular-nums mt-0.5">
+              {wtdAvg != null ? `$${(wtdAvg / BUSHELS_PER_MT).toFixed(4)}/bu` : ""}
+            </p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Notional</p>
+            <p className="text-2xl font-bold tabular-nums text-slate-100">
+              {totalNotional > 0 ? fmtDollars(totalNotional) : "\u2014"}
+            </p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Forecast vs Budget</p>
+            <p className={cn("text-2xl font-bold tabular-nums",
+              totalForecastVariance == null ? "text-slate-100"
+              : totalForecastVariance < 0 ? "text-red-400"
+              : totalForecastVariance > 0 ? "text-green-400"
+              : "text-slate-100")}>
+              {totalForecastVariance != null
+                ? `${totalForecastVariance > 0 ? "+" : ""}${fmtVol(Math.round(totalForecastVariance))} MT`
+                : "\u2014"}
+            </p>
+          </div>
         </div>
       )}
 
       {/* Table grouped by site */}
       {isLoading ? (
-        <SkeletonTable rows={6} cols={8} />
+        <SkeletonTable rows={6} cols={13} />
       ) : filteredBudget.length === 0 ? (
         <EmptyState
           icon={BookOpen}
@@ -732,6 +1071,23 @@ export default function BudgetPage() {
             const siteName = lines[0]?.siteName ?? siteCode;
             const siteBu   = lines.reduce((s, l) => s + (l.budgetVolumeBu ?? l.budgetVolumeMt * BUSHELS_PER_MT), 0);
             const siteMt   = lines.reduce((s, l) => s + l.budgetVolumeMt, 0);
+            // Weighted price for site
+            let siteSumPriceVol = 0, siteSumVol = 0;
+            for (const l of lines) {
+              if (l.targetAllInPerMt != null && l.budgetVolumeMt > 0) {
+                siteSumPriceVol += l.targetAllInPerMt * l.budgetVolumeMt;
+                siteSumVol += l.budgetVolumeMt;
+              }
+            }
+            const siteWtdAvg = siteSumVol > 0 ? siteSumPriceVol / siteSumVol : null;
+            const siteNotional = lines.reduce((s, l) => s + (lineNotional(l) ?? 0), 0);
+            // Subtotals for new columns
+            const siteForecastMt = lines.reduce((s, l) => s + (l.forecastVolumeMt ?? 0), 0);
+            const siteVarianceMt = lines.reduce((s, l) => s + (l.forecastVarianceMt ?? 0), 0);
+            const siteHedgedMt   = lines.reduce((s, l) => s + (l.hedgedVolumeMt ?? 0), 0);
+            const hasForecasts   = lines.some((l) => l.forecastVolumeMt != null);
+            const hasVariance    = lines.some((l) => l.forecastVarianceMt != null);
+
             return (
               <div key={siteCode} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
                 <div className="px-4 py-3 bg-slate-800/40 border-b border-slate-800 flex items-center justify-between">
@@ -745,6 +1101,19 @@ export default function BudgetPage() {
                     <span>{fmtVol(siteMt)} MT</span>
                     <span className="text-slate-600">&middot;</span>
                     <span>{lines.length} line{lines.length !== 1 ? "s" : ""}</span>
+                    {siteWtdAvg != null && (
+                      <>
+                        <span className="text-slate-600">&middot;</span>
+                        <span className="text-blue-400">${fmtPrice(siteWtdAvg)}/MT</span>
+                        <span className="text-slate-500">(${(siteWtdAvg / BUSHELS_PER_MT).toFixed(4)}/bu)</span>
+                      </>
+                    )}
+                    {siteNotional > 0 && (
+                      <>
+                        <span className="text-slate-600">&middot;</span>
+                        <span className="text-emerald-400">{fmtDollars(siteNotional)} notional</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <table className="w-full text-sm">
@@ -756,6 +1125,11 @@ export default function BudgetPage() {
                       <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Bushels</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">MT</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">All-in $/MT</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Notional $</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Fcst MT</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Variance</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Hedged MT</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Notes</th>
                       <th className="w-16" />
                     </tr>
@@ -770,6 +1144,17 @@ export default function BudgetPage() {
                       <td colSpan={3} className="px-4 py-2 text-xs text-slate-500 text-right font-medium">Subtotal</td>
                       <td className="px-4 py-2 text-right tabular-nums font-semibold text-slate-300 text-xs">{fmtVol(siteBu)} bu</td>
                       <td className="px-4 py-2 text-right tabular-nums font-semibold text-slate-400 text-xs">{fmtVol(siteMt)} MT</td>
+                      <td />
+                      <td className="px-4 py-2 text-right tabular-nums text-emerald-400 text-xs font-medium">{siteNotional > 0 ? fmtDollars(siteNotional) : ""}</td>
+                      <td className="px-4 py-2 text-right tabular-nums text-slate-400 text-xs">{hasForecasts ? fmtVol(siteForecastMt) : ""}</td>
+                      <td className="px-4 py-2 text-right tabular-nums text-xs font-medium">
+                        {hasVariance ? (
+                          <span className={siteVarianceMt < 0 ? "text-red-400" : siteVarianceMt > 0 ? "text-green-400" : "text-slate-500"}>
+                            {siteVarianceMt > 0 ? "+" : ""}{fmtVol(siteVarianceMt)}
+                          </span>
+                        ) : ""}
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums text-slate-400 text-xs">{siteHedgedMt > 0 ? fmtVol(siteHedgedMt) : ""}</td>
                       <td colSpan={3} />
                     </tr>
                   </tfoot>

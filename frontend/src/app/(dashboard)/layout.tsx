@@ -53,7 +53,7 @@ const navSections: NavSection[] = [
   {
     label: "Corn Procurement",
     items: [
-      { href: "/corn/budget",     label: "Budget",     icon: BookOpen },
+      { href: "/corn/budget",     label: "Budgets & Forecasts", icon: BookOpen },
       { href: "/corn/positions",  label: "Positions",  icon: Activity },
       { href: "/corn/coverage",  label: "Coverage",   icon: BarChart2 },
       { href: "/corn/contracts", label: "Contracts",  icon: FileText },

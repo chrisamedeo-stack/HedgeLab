@@ -1,10 +1,10 @@
 CREATE TABLE app_settings (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id          BIGSERIAL PRIMARY KEY,
     setting_key VARCHAR(100) NOT NULL UNIQUE,
     value       TEXT NOT NULL,
     description VARCHAR(500),
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    created_at  TIMESTAMPTZ DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
 INSERT INTO app_settings (setting_key, value, description) VALUES

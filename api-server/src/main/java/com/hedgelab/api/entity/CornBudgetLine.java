@@ -52,6 +52,14 @@ public class CornBudgetLine extends AuditableEntity {
     @Column(name = "budget_volume_bu", precision = 16, scale = 2)
     private BigDecimal budgetVolumeBu;
 
+    /** Forecast volume in metric tonnes (updated periodically) */
+    @Column(name = "forecast_volume_mt", precision = 14, scale = 4)
+    private BigDecimal forecastVolumeMt;
+
+    /** Forecast volume in bushels (derived from MT or entered directly) */
+    @Column(name = "forecast_volume_bu", precision = 16, scale = 2)
+    private BigDecimal forecastVolumeBu;
+
     /**
      * Crop year label for grouping, e.g. "2025/2026".
      * Derived from budgetMonth but stored for fast filtering.

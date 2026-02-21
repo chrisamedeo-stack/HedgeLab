@@ -315,8 +315,23 @@ export interface CornBudgetLineResponse {
   fiscalYear: string | null;
   cropYear: string | null;
   targetAllInPerMt: number | null;
+  totalNotionalSpend: number | null;
+  forecastVolumeMt: number | null;
+  forecastVolumeBu: number | null;
+  forecastVarianceMt: number | null;
+  hedgedVolumeMt: number | null;
+  overHedged: boolean | null;
   notes: string | null;
   components: BudgetComponentDto[];
+}
+
+export interface ForecastHistoryDto {
+  id: number;
+  forecastMt: number;
+  forecastBu: number;
+  recordedAt: string;
+  recordedBy: string | null;
+  notes: string | null;
 }
 
 export function useBudget(site?: string, fiscalYear?: string) {
@@ -330,6 +345,14 @@ export function useBudget(site?: string, fiscalYear?: string) {
     { refreshInterval: 30_000 }
   );
   return { budget: data ?? [], isLoading: !data && !error, error, mutate };
+}
+
+export function useForecastHistory(budgetLineId: number | null) {
+  const { data, error, mutate } = useSWR<ForecastHistoryDto[]>(
+    budgetLineId ? `/api/v1/corn/budget/${budgetLineId}/forecast-history` : null,
+    (url: string) => api.get<ForecastHistoryDto[]>(url)
+  );
+  return { history: data ?? [], isLoading: !data && !error, error, mutate };
 }
 
 export function usePositions(book?: string) {

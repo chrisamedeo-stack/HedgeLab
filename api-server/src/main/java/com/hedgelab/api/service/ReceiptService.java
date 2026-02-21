@@ -37,9 +37,9 @@ public class ReceiptService {
     public ReceiptResponse create(CreateReceiptRequest req) {
         var contract = contractRepository.findById(req.getPhysicalContractId()).orElseThrow();
         var site = siteRepository.findByCode(req.getSiteCode()).orElseThrow();
-        long count = receiptRepository.count() + 1;
+        long nextNum = receiptRepository.findMaxId() + 1;
         String ref = String.format("RT-%s-%d-%03d", req.getSiteCode(),
-                req.getReceiptDate().getYear(), count);
+                req.getReceiptDate().getYear(), nextNum);
         // Calculate shrink from moisture
         BigDecimal moisture = req.getMoisturePct() != null ? req.getMoisturePct() : new BigDecimal("14.0");
         BigDecimal shrink = moisture.subtract(SHRINK_BASE).max(BigDecimal.ZERO)

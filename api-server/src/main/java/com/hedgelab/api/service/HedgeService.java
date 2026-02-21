@@ -35,8 +35,8 @@ public class HedgeService {
     }
 
     public HedgeTradeResponse create(CreateHedgeTradeRequest req) {
-        long count = hedgeRepository.count() + 1;
-        String ref = String.format("HT-%d-%03d", req.getTradeDate().getYear(), count);
+        long nextNum = hedgeRepository.findMaxId() + 1;
+        String ref = String.format("HT-%d-%03d", req.getTradeDate().getYear(), nextNum);
         String book = req.getBook() != null ? req.getBook().toUpperCase() : "CANADA";
         var hedge = HedgeTrade.builder()
                 .tradeRef(ref).futuresMonth(req.getFuturesMonth()).lots(req.getLots())

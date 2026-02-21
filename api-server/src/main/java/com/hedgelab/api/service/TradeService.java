@@ -272,8 +272,8 @@ public class TradeService {
 
     private String generateReference() {
         String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        long count = tradeRepo.count() + 1;
-        return String.format("%s-%s-%05d", refPrefix, dateStr, count);
+        long nextNum = tradeRepo.findMaxId() + 1;
+        return String.format("%s-%s-%05d", refPrefix, dateStr, nextNum);
     }
 
     private List<DeliverySchedule> buildDeliverySchedules(Trade trade, LocalDate start, LocalDate end, BigDecimal totalQty) {

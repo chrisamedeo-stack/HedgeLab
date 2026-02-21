@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpecificationExecutor<Invoice> {
+    @Query("SELECT COALESCE(MAX(i.id), 0) FROM Invoice i")
+    long findMaxId();
     Optional<Invoice> findByInvoiceNumber(String invoiceNumber);
     List<Invoice> findByCounterpartyAndStatus(Counterparty counterparty, InvoiceStatus status);
     List<Invoice> findByTradeAndStatus(Trade trade, InvoiceStatus status);
