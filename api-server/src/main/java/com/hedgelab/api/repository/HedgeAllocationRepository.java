@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.List;
+import java.util.Optional;
 
 public interface HedgeAllocationRepository extends JpaRepository<HedgeAllocation, Long> {
 
@@ -16,4 +17,13 @@ public interface HedgeAllocationRepository extends JpaRepository<HedgeAllocation
 
     @Query("SELECT COALESCE(SUM(a.allocatedLots), 0) FROM HedgeAllocation a WHERE a.hedgeTrade.id = :tradeId")
     int sumAllocatedLotsByTradeId(@Param("tradeId") Long tradeId);
+
+    // Month-only allocations for a trade (site IS NULL)
+    List<HedgeAllocation> findByHedgeTrade_IdAndSiteIsNullOrderByBudgetMonthAsc(Long hedgeTradeId);
+
+    // Site-assigned allocations for a trade (site IS NOT NULL)
+    List<HedgeAllocation> findByHedgeTrade_IdAndSiteIsNotNullOrderByBudgetMonthAsc(Long hedgeTradeId);
+
+    // Find a specific month-only allocation
+    Optional<HedgeAllocation> findByHedgeTrade_IdAndBudgetMonthAndSiteIsNull(Long hedgeTradeId, String budgetMonth);
 }

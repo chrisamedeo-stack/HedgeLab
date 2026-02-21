@@ -39,9 +39,14 @@ public class HedgeAllocationService {
         HedgeTrade trade = hedgeRepo.findById(tradeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Hedge trade not found: " + tradeId));
-        Site site = siteRepo.findByCode(req.getSiteCode())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Site not found: " + req.getSiteCode()));
+
+        // Resolve site (nullable for month-only allocations)
+        Site site = null;
+        if (req.getSiteCode() != null && !req.getSiteCode().isBlank()) {
+            site = siteRepo.findByCode(req.getSiteCode())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Site not found: " + req.getSiteCode()));
+        }
 
         int alreadyAllocated = allocationRepo.sumAllocatedLotsByTradeId(tradeId);
         int newTotal = alreadyAllocated + req.getAllocatedLots();
@@ -64,6 +69,57 @@ public class HedgeAllocationService {
     }
 
     @Transactional
+    public HedgeAllocationResponse assignSite(Long monthAllocationId, String siteCode, Integer lots) {
+        // 1. Find the month-only allocation
+        HedgeAllocation monthAlloc = allocationRepo.findById(monthAllocationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Allocation not found: " + monthAllocationId));
+
+        // 2. Validate it IS a month-only allocation (site == null)
+        if (monthAlloc.getSite() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Allocation " + monthAllocationId + " already has a site assigned");
+        }
+
+        // 3. Look up the Site
+        Site site = siteRepo.findByCode(siteCode)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Site not found: " + siteCode));
+
+        // 4. Validate lots
+        if (lots == null || lots <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lots must be greater than 0");
+        }
+        if (lots > monthAlloc.getAllocatedLots()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    String.format("Cannot assign %d lots — only %d available in month allocation",
+                            lots, monthAlloc.getAllocatedLots()));
+        }
+
+        // 5. Create new site allocation
+        HedgeAllocation siteAlloc = HedgeAllocation.builder()
+                .hedgeTrade(monthAlloc.getHedgeTrade())
+                .site(site)
+                .budgetMonth(monthAlloc.getBudgetMonth())
+                .allocatedLots(lots)
+                .notes(monthAlloc.getNotes())
+                .build();
+        HedgeAllocation saved = allocationRepo.save(siteAlloc);
+
+        // 6. Reduce or delete month-only allocation
+        int remaining = monthAlloc.getAllocatedLots() - lots;
+        if (remaining <= 0) {
+            allocationRepo.delete(monthAlloc);
+        } else {
+            monthAlloc.setAllocatedLots(remaining);
+            allocationRepo.save(monthAlloc);
+        }
+
+        // 7. Return the new site allocation
+        return toResponse(saved);
+    }
+
+    @Transactional
     public void delete(Long allocationId) {
         HedgeAllocation a = allocationRepo.findById(allocationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -77,8 +133,8 @@ public class HedgeAllocationService {
                 .id(a.getId())
                 .hedgeTradeId(a.getHedgeTrade().getId())
                 .tradeRef(a.getHedgeTrade().getTradeRef())
-                .siteCode(a.getSite().getCode())
-                .siteName(a.getSite().getName())
+                .siteCode(a.getSite() != null ? a.getSite().getCode() : null)
+                .siteName(a.getSite() != null ? a.getSite().getName() : null)
                 .budgetMonth(a.getBudgetMonth())
                 .allocatedLots(a.getAllocatedLots())
                 .allocatedMt(mt)

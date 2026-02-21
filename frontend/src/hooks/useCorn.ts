@@ -72,8 +72,8 @@ export interface HedgeAllocationResponse {
   id: number;
   hedgeTradeId: number;
   tradeRef: string;
-  siteCode: string;
-  siteName: string;
+  siteCode: string | null;
+  siteName: string | null;
   budgetMonth: string;
   allocatedLots: number;
   allocatedMt: number;

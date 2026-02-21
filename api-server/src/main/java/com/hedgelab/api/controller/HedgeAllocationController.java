@@ -1,5 +1,6 @@
 package com.hedgelab.api.controller;
 
+import com.hedgelab.api.dto.request.AssignSiteRequest;
 import com.hedgelab.api.dto.request.CreateHedgeAllocationRequest;
 import com.hedgelab.api.dto.response.HedgeAllocationResponse;
 import com.hedgelab.api.service.HedgeAllocationService;
@@ -26,6 +27,13 @@ public class HedgeAllocationController {
     public HedgeAllocationResponse create(@PathVariable Long id,
                                           @RequestBody CreateHedgeAllocationRequest req) {
         return service.create(id, req);
+    }
+
+    @PostMapping("/allocations/{id}/assign-site")
+    @ResponseStatus(HttpStatus.CREATED)
+    public HedgeAllocationResponse assignSite(@PathVariable Long id,
+                                              @RequestBody AssignSiteRequest req) {
+        return service.assignSite(id, req.getSiteCode(), req.getLots());
     }
 
     @DeleteMapping("/allocations/{allocationId}")

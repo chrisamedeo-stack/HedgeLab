@@ -5,8 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "corn_hedge_allocations",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"hedge_trade_id", "site_id", "budget_month"}))
+@Table(name = "corn_hedge_allocations")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,8 +20,8 @@ public class HedgeAllocation {
     @JoinColumn(name = "hedge_trade_id", nullable = false)
     private HedgeTrade hedgeTrade;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "site_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "site_id", nullable = true)
     private Site site;
 
     /** Budget month this allocation covers, e.g. "2026-05" */

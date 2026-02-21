@@ -74,10 +74,13 @@ public class CornPositionService {
         if (book != null && !book.isBlank()) {
             final String bookUpper = book.toUpperCase();
             allAllocations = allocationRepo.findAll().stream()
+                    .filter(a -> a.getSite() != null) // exclude month-only allocations
                     .filter(a -> bookUpper.equalsIgnoreCase(a.getHedgeTrade().getBook()))
                     .collect(Collectors.toList());
         } else {
-            allAllocations = allocationRepo.findAll();
+            allAllocations = allocationRepo.findAll().stream()
+                    .filter(a -> a.getSite() != null) // exclude month-only allocations
+                    .collect(Collectors.toList());
         }
 
         List<SiteAllocationItem> siteAllocations = allAllocations.stream()
