@@ -17,7 +17,6 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const BUSHELS_PER_LOT = 5000;
-const BUSHELS_PER_MT  = 39.3683;
 
 export default function EFPPage() {
   const { efps, isLoading, mutate } = useEFPs();
@@ -43,7 +42,7 @@ export default function EFPPage() {
   }
 
   const lots = parseInt(form.lots) || 0;
-  const quantityMt = (lots * BUSHELS_PER_LOT) / BUSHELS_PER_MT;
+  const quantityBu = lots * BUSHELS_PER_LOT;
 
   // Get selected hedge details for display
   const selectedHedge = hedges.find((h) => h.id === parseInt(form.hedgeTradeId));
@@ -139,7 +138,7 @@ export default function EFPPage() {
                 <option value="">— select —</option>
                 {openContracts.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.contractRef} ({c.siteCode}, {formatNumber(Math.round(c.quantityMt))} MT)
+                    {c.contractRef} ({c.siteCode}, {formatNumber(c.quantityBu ?? 0)} bu)
                   </option>
                 ))}
               </select>
@@ -228,18 +227,14 @@ export default function EFPPage() {
           {lots > 0 && (
             <div className="p-4 bg-slate-800/50 rounded-lg">
               <p className="text-xs text-slate-500 mb-2">EFP Preview</p>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-slate-500">Lots</p>
                   <p className="text-sm font-semibold text-slate-200 tabular-nums">{lots}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">Bushels</p>
-                  <p className="text-sm font-semibold text-slate-200 tabular-nums">{formatNumber(lots * BUSHELS_PER_LOT)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">MT Equivalent</p>
-                  <p className="text-sm font-semibold text-slate-200 tabular-nums">{formatNumber(Math.round(quantityMt))} MT</p>
+                  <p className="text-sm font-semibold text-slate-200 tabular-nums">{formatNumber(quantityBu)}</p>
                 </div>
               </div>
             </div>
@@ -272,7 +267,7 @@ export default function EFPPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-800/50 border-b border-slate-800">
-                {["Ticket", "Hedge", "Contract", "Site", "Lots", "Board ($/bu)", "Qty (MT)", "Date", "Status"].map((h) => (
+                {["Ticket", "Hedge", "Contract", "Site", "Lots", "Board ($/bu)", "Qty (bu)", "Date", "Status"].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
@@ -288,7 +283,7 @@ export default function EFPPage() {
                   <td className="px-4 py-3 text-slate-300">{e.siteName}</td>
                   <td className="px-4 py-3 tabular-nums text-slate-200">{e.lots}</td>
                   <td className="px-4 py-3 tabular-nums text-slate-200">{e.boardPrice != null ? (e.boardPrice / 100).toFixed(4) : "—"}</td>
-                  <td className="px-4 py-3 tabular-nums text-slate-400">{formatNumber(Math.round(e.quantityMt ?? 0))}</td>
+                  <td className="px-4 py-3 tabular-nums text-slate-400">{formatNumber(e.lots * BUSHELS_PER_LOT)}</td>
                   <td className="px-4 py-3 text-slate-400">{e.efpDate}</td>
                   <td className="px-4 py-3">
                     <span className={cn(

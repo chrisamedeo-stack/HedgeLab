@@ -6,15 +6,15 @@ export const COMMODITY_OPTIONS = [
   { value: "CORN-ZC", label: "Corn (CBOT ZC)" },
   { value: "CORN",    label: "Corn (Generic)" },
 ];
-export const UNIT_OPTIONS = ["$/bu", "$/MT", "¢/bu", "CAD/MT", "%"];
+export const UNIT_OPTIONS = ["$/bu", "¢/bu", "%"];
 export const PRESET_COMPONENTS = [
   { name: "Board Price",     unit: "$/bu" },
   { name: "Basis",           unit: "$/bu" },
-  { name: "Freight",         unit: "$/MT" },
-  { name: "Elevation",       unit: "$/MT" },
-  { name: "Insurance",       unit: "$/MT" },
-  { name: "FX Premium",      unit: "$/MT" },
-  { name: "Quality Premium", unit: "$/MT" },
+  { name: "Freight",         unit: "$/bu" },
+  { name: "Elevation",       unit: "$/bu" },
+  { name: "Insurance",       unit: "$/bu" },
+  { name: "FX Premium",      unit: "$/bu" },
+  { name: "Quality Premium", unit: "$/bu" },
 ];
 
 // ─── Types ────────────────────────────────────────────────────────────────────

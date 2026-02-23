@@ -36,10 +36,9 @@ export function BudgetRow({ line, onEdit, onDeleted }: {
         <td className="px-4 py-3 text-slate-300">{monthLabel(line.budgetMonth)}</td>
         <td className="px-4 py-3 text-slate-400 font-mono text-xs">{line.futuresMonth ?? "\u2014"}</td>
         <td className="px-4 py-3 tabular-nums text-slate-200 text-right">{fmtVol(buVal)}</td>
-        <td className="px-4 py-3 tabular-nums text-slate-500 text-right text-xs">{fmtVol(line.budgetVolumeMt)}</td>
         <td className="px-4 py-3 text-right">
           {line.targetAllInPerMt != null
-            ? <span className="text-blue-400 font-semibold tabular-nums">${fmtPrice(line.targetAllInPerMt)}</span>
+            ? <span className="text-blue-400 font-semibold tabular-nums">${(line.targetAllInPerMt / BUSHELS_PER_MT).toFixed(4)}</span>
             : <span className="text-slate-600">&mdash;</span>}
         </td>
         <td className="px-4 py-3 text-right">
@@ -65,7 +64,7 @@ export function BudgetRow({ line, onEdit, onDeleted }: {
                     <span className="text-slate-400 w-40">{c.componentName}</span>
                     <span className="text-slate-500 w-16">{c.unit}</span>
                     <span className="tabular-nums text-slate-300 w-20 text-right">{fmtPrice(c.targetValue)}</span>
-                    <span className="tabular-nums text-slate-500 w-24 text-right">&asymp; ${fmtPrice(c.valuePerMt)}/MT</span>
+                    <span className="tabular-nums text-slate-500 w-24 text-right">&asymp; ${c.valuePerMt != null ? (c.valuePerMt / BUSHELS_PER_MT).toFixed(4) : "\u2014"}/bu</span>
                   </div>
                 ))}
               </div>

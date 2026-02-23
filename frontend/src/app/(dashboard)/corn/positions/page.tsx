@@ -14,18 +14,21 @@ import {
   X,
   ArrowRightLeft,
   MapPinPlus,
+  Trash2,
+  Edit2,
 } from "lucide-react";
 import {
   usePositions,
   useSites,
+  useHedgesByBook,
   useHedgeAllocations,
   HedgeBookItem,
+  HedgeTradeResponse,
   SiteAllocationItem,
   MonthAllocationItem,
-  OffsetItem,
 } from "@/hooks/useCorn";
 import { api } from "@/lib/api";
-import { BUSHELS_PER_MT } from "@/lib/corn-utils";
+import { formatNumber } from "@/lib/format";
 import {
   fmtVol,
   fmt2,
@@ -38,7 +41,6 @@ import {
   btnPrimary,
   btnSecondary,
 } from "@/lib/corn-format";
-import type { Unit } from "@/lib/corn-format";
 import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -120,6 +122,456 @@ function SettlePublisher({
         <button onClick={onDone} className={btnSecondary}>Cancel</button>
       </div>
     </div>
+  );
+}
+
+// ─── Book Hedge Constants ────────────────────────────────────────────────────
+
+const ZC_MONTHS = [
+  "ZCH25","ZCK25","ZCN25","ZCU25","ZCZ25",
+  "ZCH26","ZCK26","ZCN26","ZCU26","ZCZ26",
+  "ZCH27","ZCK27","ZCN27","ZCU27","ZCZ27",
+];
+
+const BUSHELS_PER_LOT = 5_000;
+
+interface HedgeLineRow {
+  key: number;
+  futuresMonth: string;
+  lots: string;
+  pricePerBushel: string;
+  notes: string;
+}
+
+let _rowKey = 1;
+function makeRow(futuresMonth?: string): HedgeLineRow {
+  return { key: _rowKey++, futuresMonth: futuresMonth ?? ZC_MONTHS[5], lots: "", pricePerBushel: "", notes: "" };
+}
+
+// ─── Book Hedge Form ─────────────────────────────────────────────────────────
+
+function BookHedgeForm({
+  book,
+  editing,
+  onDone,
+  onCancel,
+}: {
+  book: "CANADA" | "US";
+  editing: HedgeTradeResponse | null;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const toast = useToast();
+  const [submitting, setSubmitting] = useState(false);
+
+  // ─── Shared fields ──────────────────────────────────────────────────────
+  const [shared, setShared] = useState({
+    brokerAccount: "StoneX",
+    tradeDate: new Date().toISOString().slice(0, 10),
+  });
+
+  // ─── Multi-line rows ──────────────────────────────────────────────────────
+  const [rows, setRows] = useState<HedgeLineRow[]>(() => [makeRow()]);
+
+  // ─── Single-edit form ─────────────────────────────────────────────────────
+  const [editForm, setEditForm] = useState({
+    futuresMonth: ZC_MONTHS[5],
+    lots: "",
+    pricePerBushel: "",
+    brokerAccount: "StoneX",
+    tradeDate: new Date().toISOString().slice(0, 10),
+    notes: "",
+  });
+
+  // Initialize edit form when editing changes
+  useEffect(() => {
+    if (editing) {
+      setEditForm({
+        futuresMonth: editing.futuresMonth,
+        lots: String(editing.lots),
+        pricePerBushel: String((editing.pricePerBushel / 100).toFixed(4)),
+        brokerAccount: editing.brokerAccount ?? "StoneX",
+        tradeDate: editing.tradeDate,
+        notes: editing.notes ?? "",
+      });
+    }
+  }, [editing]);
+
+  // ─── Row helpers ──────────────────────────────────────────────────────────
+  function updateRow(key: number, field: keyof HedgeLineRow, value: string) {
+    setRows((prev) => prev.map((r) => r.key === key ? { ...r, [field]: value } : r));
+  }
+  function removeRow(key: number) {
+    setRows((prev) => prev.length <= 1 ? prev : prev.filter((r) => r.key !== key));
+  }
+  function addRow() {
+    const lastMonth = rows[rows.length - 1]?.futuresMonth;
+    const lastIdx = ZC_MONTHS.indexOf(lastMonth);
+    const nextMonth = lastIdx >= 0 && lastIdx + 1 < ZC_MONTHS.length ? ZC_MONTHS[lastIdx + 1] : undefined;
+    setRows((prev) => [...prev, makeRow(nextMonth)]);
+  }
+  function applyPriceToAll() {
+    const firstPrice = rows[0]?.pricePerBushel;
+    if (!firstPrice) return;
+    setRows((prev) => prev.map((r) => ({ ...r, pricePerBushel: firstPrice })));
+  }
+  function applyLotsToAll() {
+    const firstLots = rows[0]?.lots;
+    if (!firstLots) return;
+    setRows((prev) => prev.map((r) => ({ ...r, lots: firstLots })));
+  }
+
+  // ─── Summary calculations ─────────────────────────────────────────────────
+  const filledRows = rows.filter((r) => (parseInt(r.lots) || 0) > 0 && (parseFloat(r.pricePerBushel) || 0) > 0);
+  const totals = useMemo(() => {
+    let totalLots = 0, totalBu = 0, totalNotional = 0;
+    for (const r of rows) {
+      const lots = parseInt(r.lots) || 0;
+      const price = parseFloat(r.pricePerBushel) || 0;
+      const bu = lots * BUSHELS_PER_LOT;
+      totalLots += lots;
+      totalBu += bu;
+      totalNotional += bu * price;
+    }
+    return { totalLots, totalBu, totalNotional };
+  }, [rows]);
+
+  const editLots = parseInt(editForm.lots) || 0;
+  const editBu = editLots * BUSHELS_PER_LOT;
+  const editNotional = editBu * (parseFloat(editForm.pricePerBushel) || 0);
+
+  const incompletRows = rows.filter((r) => (parseInt(r.lots) || 0) > 0 && !(parseFloat(r.pricePerBushel) > 0));
+
+  // ─── Submit: bulk create ──────────────────────────────────────────────────
+  async function handleBulkSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (incompletRows.length > 0) { toast.toast("Enter a price for every row with lots", "error"); return; }
+    if (filledRows.length === 0) { toast.toast("Add lots and price to at least one row", "error"); return; }
+    setSubmitting(true);
+    try {
+      const payloads = filledRows.map((r) => ({
+        futuresMonth: r.futuresMonth,
+        lots: parseInt(r.lots),
+        pricePerBushel: parseFloat(r.pricePerBushel) * 100,
+        brokerAccount: shared.brokerAccount,
+        tradeDate: shared.tradeDate,
+        book,
+        notes: r.notes || null,
+      }));
+      if (payloads.length === 1) {
+        await api.post("/api/v1/corn/hedges", payloads[0]);
+      } else {
+        await api.post("/api/v1/corn/hedges/bulk", payloads);
+      }
+      toast.toast(`${payloads.length} hedge trade${payloads.length !== 1 ? "s" : ""} booked`, "success");
+      onDone();
+    } catch (err: unknown) {
+      toast.toast((err as Error).message ?? "Save failed", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // ─── Submit: single edit ──────────────────────────────────────────────────
+  async function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editing) return;
+    setSubmitting(true);
+    try {
+      await api.put(`/api/v1/corn/hedges/${editing.id}`, {
+        futuresMonth: editForm.futuresMonth,
+        lots: parseInt(editForm.lots),
+        pricePerBushel: parseFloat(editForm.pricePerBushel) * 100,
+        brokerAccount: editForm.brokerAccount,
+        tradeDate: editForm.tradeDate,
+        book,
+        notes: editForm.notes || null,
+      });
+      toast.toast("Hedge trade updated", "success");
+      onDone();
+    } catch (err: unknown) {
+      toast.toast((err as Error).message ?? "Save failed", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // ─── Create form (multi-line) ─────────────────────────────────────────────
+  if (!editing) {
+    return (
+      <form onSubmit={handleBulkSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-200">
+            Book Hedge Trade{rows.length > 1 ? "s" : ""} — <span className="text-blue-400">{book} Book</span>
+          </h2>
+          <button type="button" onClick={onCancel} className="text-slate-500 hover:text-slate-300 transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Shared fields */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs text-slate-400">Broker Account</label>
+            <input type="text"
+              className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+              value={shared.brokerAccount}
+              onChange={(e) => setShared((s) => ({ ...s, brokerAccount: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-slate-400">Trade Date</label>
+            <input type="date"
+              className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              value={shared.tradeDate}
+              onChange={(e) => setShared((s) => ({ ...s, tradeDate: e.target.value }))}
+              required
+            />
+          </div>
+        </div>
+
+        {/* Multi-line grid */}
+        <div className="rounded-lg border border-slate-700 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-800/60 border-b border-slate-700">
+                <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium">Futures Month</th>
+                <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-28">
+                  <span>Lots</span>
+                  {rows.length > 1 && rows[0]?.lots && (
+                    <button type="button" onClick={applyLotsToAll}
+                      className="ml-2 text-blue-400 hover:text-blue-300 transition-colors font-normal normal-case tracking-normal">
+                      apply all
+                    </button>
+                  )}
+                </th>
+                <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-32">Bushels</th>
+                <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-32">
+                  <span>Price ($/bu)</span>
+                  {rows.length > 1 && rows[0]?.pricePerBushel && (
+                    <button type="button" onClick={applyPriceToAll}
+                      className="ml-2 text-blue-400 hover:text-blue-300 transition-colors font-normal normal-case tracking-normal">
+                      apply all
+                    </button>
+                  )}
+                </th>
+                <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-32">Notional</th>
+                <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium">Notes</th>
+                <th className="w-8" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {rows.map((r) => {
+                const lots = parseInt(r.lots) || 0;
+                const bu = lots * BUSHELS_PER_LOT;
+                const price = parseFloat(r.pricePerBushel) || 0;
+                const notional = bu * price;
+                const incomplete = lots > 0 && price === 0;
+                return (
+                  <tr key={r.key} className={cn("hover:bg-slate-800/30", incomplete && "bg-red-500/5")}>
+                    <td className="px-3 py-1.5">
+                      <select value={r.futuresMonth} onChange={(e) => updateRow(r.key, "futuresMonth", e.target.value)}
+                        className="w-full bg-transparent text-slate-200 focus:outline-none text-sm">
+                        {ZC_MONTHS.map((m) => <option key={m} className="bg-slate-800">{m}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <input type="number" min="1" placeholder="e.g. 40" value={r.lots}
+                        onChange={(e) => updateRow(r.key, "lots", e.target.value)}
+                        className="w-full bg-transparent text-slate-200 text-right tabular-nums placeholder:text-slate-700 focus:outline-none" />
+                    </td>
+                    <td className="px-3 py-1.5 text-right tabular-nums text-slate-500 text-xs">
+                      {bu > 0 ? formatNumber(bu) : "\u2014"}
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <input type="number" step="0.0025" placeholder="e.g. 4.39" value={r.pricePerBushel}
+                        onChange={(e) => updateRow(r.key, "pricePerBushel", e.target.value)}
+                        className="w-full bg-transparent text-slate-200 text-right tabular-nums placeholder:text-slate-700 focus:outline-none" />
+                    </td>
+                    <td className="px-3 py-1.5 text-right tabular-nums text-xs">
+                      {notional > 0
+                        ? <span className="text-emerald-400">${formatNumber(Math.round(notional))}</span>
+                        : <span className="text-slate-700">&mdash;</span>}
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <input type="text" placeholder="Optional" value={r.notes}
+                        onChange={(e) => updateRow(r.key, "notes", e.target.value)}
+                        className="w-full bg-transparent text-slate-500 placeholder:text-slate-700 focus:outline-none text-xs" />
+                    </td>
+                    <td className="px-3 py-1.5 text-center">
+                      {rows.length > 1 && (
+                        <button type="button" onClick={() => removeRow(r.key)}
+                          className="text-slate-600 hover:text-red-400 transition-colors">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            {/* Totals footer */}
+            {rows.length > 1 && totals.totalLots > 0 && (
+              <tfoot>
+                <tr className="bg-slate-800/50 border-t border-slate-700">
+                  <td className="px-3 py-2 text-xs text-slate-500 font-medium">
+                    {filledRows.length} trade{filledRows.length !== 1 ? "s" : ""}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-200 text-sm">
+                    {formatNumber(totals.totalLots)}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-slate-400 text-xs">
+                    {formatNumber(totals.totalBu)}
+                  </td>
+                  <td />
+                  <td className="px-3 py-2 text-right tabular-nums text-emerald-400 text-xs font-medium">
+                    {totals.totalNotional > 0 ? `$${formatNumber(Math.round(totals.totalNotional))}` : ""}
+                  </td>
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+
+        {/* Add row button */}
+        <button type="button" onClick={addRow}
+          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors">
+          <Plus className="h-3.5 w-3.5" /> Add another month
+        </button>
+
+        {/* Single-row summary */}
+        {rows.length === 1 && totals.totalLots > 0 && (
+          <div className="grid grid-cols-2 gap-3 p-4 bg-slate-800/50 rounded-lg">
+            <div>
+              <p className="text-xs text-slate-500">Bushels</p>
+              <p className="text-sm font-semibold text-slate-200 tabular-nums">{formatNumber(totals.totalBu)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Notional (USD)</p>
+              <p className="text-sm font-semibold text-slate-200 tabular-nums">
+                {totals.totalNotional > 0 ? `$${formatNumber(Math.round(totals.totalNotional))}` : "\u2014"}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onCancel}
+            className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">
+            Cancel
+          </button>
+          <button type="submit" disabled={submitting || filledRows.length === 0}
+            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+            {submitting ? "Saving\u2026" : `Book ${filledRows.length} Hedge${filledRows.length !== 1 ? "s" : ""}`}
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  // ─── Edit form (single trade) ─────────────────────────────────────────────
+  return (
+    <form onSubmit={handleEditSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-200">
+          Edit <span className="text-blue-400">{editing.tradeRef}</span>
+        </h2>
+        <button type="button" onClick={onCancel} className="text-slate-500 hover:text-slate-300 transition-colors">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="space-y-1">
+          <label className="text-xs text-slate-400">Futures Month</label>
+          <select
+            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            value={editForm.futuresMonth}
+            onChange={(e) => setEditForm((f) => ({ ...f, futuresMonth: e.target.value }))}
+            required
+          >
+            {ZC_MONTHS.map((m) => <option key={m}>{m}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-slate-400">Lots (5,000 bu each)</label>
+          <input
+            type="number" min="1"
+            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+            placeholder="e.g. 40"
+            value={editForm.lots}
+            onChange={(e) => setEditForm((f) => ({ ...f, lots: e.target.value }))}
+            required
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-slate-400">Price ($/bu)</label>
+          <input
+            type="number" step="0.0025"
+            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+            placeholder="e.g. 4.39"
+            value={editForm.pricePerBushel}
+            onChange={(e) => setEditForm((f) => ({ ...f, pricePerBushel: e.target.value }))}
+            required
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-slate-400">Broker Account</label>
+          <input
+            type="text"
+            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+            value={editForm.brokerAccount}
+            onChange={(e) => setEditForm((f) => ({ ...f, brokerAccount: e.target.value }))}
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-slate-400">Trade Date</label>
+          <input
+            type="date"
+            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            value={editForm.tradeDate}
+            onChange={(e) => setEditForm((f) => ({ ...f, tradeDate: e.target.value }))}
+            required
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-slate-400">Notes</label>
+          <input
+            type="text"
+            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+            placeholder="Optional"
+            value={editForm.notes}
+            onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
+          />
+        </div>
+      </div>
+
+      {editLots > 0 && (
+        <div className="grid grid-cols-2 gap-3 p-4 bg-slate-800/50 rounded-lg">
+          <div>
+            <p className="text-xs text-slate-500">Bushels</p>
+            <p className="text-sm font-semibold text-slate-200 tabular-nums">{formatNumber(editBu)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">Notional (USD)</p>
+            <p className="text-sm font-semibold text-slate-200 tabular-nums">
+              {editNotional > 0 ? `$${formatNumber(Math.round(editNotional))}` : "\u2014"}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={onCancel}
+          className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">
+          Cancel
+        </button>
+        <button type="submit" disabled={submitting}
+          className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+          {submitting ? "Saving\u2026" : "Update Hedge"}
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -331,14 +783,15 @@ function HedgeBookTable({
   hedgeBook,
   sites,
   onRefresh,
-  unit,
+  onEdit,
+  onDelete,
 }: {
   hedgeBook: HedgeBookItem[];
   sites: { code: string; name: string }[];
   onRefresh: () => void;
-  unit: Unit;
+  onEdit: (tradeId: number) => void;
+  onDelete: (tradeId: number) => void;
 }) {
-  const unitLabel = unit === "MT" ? "MT" : "bu";
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [allocTradeId, setAllocTradeId] = useState<number | null>(null);
   const [breakdownTradeId, setBreakdownTradeId] = useState<number | null>(null);
@@ -396,8 +849,8 @@ function HedgeBookTable({
               <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">
                 {g.futuresMonth}
               </span>
-              <span className="text-sm text-slate-300">{fmtVol(g.totalBu, "BU", unit)} {unitLabel}</span>
-              <span className="text-sm text-slate-500">{fmtVol(g.unallocBu, "BU", unit)} unalloc</span>
+              <span className="text-sm text-slate-300">{fmtVol(g.totalBu)} bu</span>
+              <span className="text-sm text-slate-500">{fmtVol(g.unallocBu)} unalloc</span>
               <span className="text-sm text-slate-400 font-mono">Avg {centsToUsd(g.wtdAvgEntry)}</span>
               <span className={cn("text-sm font-semibold", g.totalMtm > 0 ? "text-emerald-400" : g.totalMtm < 0 ? "text-red-400" : "text-slate-400")}>
                 {fmtPnl(g.totalMtm)}
@@ -410,7 +863,7 @@ function HedgeBookTable({
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-800/40">
-                      {["Trade Ref", `Total ${unitLabel}`, `Alloc ${unitLabel}`, `Unalloc ${unitLabel}`, "Entry $/bu", "Settle $/bu", "MTM", "Broker", ""].map(
+                      {["Trade Ref", "Total bu", "Alloc bu", "Unalloc bu", "Entry $/bu", "Settle $/bu", "MTM", "Broker", ""].map(
                         (h) => (
                           <th key={h} className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">
                             {h}
@@ -433,9 +886,9 @@ function HedgeBookTable({
                                 {statusBadge(h)}
                               </span>
                             </td>
-                            <td className="px-4 py-2 text-slate-300">{fmtVol(h.bushels, "BU", unit)}</td>
-                            <td className="px-4 py-2 text-slate-500">{fmtVol(h.allocatedBushels, "BU", unit)}</td>
-                            <td className={cn("px-4 py-2 font-semibold", fullyAllocated ? "text-slate-500" : "text-emerald-400")}>{fmtVol(h.unallocatedBushels, "BU", unit)}</td>
+                            <td className="px-4 py-2 text-slate-300">{fmtVol(h.bushels)}</td>
+                            <td className="px-4 py-2 text-slate-500">{fmtVol(h.allocatedBushels)}</td>
+                            <td className={cn("px-4 py-2 font-semibold", fullyAllocated ? "text-slate-500" : "text-emerald-400")}>{fmtVol(h.unallocatedBushels)}</td>
                             <td className="px-4 py-2 text-slate-300 font-mono">{centsToUsd(h.entryPrice)}</td>
                             <td className="px-4 py-2 font-mono">
                               {h.settlePrice != null ? (
@@ -473,6 +926,20 @@ function HedgeBookTable({
                                     <ArrowRightLeft className="h-3 w-3" /> Alloc
                                   </button>
                                 )}
+                                <button
+                                  onClick={() => onEdit(h.hedgeTradeId)}
+                                  className="flex items-center gap-1 px-2.5 py-1 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-colors"
+                                  title="Edit trade"
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </button>
+                                <button
+                                  onClick={() => onDelete(h.hedgeTradeId)}
+                                  className="flex items-center gap-1 px-2.5 py-1 bg-slate-700/50 hover:bg-red-600/30 text-slate-300 hover:text-red-300 rounded-lg text-xs font-medium transition-colors"
+                                  title="Delete trade"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -504,55 +971,6 @@ function HedgeBookTable({
   );
 }
 
-// ─── Offsets Table ───────────────────────────────────────────────────────────
-
-function OffsetsTable({ offsets, unit }: { offsets: OffsetItem[]; unit: Unit }) {
-  const unitLabel = unit === "MT" ? "MT" : "bu";
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-slate-800/50">
-            {["Trade", "ZC", "Lots", unitLabel === "bu" ? "Bushels" : unitLabel, "Entry $/bu", "Exit $/bu", "P&L \u00a2/bu", "P&L $", "Site", "Date", "Notes"].map((h) => (
-              <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {offsets.length === 0 && (
-            <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-500 text-sm">No closed offsets</td></tr>
-          )}
-          {offsets.map((o) => {
-            const pnlColor = o.pnlCentsBu > 0 ? "text-emerald-400" : o.pnlCentsBu < 0 ? "text-red-400" : "text-slate-400";
-            return (
-              <tr key={o.offsetId} className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
-                <td className="px-4 py-3 font-mono text-slate-200 text-xs">{o.tradeRef}</td>
-                <td className="px-4 py-3">
-                  <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono">{o.futuresMonth}</span>
-                </td>
-                <td className="px-4 py-3 text-slate-300">{o.lots}</td>
-                <td className="px-4 py-3 text-slate-300">{fmtVol(o.bushels, "BU", unit)}</td>
-                <td className="px-4 py-3 text-slate-300 font-mono">{centsToUsd(o.entryPrice)}</td>
-                <td className="px-4 py-3 text-slate-200 font-mono">{centsToUsd(o.exitPrice)}</td>
-                <td className={cn("px-4 py-3 font-mono font-semibold", pnlColor)}>
-                  {o.pnlCentsBu > 0 ? "+" : ""}{(o.pnlCentsBu / 100).toFixed(4)}
-                </td>
-                <td className={cn("px-4 py-3 font-semibold", pnlColor)}>{fmtPnl(o.pnlUsd)}</td>
-                <td className="px-4 py-3">
-                  {o.siteCode ? <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">{o.siteCode}</span>
-                    : <span className="text-slate-600 text-xs">Pool</span>}
-                </td>
-                <td className="px-4 py-3 text-slate-500 text-xs font-mono">{o.offsetDate}</td>
-                <td className="px-4 py-3 text-slate-500 text-xs">{o.notes || "\u2013"}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 // ─── Month Allocations Table ────────────────────────────────────────────────
 
 interface MonthGroup {
@@ -568,18 +986,15 @@ function MonthAllocationsTable({
   siteAllocations,
   sites,
   settles,
-  unit,
   onRefresh,
 }: {
   monthAllocations: MonthAllocationItem[];
   siteAllocations: SiteAllocationItem[];
   sites: { code: string; name: string }[];
   settles: Record<string, number>;
-  unit: Unit;
   onRefresh: () => void;
 }) {
   const toast = useToast();
-  const unitLabel = unit === "MT" ? "MT" : "bu";
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [assigningId, setAssigningId] = useState<number | null>(null);
   const [assignSite, setAssignSite] = useState("");
@@ -648,7 +1063,7 @@ function MonthAllocationsTable({
                 {g.budgetMonth}
               </span>
               <span className="text-sm text-slate-300">{g.totalLots} lots</span>
-              <span className="text-sm text-slate-500">{fmtVol(g.totalBu, "BU", unit)} {unitLabel}</span>
+              <span className="text-sm text-slate-500">{fmtVol(g.totalBu)} bu</span>
               {unassignedCount > 0 && (
                 <span className="bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/25 px-2 py-0.5 rounded text-xs font-medium">
                   {unassignedCount} unassigned
@@ -664,7 +1079,7 @@ function MonthAllocationsTable({
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-800/40">
-                      {["Trade", "Dir", "Date", "ZC", "Lots", unitLabel, "Entry $/bu", "Site", ""].map((h) => (
+                      {["Trade", "Dir", "Date", "ZC", "Lots", "Bushels", "Entry $/bu", "Site", ""].map((h) => (
                         <th key={h} className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -687,7 +1102,7 @@ function MonthAllocationsTable({
                               <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
                             </td>
                             <td className="px-4 py-2 text-slate-300">{a.allocatedLots}</td>
-                            <td className="px-4 py-2 text-slate-300">{fmtVol(a.allocatedBushels, "BU", unit)}</td>
+                            <td className="px-4 py-2 text-slate-300">{fmtVol(a.allocatedBushels)}</td>
                             <td className="px-4 py-2 text-slate-300 font-mono">{centsToUsd(a.entryPrice)}</td>
                             <td className="px-4 py-2">
                               <span className="italic text-amber-400 text-xs">Unassigned</span>
@@ -740,7 +1155,7 @@ function MonthAllocationsTable({
                           <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
                         </td>
                         <td className="px-4 py-2 text-slate-300">{a.allocatedLots}</td>
-                        <td className="px-4 py-2 text-slate-300">{fmtVol(a.allocatedBushels, "BU", unit)}</td>
+                        <td className="px-4 py-2 text-slate-300">{fmtVol(a.allocatedBushels)}</td>
                         <td className="px-4 py-2 text-slate-300 font-mono">{centsToUsd(a.entryPrice)}</td>
                         <td className="px-4 py-2">
                           <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">{a.siteCode}</span>
@@ -762,37 +1177,23 @@ function MonthAllocationsTable({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 type Book = "CANADA" | "US";
-type View = "hedge-book" | "month-allocations";
+type View = "hedge-book" | "allocations";
 
 export default function PositionsPage() {
   const [book, setBook] = useState<Book>("CANADA");
   const [view, setView] = useState<View>("hedge-book");
-  const [unit, setUnit] = useState<Unit>("MT");
   const { positions, isLoading, error, mutate } = usePositions(book);
   const { sites } = useSites();
+  const { hedges, mutate: hedgesMutate } = useHedgesByBook(book);
+  const toast = useToast();
   const [settleOpen, setSettleOpen] = useState(false);
+  const [hedgeFormOpen, setHedgeFormOpen] = useState(false);
+  const [editing, setEditing] = useState<HedgeTradeResponse | null>(null);
 
   const hedgeBook     = positions?.hedgeBook          ?? [];
   const allocations   = positions?.siteAllocations    ?? [];
   const monthAllocs   = positions?.monthAllocations   ?? [];
-  const offsets       = positions?.offsets             ?? [];
   const settles       = positions?.latestSettles       ?? {};
-
-  // Restore unit toggle from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("pos-unit");
-    if (saved === "BU" || saved === "MT") setUnit(saved);
-  }, []);
-
-  function toggleUnit() {
-    setUnit((prev) => {
-      const next = prev === "MT" ? "BU" : "MT";
-      localStorage.setItem("pos-unit", next);
-      return next;
-    });
-  }
-
-  const unitLabel = unit === "MT" ? "MT" : "bu";
 
   // All unique futures months for settle publisher
   const allFuturesMonths = useMemo(() => {
@@ -808,6 +1209,37 @@ export default function PositionsPage() {
   }, [hedgeBook]);
 
   const bookLabel = book === "CANADA" ? "Canada" : "US";
+
+  function handleHedgeFormDone() {
+    setHedgeFormOpen(false);
+    setEditing(null);
+    mutate();
+    hedgesMutate();
+  }
+
+  function handleHedgeFormCancel() {
+    setHedgeFormOpen(false);
+    setEditing(null);
+  }
+
+  function handleEdit(tradeId: number) {
+    const trade = hedges.find((h) => h.id === tradeId);
+    if (trade) {
+      setEditing(trade);
+      setHedgeFormOpen(true);
+    }
+  }
+
+  async function handleDelete(tradeId: number) {
+    try {
+      await api.delete(`/api/v1/corn/hedges/${tradeId}`);
+      toast.toast("Hedge trade deleted", "success");
+      mutate();
+      hedgesMutate();
+    } catch (e: unknown) {
+      toast.toast((e as Error).message ?? "Delete failed", "error");
+    }
+  }
 
   if (isLoading) {
     return (
@@ -831,7 +1263,17 @@ export default function PositionsPage() {
           <Activity className="h-5 w-5 text-blue-400" />
           <h1 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Position Manager</h1>
         </div>
-        {view === "hedge-book" && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setEditing(null);
+              setHedgeFormOpen((o) => !o);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg font-medium transition-colors"
+          >
+            {hedgeFormOpen && !editing ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {hedgeFormOpen && !editing ? "Cancel" : "Book Hedge"}
+          </button>
           <button
             onClick={() => setSettleOpen((o) => !o)}
             className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm rounded-lg font-medium border border-slate-700 transition-colors"
@@ -840,30 +1282,30 @@ export default function PositionsPage() {
             Publish Settle Prices
             {settleOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
-        )}
+        </div>
       </div>
 
-      {/* View tabs + Book toggle */}
-      <div className="flex items-center gap-4">
-        {/* View tabs */}
-        <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl">
-          {([
-            { key: "hedge-book" as View, label: "Hedge Book" },
-            { key: "month-allocations" as View, label: "Month Allocations" },
-          ]).map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setView(tab.key)}
-              className={cn(
-                "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
-                view === tab.key ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      {/* Book Hedge form */}
+      {hedgeFormOpen && (
+        <BookHedgeForm
+          book={book}
+          editing={editing}
+          onDone={handleHedgeFormDone}
+          onCancel={handleHedgeFormCancel}
+        />
+      )}
 
+      {/* Settle publisher */}
+      {settleOpen && (
+        <SettlePublisher
+          futuresMonths={allFuturesMonths.length > 0 ? allFuturesMonths : ["ZCH26", "ZCK26", "ZCN26"]}
+          existingSettles={settles}
+          onDone={() => { setSettleOpen(false); mutate(); }}
+        />
+      )}
+
+      {/* Controls: [Book toggle] [View tabs] [Unit toggle] */}
+      <div className="flex items-center gap-4">
         {/* Book toggle */}
         <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl">
           {(["CANADA", "US"] as Book[]).map((b) => (
@@ -880,101 +1322,75 @@ export default function PositionsPage() {
           ))}
         </div>
 
-        {/* Unit toggle */}
-        <button
-          onClick={toggleUnit}
-          className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl"
-        >
-          {(["MT", "BU"] as Unit[]).map((u) => (
-            <span
-              key={u}
+        {/* View tabs */}
+        <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl">
+          {([
+            { key: "hedge-book" as View, label: "Hedge Book" },
+            { key: "allocations" as View, label: "Allocations" },
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setView(tab.key)}
               className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                unit === u ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
+                "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
+                view === tab.key ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
               )}
             >
-              {u === "MT" ? "Metric Tons" : "Bushels"}
-            </span>
+              {tab.label}
+            </button>
           ))}
-        </button>
+        </div>
+
+      </div>
+
+      {/* Portfolio MTM Summary — always visible */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl px-5 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Portfolio MTM &middot; {bookLabel}</p>
+            <p className={cn("text-2xl font-bold tabular-nums",
+              portfolioMtm > 0 ? "text-emerald-400" : portfolioMtm < 0 ? "text-red-400" : "text-slate-300"
+            )}>
+              {fmtPnl(portfolioMtm)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-slate-500">{hedgeBook.length} trades &middot; {fmtVol(hedgeBook.reduce((s, h) => s + h.bushels, 0))} bu total</p>
+            <p className="text-xs text-slate-500">{fmtVol(hedgeBook.reduce((s, h) => s + h.unallocatedBushels, 0))} bu unallocated</p>
+          </div>
+        </div>
       </div>
 
       {/* ═══════════════════ HEDGE BOOK TAB ═══════════════════ */}
       {view === "hedge-book" && (
-        <>
-          {/* Settle publisher */}
-          {settleOpen && (
-            <SettlePublisher
-              futuresMonths={allFuturesMonths.length > 0 ? allFuturesMonths : ["ZCH26", "ZCK26", "ZCN26"]}
-              existingSettles={settles}
-              onDone={() => { setSettleOpen(false); mutate(); }}
-            />
-          )}
-
-          {/* Portfolio MTM Summary */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl px-5 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Portfolio MTM &middot; {bookLabel}</p>
-                <p className={cn("text-2xl font-bold tabular-nums",
-                  portfolioMtm > 0 ? "text-emerald-400" : portfolioMtm < 0 ? "text-red-400" : "text-slate-300"
-                )}>
-                  {fmtPnl(portfolioMtm)}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-500">{hedgeBook.length} trades &middot; {fmtVol(hedgeBook.reduce((s, h) => s + h.bushels, 0), "BU", unit)} {unitLabel} total</p>
-                <p className="text-xs text-slate-500">{fmtVol(hedgeBook.reduce((s, h) => s + h.unallocatedBushels, 0), "BU", unit)} {unitLabel} unallocated</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Hedge Book table (ALL trades) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-slate-200">
-                  Hedge Book &middot; {bookLabel}
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {hedgeBook.length} trade{hedgeBook.length !== 1 ? "s" : ""} &middot; grouped by futures month
-                </p>
-              </div>
-              <span className="text-xs text-slate-600">Click to expand. Includes fully allocated trades.</span>
-            </div>
-            <HedgeBookTable
-              hedgeBook={hedgeBook}
-              sites={sites}
-              onRefresh={() => mutate()}
-              unit={unit}
-            />
-          </div>
-
-          {/* Closed Offsets */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-800">
-              <h2 className="text-sm font-semibold text-slate-200">Closed Offsets</h2>
+        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-200">
+                Hedge Book &middot; {bookLabel}
+              </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                {offsets.length} offset{offsets.length !== 1 ? "s" : ""}
-                {offsets.length > 0 && (
-                  <> &middot; Total P&L: <span className={cn("font-semibold",
-                    offsets.reduce((s, o) => s + o.pnlUsd, 0) >= 0 ? "text-emerald-400" : "text-red-400")}>
-                    {fmtPnl(offsets.reduce((s, o) => s + o.pnlUsd, 0))}
-                  </span></>
-                )}
+                {hedgeBook.length} trade{hedgeBook.length !== 1 ? "s" : ""} &middot; grouped by futures month
               </p>
             </div>
-            <OffsetsTable offsets={offsets} unit={unit} />
+            <span className="text-xs text-slate-600">Click to expand. Includes fully allocated trades.</span>
           </div>
-        </>
+          <HedgeBookTable
+            hedgeBook={hedgeBook}
+            sites={sites}
+            onRefresh={() => mutate()}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        </div>
       )}
 
-      {/* ═══════════════════ MONTH ALLOCATIONS TAB ═══════════════════ */}
-      {view === "month-allocations" && (
+      {/* ═══════════════════ ALLOCATIONS TAB ═══════════════════ */}
+      {view === "allocations" && (
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-800">
             <h2 className="text-sm font-semibold text-slate-200">
-              Month Allocations &middot; {bookLabel}
+              Allocations &middot; {bookLabel}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               Hedge allocations grouped by budget month
@@ -985,7 +1401,6 @@ export default function PositionsPage() {
             siteAllocations={allocations}
             sites={sites}
             settles={settles}
-            unit={unit}
             onRefresh={() => mutate()}
           />
         </div>

@@ -15,7 +15,7 @@ export function ForecastUpdateGrid({ lines, onSaved, onCancel }: {
   const [submitting, setSubmitting] = useState(false);
   const [note, setNote] = useState("");
   const [forecasts, setForecasts] = useState<Record<number, string>>(() =>
-    Object.fromEntries(lines.map((l) => [l.id, l.forecastVolumeMt != null ? String(l.forecastVolumeMt) : String(l.budgetVolumeMt ?? "")]))
+    Object.fromEntries(lines.map((l) => [l.id, String(Math.round((l.forecastVolumeMt ?? l.budgetVolumeMt ?? 0) * BUSHELS_PER_MT))]))
   );
 
   function updateForecast(id: number, v: string) {
@@ -23,9 +23,9 @@ export function ForecastUpdateGrid({ lines, onSaved, onCancel }: {
   }
 
   const changedLines = lines.filter((l) => {
-    const newVal = parseFloat(forecasts[l.id]) || 0;
-    const oldVal = l.forecastVolumeMt ?? l.budgetVolumeMt ?? 0;
-    return Math.abs(newVal - oldVal) > 0.001;
+    const newBu = parseFloat(forecasts[l.id]) || 0;
+    const oldBu = Math.round((l.forecastVolumeMt ?? l.budgetVolumeMt ?? 0) * BUSHELS_PER_MT);
+    return Math.abs(newBu - oldBu) > 0.5;
   });
 
   async function handleSubmit(e: React.FormEvent) {
@@ -37,7 +37,7 @@ export function ForecastUpdateGrid({ lines, onSaved, onCancel }: {
         note: note || null,
         updates: changedLines.map((l) => ({
           budgetLineId: l.id,
-          forecastVolumeMt: parseFloat(forecasts[l.id]) || 0,
+          forecastVolumeMt: (parseFloat(forecasts[l.id]) || 0) / BUSHELS_PER_MT,
         })),
       });
       toast(`${changedLines.length} forecast${changedLines.length !== 1 ? "s" : ""} updated`, "success");
@@ -65,29 +65,25 @@ export function ForecastUpdateGrid({ lines, onSaved, onCancel }: {
           <thead>
             <tr className="bg-slate-800/60 border-b border-slate-700">
               <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium">Month</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">Budget MT</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">Current Fcst MT</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">New Forecast MT</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-28">BU equiv</th>
+              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">Budget Bu</th>
+              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">Current Fcst Bu</th>
+              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">New Forecast Bu</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
             {lines.map((l) => {
-              const newVal = parseFloat(forecasts[l.id]) || 0;
-              const oldVal = l.forecastVolumeMt ?? l.budgetVolumeMt ?? 0;
-              const changed = Math.abs(newVal - oldVal) > 0.001;
+              const newBu = parseFloat(forecasts[l.id]) || 0;
+              const oldBu = Math.round((l.forecastVolumeMt ?? l.budgetVolumeMt ?? 0) * BUSHELS_PER_MT);
+              const changed = Math.abs(newBu - oldBu) > 0.5;
               return (
                 <tr key={l.id} className={changed ? "bg-blue-500/5" : ""}>
                   <td className="px-3 py-2 text-slate-300 whitespace-nowrap">{monthLabel(l.budgetMonth)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-slate-500">{fmtVol(l.budgetVolumeMt)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-slate-400">{l.forecastVolumeMt != null ? fmtVol(l.forecastVolumeMt) : "\u2014"}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-slate-500">{fmtVol(Math.round(l.budgetVolumeMt * BUSHELS_PER_MT))}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-slate-400">{l.forecastVolumeMt != null ? fmtVol(Math.round(l.forecastVolumeMt * BUSHELS_PER_MT)) : "\u2014"}</td>
                   <td className="px-3 py-1.5">
-                    <input type="number" step="any" min="0" value={forecasts[l.id]}
+                    <input type="number" step="1" min="0" value={forecasts[l.id]}
                       onChange={(e) => updateForecast(l.id, e.target.value)}
                       className="w-full bg-transparent text-slate-200 text-right tabular-nums focus:outline-none" />
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-slate-500 text-xs">
-                    {newVal > 0 ? fmtVol(Math.round(newVal * BUSHELS_PER_MT)) : "\u2014"}
                   </td>
                 </tr>
               );

@@ -106,8 +106,8 @@ export default function CoveragePage() {
       {/* Corporate KPI row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Total Budget",        value: `${formatNumber(Math.round(totals.budgetedMt))} MT`,  icon: Package },
-          { label: "Committed",           value: `${formatNumber(Math.round(totals.committedMt))} MT`, icon: Layers },
+          { label: "Total Budget",        value: `${fmtBu(totals.budgetedMt)} bu`,  icon: Package },
+          { label: "Committed",           value: `${fmtBu(totals.committedMt)} bu`, icon: Layers },
           { label: "Hedge Coverage",      value: formatPct(totalHedgePct),  icon: TrendingUp },
           { label: "EFP Coverage",        value: formatPct(totalEfpPct),    icon: MapPin },
         ].map(({ label, value, icon: Icon }) => (
@@ -157,18 +157,18 @@ export default function CoveragePage() {
                   <CoverageBar pct={pct} />
                   <div className="flex justify-between text-xs text-slate-500">
                     <span>Hedge coverage: {formatPct(pct)}</span>
-                    <span>{formatNumber(Math.round(site.hedgedMt ?? 0))} / {formatNumber(Math.round(site.budgetedMt ?? 0))} MT</span>
+                    <span>{fmtBu(site.hedgedMt ?? 0)} / {fmtBu(site.budgetedMt ?? 0)} bu</span>
                   </div>
                 </div>
 
                 {/* Site KPI chips */}
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-4">
                   {[
-                    { label: "Budgeted",  value: `${formatNumber(Math.round(site.budgetedMt  ?? 0))} MT` },
-                    { label: "Committed", value: `${formatNumber(Math.round(site.committedMt ?? 0))} MT` },
-                    { label: "Hedged",    value: `${formatNumber(Math.round(site.hedgedMt    ?? 0))} MT` },
-                    { label: "EFP'd",     value: `${formatNumber(Math.round(site.efpdMt      ?? 0))} MT` },
-                    { label: "Received",  value: `${formatNumber(Math.round(site.receivedMt  ?? 0))} MT` },
+                    { label: "Budgeted",  value: `${fmtBu(site.budgetedMt  ?? 0)} bu` },
+                    { label: "Committed", value: `${fmtBu(site.committedMt ?? 0)} bu` },
+                    { label: "Hedged",    value: `${fmtBu(site.hedgedMt    ?? 0)} bu` },
+                    { label: "EFP'd",     value: `${fmtBu(site.efpdMt      ?? 0)} bu` },
+                    { label: "Received",  value: `${fmtBu(site.receivedMt  ?? 0)} bu` },
                     { label: "Open Lots", value: formatNumber(Math.round(site.openHedgeLots  ?? 0)) },
                   ].map(({ label, value }) => (
                     <div key={label} className="bg-slate-800/50 rounded-lg px-3 py-2">
@@ -186,11 +186,10 @@ export default function CoveragePage() {
                     <thead>
                       <tr className="bg-slate-800/40 border-b border-slate-800">
                         <th className="px-6 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-24">Month</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Budget MT</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Budget Bu</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Budget</th>
                         <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Committed</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Hedged MT</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">EFP'd MT</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Hedged</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">EFP'd</th>
                         <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Received</th>
                         <th className="px-6 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-48">Hedge Coverage</th>
                       </tr>
@@ -203,7 +202,6 @@ export default function CoveragePage() {
                         const comMt  = m.committedMt ?? 0;
                         const efpMt  = m.efpdMt      ?? 0;
                         const recMt  = m.receivedMt  ?? 0;
-                        const budBu  = budMt * BUSHELS_PER_MT;
 
                         return (
                           <tr key={m.month} className="hover:bg-slate-800/30 transition-colors">
@@ -211,29 +209,26 @@ export default function CoveragePage() {
                               {monthLabel(m.month)}
                             </td>
                             <td className="px-4 py-3 text-right tabular-nums text-slate-300">
-                              {formatNumber(Math.round(budMt))}
-                            </td>
-                            <td className="px-4 py-3 text-right tabular-nums text-slate-500 text-xs">
-                              {fmtBu(budMt)} bu
+                              {fmtBu(budMt)}
                             </td>
                             <td className="px-4 py-3 text-right tabular-nums">
                               <span className={comMt > 0 ? "text-blue-400" : "text-slate-600"}>
-                                {comMt > 0 ? formatNumber(Math.round(comMt)) : "—"}
+                                {comMt > 0 ? fmtBu(comMt) : "—"}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-right tabular-nums">
                               <span className={hedMt > 0 ? "text-emerald-400" : "text-slate-600"}>
-                                {hedMt > 0 ? formatNumber(Math.round(hedMt)) : "—"}
+                                {hedMt > 0 ? fmtBu(hedMt) : "—"}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-right tabular-nums">
                               <span className={efpMt > 0 ? "text-blue-300" : "text-slate-600"}>
-                                {efpMt > 0 ? formatNumber(Math.round(efpMt)) : "—"}
+                                {efpMt > 0 ? fmtBu(efpMt) : "—"}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-right tabular-nums">
                               <span className={recMt > 0 ? "text-slate-300" : "text-slate-600"}>
-                                {recMt > 0 ? formatNumber(Math.round(recMt)) : "—"}
+                                {recMt > 0 ? fmtBu(recMt) : "—"}
                               </span>
                             </td>
                             <td className="px-6 py-3">
@@ -255,22 +250,19 @@ export default function CoveragePage() {
                       <tr className="border-t border-slate-700 bg-slate-800/30">
                         <td className="px-6 py-2 text-xs text-slate-500 font-medium">Total</td>
                         <td className="px-4 py-2 text-right tabular-nums font-semibold text-slate-200 text-xs">
-                          {formatNumber(Math.round(site.budgetedMt ?? 0))}
-                        </td>
-                        <td className="px-4 py-2 text-right tabular-nums text-slate-500 text-xs">
-                          {fmtBu(site.budgetedMt ?? 0)} bu
+                          {fmtBu(site.budgetedMt ?? 0)}
                         </td>
                         <td className="px-4 py-2 text-right tabular-nums font-semibold text-slate-300 text-xs">
-                          {formatNumber(Math.round(site.committedMt ?? 0))}
+                          {fmtBu(site.committedMt ?? 0)}
                         </td>
                         <td className="px-4 py-2 text-right tabular-nums font-semibold text-emerald-400 text-xs">
-                          {formatNumber(Math.round(site.hedgedMt ?? 0))}
+                          {fmtBu(site.hedgedMt ?? 0)}
                         </td>
                         <td className="px-4 py-2 text-right tabular-nums font-semibold text-blue-300 text-xs">
-                          {formatNumber(Math.round(site.efpdMt ?? 0))}
+                          {fmtBu(site.efpdMt ?? 0)}
                         </td>
                         <td className="px-4 py-2 text-right tabular-nums text-slate-400 text-xs">
-                          {formatNumber(Math.round(site.receivedMt ?? 0))}
+                          {fmtBu(site.receivedMt ?? 0)}
                         </td>
                         <td className="px-6 py-2">
                           <div className="flex items-center gap-3">

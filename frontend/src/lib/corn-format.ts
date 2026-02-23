@@ -1,17 +1,12 @@
 import { BUSHELS_PER_MT } from "@/lib/corn-utils";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export type Unit = "MT" | "BU";
-
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
-export function fmtVol(value: number | null | undefined, sourceUnit: "MT" | "BU", displayUnit: "MT" | "BU"): string {
+/** Format a volume for display in bushels. If sourceUnit is "MT", converts to BU automatically. */
+export function fmtVol(value: number | null | undefined, sourceUnit: "MT" | "BU" = "BU"): string {
   if (value == null) return "\u2013";
-  let converted = value;
-  if (sourceUnit === "MT" && displayUnit === "BU") converted = value * BUSHELS_PER_MT;
-  if (sourceUnit === "BU" && displayUnit === "MT") converted = value / BUSHELS_PER_MT;
-  return converted.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  const bu = sourceUnit === "MT" ? value * BUSHELS_PER_MT : value;
+  return bu.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
 export function fmt2(n: number | null | undefined): string {
@@ -20,11 +15,6 @@ export function fmt2(n: number | null | undefined): string {
 }
 
 export function fmtBu(n: number | null | undefined): string {
-  if (n == null) return "\u2013";
-  return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
-}
-
-export function fmtMt(n: number | null | undefined): string {
   if (n == null) return "\u2013";
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }

@@ -102,8 +102,8 @@ export default function ReceiptsPage() {
       {receipts.length > 0 && (
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: "Gross Received", value: `${formatNumber(Math.round(totalGross))} MT` },
-            { label: "Net Received",   value: `${formatNumber(Math.round(totalNet))} MT` },
+            { label: "Gross Received", value: `${formatNumber(Math.round(totalGross * BUSHELS_PER_MT))} bu` },
+            { label: "Net Received",   value: `${formatNumber(Math.round(totalNet * BUSHELS_PER_MT))} bu` },
             { label: "Total Cost",     value: `$${formatNumber(Math.round(totalCostSum))}` },
           ].map(({ label, value }) => (
             <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
@@ -133,7 +133,7 @@ export default function ReceiptsPage() {
                 <option value="">— select —</option>
                 {openContracts.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.contractRef} ({c.siteCode}, {formatNumber(Math.round(c.quantityMt))} MT)
+                    {c.contractRef} ({c.siteCode}, {formatNumber(c.quantityBu ?? 0)} bu)
                   </option>
                 ))}
               </select>
@@ -160,7 +160,7 @@ export default function ReceiptsPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Gross Weight (MT)</label>
+              <label className="text-xs text-slate-400">Gross Weight (bu)</label>
               <input
                 type="number"
                 step="0.001"
@@ -186,7 +186,7 @@ export default function ReceiptsPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Delivered Cost ($/MT)</label>
+              <label className="text-xs text-slate-400">Delivered Cost ($/bu)</label>
               <input
                 type="number"
                 step="0.01"
@@ -222,22 +222,18 @@ export default function ReceiptsPage() {
           {gross > 0 && (
             <div className="p-4 bg-slate-800/50 rounded-lg">
               <p className="text-xs text-slate-500 mb-2">Net Weight Calculation</p>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-xs text-slate-500">Gross</p>
-                  <p className="text-sm font-semibold tabular-nums text-slate-200">{gross.toFixed(3)} MT</p>
+                  <p className="text-sm font-semibold tabular-nums text-slate-200">{formatNumber(Math.round(gross * BUSHELS_PER_MT))} bu</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">Shrink</p>
-                  <p className="text-sm font-semibold tabular-nums text-amber-400">-{shrinkMt.toFixed(3)} MT</p>
+                  <p className="text-sm font-semibold tabular-nums text-amber-400">-{formatNumber(Math.round(shrinkMt * BUSHELS_PER_MT))} bu</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">Net</p>
-                  <p className="text-sm font-semibold tabular-nums text-emerald-400">{netMt.toFixed(3)} MT</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">Net Bushels</p>
-                  <p className="text-sm font-semibold tabular-nums text-slate-200">{formatNumber(Math.round(netBu))}</p>
+                  <p className="text-sm font-semibold tabular-nums text-emerald-400">{formatNumber(Math.round(netBu))} bu</p>
                 </div>
               </div>
               {totalCost > 0 && (
@@ -289,7 +285,7 @@ export default function ReceiptsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-800/50 border-b border-slate-800">
-                {["Ticket", "Contract", "Site", "Date", "Gross (MT)", "Moisture", "Net (MT)", "Cost/MT", "Total Cost"].map((h) => (
+                {["Ticket", "Contract", "Site", "Date", "Gross (bu)", "Moisture", "Net (bu)", "Cost/bu", "Total Cost"].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
@@ -303,11 +299,11 @@ export default function ReceiptsPage() {
                   <td className="px-4 py-3 font-mono text-xs text-slate-400">{r.contractRef}</td>
                   <td className="px-4 py-3 text-slate-300">{r.siteCode}</td>
                   <td className="px-4 py-3 text-slate-400">{r.receiptDate}</td>
-                  <td className="px-4 py-3 tabular-nums text-slate-200">{r.grossMt?.toFixed(3)}</td>
+                  <td className="px-4 py-3 tabular-nums text-slate-200">{r.grossMt != null ? formatNumber(Math.round(r.grossMt * BUSHELS_PER_MT)) : "—"}</td>
                   <td className="px-4 py-3 tabular-nums text-slate-400">{r.moisturePct?.toFixed(1)}%</td>
-                  <td className="px-4 py-3 tabular-nums text-emerald-400">{r.netMt?.toFixed(3)}</td>
+                  <td className="px-4 py-3 tabular-nums text-emerald-400">{r.netMt != null ? formatNumber(Math.round(r.netMt * BUSHELS_PER_MT)) : "—"}</td>
                   <td className="px-4 py-3 tabular-nums text-slate-400">
-                    {r.deliveredCostPerMt != null ? `$${r.deliveredCostPerMt.toFixed(2)}` : "—"}
+                    {r.deliveredCostPerMt != null ? `$${(r.deliveredCostPerMt / BUSHELS_PER_MT).toFixed(4)}` : "—"}
                   </td>
                   <td className="px-4 py-3 tabular-nums text-slate-200">
                     {r.totalCostUsd != null && r.totalCostUsd > 0

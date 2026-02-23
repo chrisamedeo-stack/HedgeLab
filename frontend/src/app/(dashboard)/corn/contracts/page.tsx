@@ -10,8 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { formatNumber } from "@/lib/format";
 import { FileText, Plus, ChevronDown, ChevronRight, Lock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const BUSHELS_PER_MT = 39.3683;
+import { BUSHELS_PER_MT } from "@/lib/corn-utils";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -27,10 +26,6 @@ function fmtCents(n: number | null | undefined) {
   if (n == null) return "—";
   const d = n / 100;
   return `${d >= 0 ? "+" : ""}$${Math.abs(d).toFixed(4)}`;
-}
-function fmtPerMt(n: number | null | undefined) {
-  if (n == null) return "—";
-  return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 function monthLabel(ym: string | null) {
   if (!ym || ym.length < 7) return ym ?? "—";
@@ -73,7 +68,6 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
   function f(k: keyof typeof form, v: string) { setForm((p) => ({ ...p, [k]: v })); }
 
   const buVal = parseFloat(form.quantityBu) || 0;
-  const mtVal = buVal > 0 ? buVal / BUSHELS_PER_MT : 0;
   const basis = parseFloat(form.basisCentsBu);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -170,12 +164,6 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
             className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-slate-400">MT (auto)</label>
-          <div className="bg-slate-800/50 border border-slate-700/50 text-slate-400 rounded-lg px-3 py-2 text-sm tabular-nums">
-            {mtVal > 0 ? `${mtVal.toLocaleString("en-US", { maximumFractionDigits: 1 })} MT` : "—"}
-          </div>
-        </div>
-        <div className="space-y-1">
           <label className="text-xs text-slate-400">Currency</label>
           <select value={form.currency} onChange={(e) => f("currency", e.target.value)}
             className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
@@ -209,7 +197,7 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
           </div>
         )}
         <div className="space-y-1">
-          <label className="text-xs text-slate-400">Freight ($/MT)</label>
+          <label className="text-xs text-slate-400">Freight ($/bu)</label>
           <input type="number" step="0.01" min="0" placeholder="Optional" value={form.freightPerMt}
             onChange={(e) => f("freightPerMt", e.target.value)}
             className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
@@ -366,7 +354,6 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
 
         <div className="w-32 min-w-0 hidden sm:block">
           <p className="text-sm tabular-nums text-slate-300">{fmtBu(contract.quantityBu)} bu</p>
-          <p className="text-xs tabular-nums text-slate-500">{formatNumber(Math.round(contract.quantityMt))} MT</p>
         </div>
 
         <div className="w-36 min-w-0 hidden md:block">
@@ -384,10 +371,7 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
 
         <div className="w-36 min-w-0 hidden lg:block">
           {isFullyPriced ? (
-            <>
-              <p className="text-sm tabular-nums font-semibold text-emerald-400">{fmtPerMt(contract.allInPerMt)}/MT</p>
-              <p className="text-xs tabular-nums text-slate-500">{fmtCents(contract.allInCentsBu)}/bu</p>
-            </>
+            <p className="text-sm tabular-nums font-semibold text-emerald-400">{fmtCents(contract.allInCentsBu)}/bu</p>
           ) : (
             <p className="text-sm text-slate-600 italic">Board open</p>
           )}
@@ -423,10 +407,10 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
             {[
               { label: "Contract Date", value: contract.contractDate ?? "—" },
               { label: "Currency",      value: contract.currency },
-              { label: "Freight",       value: contract.freightPerMt != null ? `${fmtPerMt(contract.freightPerMt)}/MT` : "—" },
+              { label: "Freight",       value: contract.freightPerMt != null ? `$${(contract.freightPerMt / BUSHELS_PER_MT).toFixed(4)}/bu` : "—" },
               { label: "Basis",         value: contract.basisCentsBu != null ? `${fmtCents(contract.basisCentsBu)}/bu vs ${contract.futuresRef ?? "?"}` : "Open" },
               { label: "Board Price",   value: contract.boardPriceCentsBu != null ? `$${(contract.boardPriceCentsBu / 100).toFixed(4)}/bu` : "Open (floating with futures)" },
-              { label: "All-in Price",  value: isFullyPriced ? `${fmtPerMt(contract.allInPerMt)}/MT · ${fmtCents(contract.allInCentsBu)}/bu` : "Pending board price lock" },
+              { label: "All-in Price",  value: isFullyPriced ? `${fmtCents(contract.allInCentsBu)}/bu` : "Pending board price lock" },
               { label: "Basis Locked",  value: contract.basisLockedDate ?? "Not yet locked" },
               { label: "Notes",         value: contract.notes ?? "—" },
             ].map(({ label, value }) => (
@@ -456,7 +440,6 @@ export default function ContractsPage() {
     : contracts;
 
   const totalBu     = filtered.reduce((s, c) => s + (c.quantityBu ?? 0), 0);
-  const totalMt     = filtered.reduce((s, c) => s + (c.quantityMt ?? 0), 0);
   const pricedCount = filtered.filter((c) => c.allInPerMt != null).length;
 
   return (
@@ -497,7 +480,7 @@ export default function ContractsPage() {
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: "Contracts",    value: String(filtered.length) },
-            { label: "Total Volume", value: `${fmtBu(totalBu)} bu / ${formatNumber(Math.round(totalMt))} MT` },
+            { label: "Total Volume", value: `${fmtBu(totalBu)} bu` },
             { label: "Fully Priced", value: `${pricedCount} of ${filtered.length}` },
           ].map(({ label, value }) => (
             <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl p-4">

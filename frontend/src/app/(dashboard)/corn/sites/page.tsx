@@ -46,7 +46,6 @@ import {
   btnSecondary,
   statusColor,
 } from "@/lib/corn-format";
-import type { Unit } from "@/lib/corn-format";
 import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -247,9 +246,9 @@ function NewPurchaseForm({
           <input type="month" value={deliveryMonth} onChange={(e) => setDeliveryMonth(e.target.value)} className={inputCls} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Quantity (MT)</label>
-          <input type="number" step="100" value={quantityMt} onChange={(e) => setQuantityMt(e.target.value)}
-            placeholder="e.g. 3000" className={inputCls} />
+          <label className="text-xs text-slate-500">Quantity (bushels)</label>
+          <input type="number" step="1000" value={quantityMt} onChange={(e) => setQuantityMt(e.target.value)}
+            placeholder="e.g. 50000" className={inputCls} />
         </div>
         {(tradeType === "BASIS" || tradeType === "ALL_IN") && (
           <div className="flex flex-col gap-1">
@@ -273,9 +272,9 @@ function NewPurchaseForm({
           </div>
         )}
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Freight ($/MT)</label>
-          <input type="number" step="0.5" value={freightPerMt} onChange={(e) => setFreightPerMt(e.target.value)}
-            placeholder="e.g. 12.50" className={inputCls} />
+          <label className="text-xs text-slate-500">Freight ($/bu)</label>
+          <input type="number" step="0.01" value={freightPerMt} onChange={(e) => setFreightPerMt(e.target.value)}
+            placeholder="e.g. 0.32" className={inputCls} />
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs text-slate-500">Currency</label>
@@ -434,16 +433,13 @@ function SiteAllocationsTable({
   sites,
   settles,
   onRefresh,
-  unit,
 }: {
   allocations: SiteAllocationItem[];
   physicalPositions: PhysicalPositionItem[];
   sites: { code: string; name: string }[];
   settles: Record<string, number>;
   onRefresh: () => void;
-  unit: Unit;
 }) {
-  const unitLabel = unit === "MT" ? "MT" : "bu";
   const [efpAllocId, setEfpAllocId] = useState<number | null>(null);
   const [offsetAllocId, setOffsetAllocId] = useState<number | null>(null);
 
@@ -458,7 +454,7 @@ function SiteAllocationsTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-slate-800/50">
-            {["Trade", "Dir", "Date", "ZC", "Site", "Month", `Alloc ${unitLabel}`, `Open ${unitLabel}`, "Entry $/bu", "Settle $/bu", "Basis", "MTM", ""].map((h) => (
+            {["Trade", "Dir", "Date", "ZC", "Site", "Month", "Alloc bu", "Open bu", "Entry $/bu", "Settle $/bu", "Basis", "MTM", ""].map((h) => (
               <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -485,8 +481,8 @@ function SiteAllocationsTable({
                   </td>
                   <td className="px-4 py-3"><span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">{a.siteCode}</span></td>
                   <td className="px-4 py-3 text-slate-400 text-xs font-mono">{a.budgetMonth}</td>
-                  <td className="px-4 py-3 text-slate-300">{fmtVol(a.allocatedBushels, "BU", unit)}</td>
-                  <td className="px-4 py-3 text-emerald-400 font-semibold">{fmtVol(a.openAllocatedLots * 5000, "BU", unit)}</td>
+                  <td className="px-4 py-3 text-slate-300">{fmtVol(a.allocatedBushels)}</td>
+                  <td className="px-4 py-3 text-emerald-400 font-semibold">{fmtVol(a.openAllocatedLots * 5000)}</td>
                   <td className="px-4 py-3 text-slate-300 font-mono">{centsToUsd(a.entryPrice)}</td>
                   <td className="px-4 py-3 font-mono">
                     {a.settlePrice != null ? <span className="text-slate-200">{centsToUsd(a.settlePrice)}</span>
@@ -572,15 +568,12 @@ function SiteCostSummary({
   lockedPositions,
   offsets,
   siteCode,
-  unit,
 }: {
   physicalPositions: PhysicalPositionItem[];
   lockedPositions: LockedPositionItem[];
   offsets: OffsetItem[];
   siteCode: string;
-  unit: Unit;
 }) {
-  const unitLabel = unit === "MT" ? "MT" : "bu";
   const summary = useMemo(() => {
     const contracts = physicalPositions.filter((p) => p.siteCode === siteCode);
     const efps = lockedPositions.filter((l) => l.siteCode === siteCode);
@@ -621,14 +614,16 @@ function SiteCostSummary({
     }
     const avgBoardCents = boardVolume > 0 ? boardWeightedSum / boardVolume : null;
 
-    let blendedAllIn: number | null = null;
+    let blendedAllInBu: number | null = null;
     if (avgBoardCents != null && avgBasisCents != null) {
-      const rawPerMt = ((avgBoardCents + avgBasisCents) / 100) * BUSHELS_PER_MT + (avgFreight ?? 0);
-      const hedgePnlPerMt = totalVolume > 0 ? hedgePnl / totalVolume : 0;
-      blendedAllIn = rawPerMt - hedgePnlPerMt;
+      const rawPerBu = (avgBoardCents + avgBasisCents) / 100 + (avgFreight != null ? avgFreight / BUSHELS_PER_MT : 0);
+      const hedgePnlPerBu = totalVolume > 0 ? hedgePnl / (totalVolume * BUSHELS_PER_MT) : 0;
+      blendedAllInBu = rawPerBu - hedgePnlPerBu;
     }
 
-    return { totalVolume, hedgePnl, avgBasisCents, avgFreight, avgBoardCents, blendedAllIn };
+    const avgFreightBu = avgFreight != null ? avgFreight / BUSHELS_PER_MT : null;
+
+    return { totalVolume, hedgePnl, avgBasisCents, avgFreightBu, avgBoardCents, blendedAllInBu };
   }, [physicalPositions, lockedPositions, offsets, siteCode]);
 
   if (!summary) return null;
@@ -639,7 +634,7 @@ function SiteCostSummary({
       <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
         <div>
           <p className="text-xs text-slate-500 mb-0.5">Total Volume</p>
-          <p className="text-sm font-bold tabular-nums text-slate-100">{fmtVol(summary.totalVolume, "MT", unit)} <span className="text-xs text-slate-500 font-normal">{unitLabel}</span></p>
+          <p className="text-sm font-bold tabular-nums text-slate-100">{fmtVol(summary.totalVolume, "MT")} <span className="text-xs text-slate-500 font-normal">bu</span></p>
         </div>
         <div>
           <p className="text-xs text-slate-500 mb-0.5">Hedge P&L</p>
@@ -655,8 +650,8 @@ function SiteCostSummary({
         </div>
         <div>
           <p className="text-xs text-slate-500 mb-0.5">Avg Freight</p>
-          <p className="text-sm font-bold tabular-nums text-slate-100">
-            {summary.avgFreight != null ? fmtUsd(summary.avgFreight) + "/MT" : "\u2013"}
+          <p className="text-sm font-bold tabular-nums text-slate-100 font-mono">
+            {summary.avgFreightBu != null ? `$${summary.avgFreightBu.toFixed(4)}/bu` : "\u2013"}
           </p>
         </div>
         <div>
@@ -667,8 +662,8 @@ function SiteCostSummary({
         </div>
         <div>
           <p className="text-xs text-slate-500 mb-0.5">Blended All-In</p>
-          <p className={cn("text-sm font-bold tabular-nums", summary.blendedAllIn != null ? "text-cyan-300" : "text-slate-500")}>
-            {summary.blendedAllIn != null ? `${fmtUsd(summary.blendedAllIn)}/MT` : "\u2013"}
+          <p className={cn("text-sm font-bold tabular-nums", summary.blendedAllInBu != null ? "text-cyan-300" : "text-slate-500")}>
+            {summary.blendedAllInBu != null ? `$${summary.blendedAllInBu.toFixed(4)}/bu` : "\u2013"}
           </p>
         </div>
       </div>
@@ -687,42 +682,39 @@ function tradeTypeBadge(type: string) {
 function PhysicalPositionsTable({
   positions,
   settles,
-  unit,
 }: {
   positions: PhysicalPositionItem[];
   settles: Record<string, number>;
-  unit: Unit;
 }) {
-  const unitLabel = unit === "MT" ? "MT" : "bu";
   const blended = useMemo(() => {
-    let hedgedCost = 0;
-    let hedgedVol = 0;
-    let marketCost = 0;
-    let marketVol = 0;
+    let hedgedCostBu = 0;
+    let hedgedBu = 0;
+    let marketCostBu = 0;
+    let marketBu = 0;
 
     for (const p of positions) {
+      const bu = p.committedMt * BUSHELS_PER_MT;
       if (p.allInPricePerMt != null) {
-        hedgedCost += p.allInPricePerMt * p.committedMt;
-        hedgedVol += p.committedMt;
+        hedgedCostBu += (p.allInPricePerMt / BUSHELS_PER_MT) * bu;
+        hedgedBu += bu;
       } else {
         const settle = p.futuresRef ? settles[p.futuresRef] : null;
         if (settle != null) {
           const basisCents = p.basisValue ?? 0;
-          const freightEst = 0;
-          const estPerMt = ((settle + basisCents) / 100) * BUSHELS_PER_MT + freightEst;
-          marketCost += estPerMt * p.committedMt;
-          marketVol += p.committedMt;
+          const estPerBu = (settle + basisCents) / 100;
+          marketCostBu += estPerBu * bu;
+          marketBu += bu;
         } else {
-          marketVol += p.committedMt;
+          marketBu += bu;
         }
       }
     }
 
-    const totalVol = hedgedVol + marketVol;
-    const totalCost = hedgedCost + marketCost;
-    const blendedPerMt = totalVol > 0 ? totalCost / totalVol : null;
+    const totalBu = hedgedBu + marketBu;
+    const totalCost = hedgedCostBu + marketCostBu;
+    const blendedPerBu = totalBu > 0 ? totalCost / totalBu : null;
 
-    return { hedgedVol, hedgedPerMt: hedgedVol > 0 ? hedgedCost / hedgedVol : null, marketVol, marketPerMt: marketVol > 0 ? marketCost / marketVol : null, blendedPerMt, totalVol };
+    return { hedgedBu, hedgedPerBu: hedgedBu > 0 ? hedgedCostBu / hedgedBu : null, marketBu, marketPerBu: marketBu > 0 ? marketCostBu / marketBu : null, blendedPerBu, totalBu };
   }, [positions, settles]);
 
   return (
@@ -731,7 +723,7 @@ function PhysicalPositionsTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-800/50">
-              {["Type", "Month", "Site", "Contract", "Supplier", unitLabel, "Board", "Basis", "Freight", "All-In $/MT", "Status"].map((h) => (
+              {["Type", "Month", "Site", "Contract", "Supplier", "Bushels", "Board", "Basis", "Freight", "All-In $/bu", "Status"].map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
               ))}
             </tr>
@@ -747,7 +739,7 @@ function PhysicalPositionsTable({
                 <td className="px-4 py-3"><span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">{p.siteCode}</span></td>
                 <td className="px-4 py-3 font-mono text-slate-400 text-xs">{p.contractRef}</td>
                 <td className="px-4 py-3 text-slate-400 text-xs">{p.supplierName}</td>
-                <td className="px-4 py-3 text-slate-300">{fmtVol(p.committedMt, "MT", unit)}</td>
+                <td className="px-4 py-3 text-slate-300">{fmtVol(p.committedMt, "MT")}</td>
                 <td className="px-4 py-3">
                   {p.efpExecuted ? (
                     <span className="flex items-center gap-1 text-emerald-400 font-mono">
@@ -771,7 +763,7 @@ function PhysicalPositionsTable({
                 <td className="px-4 py-3 text-slate-400 font-mono">{fmt2(null)}</td>
                 <td className="px-4 py-3">
                   {p.allInPricePerMt != null ? (
-                    <span className="text-emerald-300 font-semibold">{fmtUsd(p.allInPricePerMt)}</span>
+                    <span className="text-emerald-300 font-semibold">${(p.allInPricePerMt / BUSHELS_PER_MT).toFixed(4)}</span>
                   ) : (
                     <span className="text-slate-600 italic text-xs">&ndash;</span>
                   )}
@@ -785,13 +777,13 @@ function PhysicalPositionsTable({
         </table>
       </div>
 
-      {positions.length > 0 && blended.blendedPerMt != null && (
+      {positions.length > 0 && blended.blendedPerBu != null && (
         <div className="px-5 py-3 border-t border-slate-800 bg-slate-800/30">
           <span className="text-xs text-slate-400">
-            Blended Cost: <span className="text-emerald-300 font-semibold">{fmtUsd(blended.blendedPerMt)}/MT</span>
-            {blended.hedgedVol > 0 && <span> (hedged: {fmtUsd(blended.hedgedPerMt)}/MT x {fmtVol(blended.hedgedVol, "MT", unit)} {unitLabel}</span>}
-            {blended.marketVol > 0 && <span>{blended.hedgedVol > 0 ? " + " : " ("}market: {fmtUsd(blended.marketPerMt)}/MT x {fmtVol(blended.marketVol, "MT", unit)} {unitLabel}</span>}
-            {(blended.hedgedVol > 0 || blended.marketVol > 0) && <span>)</span>}
+            Blended Cost: <span className="text-emerald-300 font-semibold">${blended.blendedPerBu.toFixed(4)}/bu</span>
+            {blended.hedgedBu > 0 && <span> (hedged: ${blended.hedgedPerBu?.toFixed(4)}/bu x {fmtVol(blended.hedgedBu)} bu</span>}
+            {blended.marketBu > 0 && <span>{blended.hedgedBu > 0 ? " + " : " ("}market: ${blended.marketPerBu?.toFixed(4)}/bu x {fmtVol(blended.marketBu)} bu</span>}
+            {(blended.hedgedBu > 0 || blended.marketBu > 0) && <span>)</span>}
           </span>
         </div>
       )}
@@ -807,7 +799,7 @@ function LockedPositionsTable({ locked }: { locked: LockedPositionItem[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-slate-800/50">
-            {["Ticket", "Site", "Delivery", "ZC", "Lots", "Fut.Buy", "Fut.Sell", "P&L \u00a2/bu", "P&L $", "Board", "Basis", "Freight", "All-In", "Eff.All-In"].map((h) => (
+            {["Ticket", "Site", "Delivery", "ZC", "Lots", "Fut.Buy", "Fut.Sell", "P&L \u00a2/bu", "P&L $", "Board", "Basis", "Freight", "All-In $/bu", "Eff.All-In $/bu"].map((h) => (
               <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -840,10 +832,10 @@ function LockedPositionsTable({ locked }: { locked: LockedPositionItem[] }) {
                 <td className="px-3 py-3 text-emerald-400 font-mono">{centsToUsd(l.boardPrice)}</td>
                 <td className="px-3 py-3 text-slate-400 font-mono">{l.basisValue != null ? (l.basisValue / 100).toFixed(4) : "\u2013"}</td>
                 <td className="px-3 py-3 text-slate-400 font-mono">{fmt2(l.freightValue)}</td>
-                <td className="px-3 py-3 text-emerald-300 font-semibold">{fmtUsd(l.allInPricePerMt)}</td>
+                <td className="px-3 py-3 text-emerald-300 font-semibold">{l.allInPricePerMt != null ? `$${(l.allInPricePerMt / BUSHELS_PER_MT).toFixed(4)}` : "\u2013"}</td>
                 <td className="px-3 py-3">
                   {l.effectiveAllInPerMt != null ? (
-                    <span className="text-cyan-300 font-semibold">{fmtUsd(l.effectiveAllInPerMt)}</span>
+                    <span className="text-cyan-300 font-semibold">${(l.effectiveAllInPerMt / BUSHELS_PER_MT).toFixed(4)}</span>
                   ) : <span className="text-slate-600">&ndash;</span>}
                 </td>
               </tr>
@@ -917,16 +909,13 @@ function MonthCoverageSummary({
   allocations,
   settles,
   siteFilter,
-  unit,
 }: {
   budgetMonth: string;
   budgetLines: CornBudgetLineResponse[];
   allocations: SiteAllocationItem[];
   settles: Record<string, number>;
   siteFilter: string;
-  unit: Unit;
 }) {
-  const unitLabel = unit === "MT" ? "MT" : "bu";
   const summary = useMemo(() => {
     let lines = budgetLines.filter((l) => l.budgetMonth === budgetMonth);
     if (siteFilter) lines = lines.filter((l) => l.siteCode === siteFilter);
@@ -946,36 +935,39 @@ function MonthCoverageSummary({
     }
     const targetAllIn = sumVol > 0 ? sumPriceVol / sumVol : null;
 
+    // Convert targetAllIn from $/MT to $/bu
+    const targetAllInBu = targetAllIn != null ? targetAllIn / BUSHELS_PER_MT : null;
+
     const futuresMonth = suggestFuturesMonth(budgetMonth);
     const settleCents = futuresMonth ? settles[futuresMonth] : null;
-    let marketEst: number | null = null;
+    let marketEstBu: number | null = null;
     if (settleCents != null) {
-      let totalBasis = 0, totalFreight = 0, basisCount = 0, freightCount = 0;
+      let totalBasisBu = 0, totalFreightBu = 0, basisCount = 0, freightCount = 0;
       for (const l of lines) {
         for (const c of l.components) {
           const name = c.componentName.toLowerCase();
           if (name.includes("basis")) {
-            const perMt = c.unit === "$/bu" ? c.targetValue * BUSHELS_PER_MT
-              : c.unit === "\u00a2/bu" ? (c.targetValue / 100) * BUSHELS_PER_MT
-              : c.targetValue;
-            totalBasis += perMt;
+            const perBu = c.unit === "$/bu" ? c.targetValue
+              : c.unit === "\u00a2/bu" ? c.targetValue / 100
+              : c.targetValue / BUSHELS_PER_MT;
+            totalBasisBu += perBu;
             basisCount++;
           } else if (name.includes("freight")) {
-            const perMt = c.unit === "$/bu" ? c.targetValue * BUSHELS_PER_MT
-              : c.unit === "\u00a2/bu" ? (c.targetValue / 100) * BUSHELS_PER_MT
-              : c.targetValue;
-            totalFreight += perMt;
+            const perBu = c.unit === "$/bu" ? c.targetValue
+              : c.unit === "\u00a2/bu" ? c.targetValue / 100
+              : c.targetValue / BUSHELS_PER_MT;
+            totalFreightBu += perBu;
             freightCount++;
           }
         }
       }
-      const avgBasisPerMt = basisCount > 0 ? totalBasis / basisCount : 0;
-      const avgFreightPerMt = freightCount > 0 ? totalFreight / freightCount : 0;
-      const boardPerMt = (settleCents / 100) * BUSHELS_PER_MT;
-      marketEst = boardPerMt + avgBasisPerMt + avgFreightPerMt;
+      const avgBasisPerBu = basisCount > 0 ? totalBasisBu / basisCount : 0;
+      const avgFreightPerBu = freightCount > 0 ? totalFreightBu / freightCount : 0;
+      const boardPerBu = settleCents / 100;
+      marketEstBu = boardPerBu + avgBasisPerBu + avgFreightPerBu;
     }
 
-    return { budgetMt, hedgedMt, coveragePct, targetAllIn, marketEst, futuresMonth };
+    return { budgetMt, hedgedMt, coveragePct, targetAllInBu, marketEstBu, futuresMonth };
   }, [budgetMonth, budgetLines, siteFilter, settles]);
 
   if (!summary) {
@@ -992,13 +984,13 @@ function MonthCoverageSummary({
         <div>
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Budget</p>
           <p className="text-lg font-bold tabular-nums text-slate-100">
-            {fmtVol(summary.budgetMt, "MT", unit)} <span className="text-xs text-slate-500 font-normal">{unitLabel}</span>
+            {fmtVol(summary.budgetMt, "MT")} <span className="text-xs text-slate-500 font-normal">bu</span>
           </p>
         </div>
         <div>
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Hedged</p>
           <p className="text-lg font-bold tabular-nums text-slate-100">
-            {fmtVol(summary.hedgedMt, "MT", unit)} <span className="text-xs text-slate-500 font-normal">{unitLabel}</span>
+            {fmtVol(summary.hedgedMt, "MT")} <span className="text-xs text-slate-500 font-normal">bu</span>
           </p>
           <p className="text-xs tabular-nums text-emerald-400 font-medium">
             {summary.coveragePct.toFixed(0)}% covered
@@ -1007,17 +999,17 @@ function MonthCoverageSummary({
         <div>
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Target All-In</p>
           <p className="text-lg font-bold tabular-nums text-slate-100">
-            {summary.targetAllIn != null ? `$${fmt2(summary.targetAllIn)}` : "\u2013"}
-            <span className="text-xs text-slate-500 font-normal">/MT</span>
+            {summary.targetAllInBu != null ? `$${summary.targetAllInBu.toFixed(4)}` : "\u2013"}
+            <span className="text-xs text-slate-500 font-normal">/bu</span>
           </p>
         </div>
         <div>
           <p className="text-xs text-amber-400/80 uppercase tracking-wider mb-1">Market Est (Unhedged)</p>
-          <p className={cn("text-lg font-bold tabular-nums", summary.marketEst != null ? "text-amber-300" : "text-slate-500")}>
-            {summary.marketEst != null ? `$${fmt2(summary.marketEst)}` : "\u2013"}
-            <span className="text-xs text-slate-500 font-normal">/MT</span>
+          <p className={cn("text-lg font-bold tabular-nums", summary.marketEstBu != null ? "text-amber-300" : "text-slate-500")}>
+            {summary.marketEstBu != null ? `$${summary.marketEstBu.toFixed(4)}` : "\u2013"}
+            <span className="text-xs text-slate-500 font-normal">/bu</span>
           </p>
-          {summary.futuresMonth && summary.marketEst != null && (
+          {summary.futuresMonth && summary.marketEstBu != null && (
             <p className="text-xs text-slate-600">via {summary.futuresMonth} settle</p>
           )}
         </div>
@@ -1039,7 +1031,6 @@ type Book = "CANADA" | "US";
 
 export default function SitesPage() {
   const [book, setBook] = useState<Book>("CANADA");
-  const [unit, setUnit] = useState<Unit>("MT");
   const { positions, isLoading, error, mutate } = usePositions(book);
   const { sites } = useSites();
   const [siteFilter, setSiteFilter] = useState("");
@@ -1077,22 +1068,6 @@ export default function SitesPage() {
       return { code, name: match?.name ?? code };
     });
   }, [dataSites, sites]);
-
-  // Restore unit toggle from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("pos-unit");
-    if (saved === "BU" || saved === "MT") setUnit(saved);
-  }, []);
-
-  function toggleUnit() {
-    setUnit((prev) => {
-      const next = prev === "MT" ? "BU" : "MT";
-      localStorage.setItem("pos-unit", next);
-      return next;
-    });
-  }
-
-  const unitLabel = unit === "MT" ? "MT" : "bu";
 
   // Auto-select first site when data loads
   useEffect(() => {
@@ -1149,7 +1124,7 @@ export default function SitesPage() {
         <h1 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Sites</h1>
       </div>
 
-      {/* Controls: Book + Unit toggle */}
+      {/* Controls: Book toggle */}
       <div className="flex items-center gap-4">
         {/* Book toggle */}
         <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl">
@@ -1167,23 +1142,6 @@ export default function SitesPage() {
           ))}
         </div>
 
-        {/* Unit toggle */}
-        <button
-          onClick={toggleUnit}
-          className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl"
-        >
-          {(["MT", "BU"] as Unit[]).map((u) => (
-            <span
-              key={u}
-              className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                unit === u ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
-              )}
-            >
-              {u === "MT" ? "Metric Tons" : "Bushels"}
-            </span>
-          ))}
-        </button>
       </div>
 
       {/* Site tabs + Month Navigator */}
@@ -1230,7 +1188,6 @@ export default function SitesPage() {
           allocations={filteredAllocations}
           settles={settles}
           siteFilter={siteFilter}
-          unit={unit}
         />
       )}
 
@@ -1242,7 +1199,7 @@ export default function SitesPage() {
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {filteredAllocations.length} allocation{filteredAllocations.length !== 1 ? "s" : ""} &middot;{" "}
-            {fmtVol(filteredAllocations.reduce((s, a) => s + a.allocatedBushels, 0), "BU", unit)} {unitLabel} allocated
+            {fmtVol(filteredAllocations.reduce((s, a) => s + a.allocatedBushels, 0))} bu allocated
           </p>
         </div>
         <SiteAllocationsTable
@@ -1251,7 +1208,6 @@ export default function SitesPage() {
           sites={sites}
           settles={settles}
           onRefresh={() => mutate()}
-          unit={unit}
         />
       </div>
 
@@ -1264,7 +1220,7 @@ export default function SitesPage() {
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               {filteredPhysical.length} contract{filteredPhysical.length !== 1 ? "s" : ""} &middot;{" "}
-              {fmtVol(filteredPhysical.reduce((s, p) => s + p.committedMt, 0), "MT", unit)} {unitLabel} committed
+              {fmtVol(filteredPhysical.reduce((s, p) => s + p.committedMt, 0), "MT")} bu committed
             </p>
           </div>
           <button
@@ -1284,7 +1240,7 @@ export default function SitesPage() {
             />
           </div>
         )}
-        <PhysicalPositionsTable positions={filteredPhysical} settles={settles} unit={unit} />
+        <PhysicalPositionsTable positions={filteredPhysical} settles={settles} />
       </div>
 
       {/* Site Cost Summary */}
@@ -1294,7 +1250,6 @@ export default function SitesPage() {
           lockedPositions={locked}
           offsets={offsets}
           siteCode={siteFilter}
-          unit={unit}
         />
       )}
 

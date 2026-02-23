@@ -18,7 +18,6 @@ export function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editi
   const { sites } = useSites();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
-  const [volumeUnit, setVolumeUnit] = useState<"BU" | "MT">("BU");
   const [form, setForm] = useState({
     siteCode:      editing?.siteCode ?? defaultSite ?? "",
     commodityCode: editing?.commodityCode ?? "CORN-ZC",
@@ -41,12 +40,8 @@ export function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editi
     });
   }
 
-  const buVal = volumeUnit === "BU"
-    ? (parseFloat(form.budgetVolumeBu) || 0)
-    : (parseFloat(form.budgetVolumeMt) || 0) * BUSHELS_PER_MT;
-  const mtVal = volumeUnit === "MT"
-    ? (parseFloat(form.budgetVolumeMt) || 0)
-    : (parseFloat(form.budgetVolumeBu) || 0) / BUSHELS_PER_MT;
+  const buVal = parseFloat(form.budgetVolumeBu) || 0;
+  const mtVal = buVal / BUSHELS_PER_MT;
   const fiscalYear = deriveFiscalYear(form.budgetMonth, fyStartMonth);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -106,30 +101,10 @@ export function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editi
             className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
         </div>
         <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="text-xs text-slate-400">Volume ({volumeUnit === "BU" ? "bushels" : "MT"})</label>
-            <button type="button" onClick={() => setVolumeUnit(volumeUnit === "BU" ? "MT" : "BU")}
-              className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
-              Switch to {volumeUnit === "BU" ? "MT" : "BU"}
-            </button>
-          </div>
-          {volumeUnit === "BU" ? (
-            <input type="number" step="1" min="0" placeholder="e.g. 196,842"
-              value={form.budgetVolumeBu} onChange={(e) => field("budgetVolumeBu", e.target.value)} required
-              className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
-          ) : (
-            <input type="number" step="any" min="0" placeholder="e.g. 5,000"
-              value={form.budgetVolumeMt} onChange={(e) => field("budgetVolumeMt", e.target.value)} required
-              className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
-          )}
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-slate-400">{volumeUnit === "BU" ? "MT" : "BU"} equivalent (auto)</label>
-          <div className="bg-slate-800/50 border border-slate-700/50 text-slate-400 rounded-lg px-3 py-2 text-sm tabular-nums">
-            {volumeUnit === "BU"
-              ? (mtVal > 0 ? `${mtVal.toLocaleString("en-US", { maximumFractionDigits: 1 })} MT` : "\u2014")
-              : (buVal > 0 ? `${buVal.toLocaleString("en-US", { maximumFractionDigits: 0 })} bu` : "\u2014")}
-          </div>
+          <label className="text-xs text-slate-400">Volume (bushels)</label>
+          <input type="number" step="1" min="0" placeholder="e.g. 196,842"
+            value={form.budgetVolumeBu} onChange={(e) => field("budgetVolumeBu", e.target.value)} required
+            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
         </div>
       </div>
       {form.budgetMonth && (

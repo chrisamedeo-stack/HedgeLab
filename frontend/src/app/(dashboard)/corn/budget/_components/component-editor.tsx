@@ -21,10 +21,10 @@ export function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onCh
     onChange([...rows, { key: Date.now(), componentName: p.name, unit: p.unit, targetValue: "", displayOrder: rows.length + 1 }]);
   }
 
-  const totalPerMt = rows.reduce((sum, r) => {
+  const totalPerBu = rows.reduce((sum, r) => {
     const val = parseFloat(r.targetValue);
     if (isNaN(val)) return sum;
-    return sum + (r.unit === "¢/bu" ? (val / 100) * BUSHELS_PER_MT : r.unit === "$/bu" ? val * BUSHELS_PER_MT : val);
+    return sum + (r.unit === "¢/bu" ? val / 100 : r.unit === "$/bu" ? val : val / BUSHELS_PER_MT);
   }, 0);
 
   return (
@@ -46,14 +46,14 @@ export function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onCh
                 <th className="px-3 py-2 text-left text-xs text-slate-500 font-medium">Component</th>
                 <th className="px-3 py-2 text-left text-xs text-slate-500 font-medium w-28">Unit</th>
                 <th className="px-3 py-2 text-right text-xs text-slate-500 font-medium w-32">Target Value</th>
-                <th className="px-3 py-2 text-right text-xs text-slate-500 font-medium w-28">&asymp; $/MT</th>
+                <th className="px-3 py-2 text-right text-xs text-slate-500 font-medium w-28">&asymp; $/bu</th>
                 <th className="w-8" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {rows.map((r) => {
                 const val = parseFloat(r.targetValue);
-                const perMt = isNaN(val) ? null : r.unit === "¢/bu" ? (val / 100) * BUSHELS_PER_MT : r.unit === "$/bu" ? val * BUSHELS_PER_MT : val;
+                const perBu = isNaN(val) ? null : r.unit === "¢/bu" ? val / 100 : r.unit === "$/bu" ? val : val / BUSHELS_PER_MT;
                 return (
                   <tr key={r.key} className="hover:bg-slate-800/30">
                     <td className="px-3 py-1.5">
@@ -72,7 +72,7 @@ export function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onCh
                         className="w-full bg-transparent text-slate-200 text-right placeholder:text-slate-600 focus:outline-none tabular-nums" />
                     </td>
                     <td className="px-3 py-1.5 text-right text-slate-400 tabular-nums text-xs">
-                      {perMt != null ? fmtPrice(perMt) : "\u2014"}
+                      {perBu != null ? perBu.toFixed(4) : "\u2014"}
                     </td>
                     <td className="px-3 py-1.5 text-center">
                       <button type="button" onClick={() => removeRow(r.key)} className="text-slate-600 hover:text-red-400 transition-colors">
@@ -87,7 +87,7 @@ export function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onCh
               <tr className="bg-slate-800/40 border-t border-slate-700">
                 <td colSpan={3} className="px-3 py-2 text-xs text-slate-500 text-right font-medium">All-in target</td>
                 <td className="px-3 py-2 text-right font-bold text-blue-400 tabular-nums text-sm">
-                  {totalPerMt > 0 ? `$${fmtPrice(totalPerMt)}` : "\u2014"}
+                  {totalPerBu > 0 ? `$${totalPerBu.toFixed(4)}` : "\u2014"}
                 </td>
                 <td />
               </tr>
@@ -95,7 +95,7 @@ export function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onCh
           </table>
         </div>
       )}
-      <button type="button" onClick={() => onChange([...rows, { key: Date.now(), componentName: "", unit: "$/MT", targetValue: "", displayOrder: rows.length + 1 }])}
+      <button type="button" onClick={() => onChange([...rows, { key: Date.now(), componentName: "", unit: "$/bu", targetValue: "", displayOrder: rows.length + 1 }])}
         className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors mt-1">
         <Plus className="h-3.5 w-3.5" /> Add custom component
       </button>
@@ -108,9 +108,9 @@ export function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onCh
 export function ComponentTokenBar({ rows }: { rows: ComponentRow[] }) {
   const filled = rows.filter((r) => r.componentName && r.targetValue && !isNaN(parseFloat(r.targetValue)));
   if (filled.length === 0) return null;
-  const totalPerMt = filled.reduce((sum, r) => {
+  const totalPerBu = filled.reduce((sum, r) => {
     const val = parseFloat(r.targetValue);
-    return sum + (r.unit === "¢/bu" ? (val / 100) * BUSHELS_PER_MT : r.unit === "$/bu" ? val * BUSHELS_PER_MT : val);
+    return sum + (r.unit === "¢/bu" ? val / 100 : r.unit === "$/bu" ? val : val / BUSHELS_PER_MT);
   }, 0);
   return (
     <div className="flex flex-wrap items-center gap-1.5 mt-2">
@@ -118,13 +118,13 @@ export function ComponentTokenBar({ rows }: { rows: ComponentRow[] }) {
         <Fragment key={r.key}>
           {i > 0 && <span className="text-slate-600 text-xs">+</span>}
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 ring-1 ring-blue-500/20 text-blue-300 text-xs tabular-nums">
-            {r.componentName}: {r.unit === "$/bu" || r.unit === "¢/bu" ? parseFloat(r.targetValue).toFixed(2) : parseFloat(r.targetValue).toLocaleString("en-US", { maximumFractionDigits: 2 })} {r.unit}
+            {r.componentName}: {parseFloat(r.targetValue).toFixed(2)} {r.unit}
           </span>
         </Fragment>
       ))}
       <span className="text-slate-600 text-xs">=</span>
       <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/20 text-emerald-400 text-xs font-medium tabular-nums">
-        ${fmtPrice(totalPerMt)}/MT
+        ${totalPerBu.toFixed(4)}/bu
       </span>
     </div>
   );

@@ -19,7 +19,6 @@ export function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSave
   const { sites } = useSites();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
-  const [volumeUnit, setVolumeUnit] = useState<"BU" | "MT">("BU");
   const [config, setConfig] = useState({ siteCode: "", commodityCode: "CORN-ZC", fiscalYear: availableFiscalYears(fyStartMonth)[2] });
   const [components, setComponents] = useState<ComponentRow[]>([]);
   type MRow = { volume: string; futuresMonth: string; notes: string };
@@ -27,12 +26,11 @@ export function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSave
     Object.fromEntries(fiscalYearMonths(fy, fyStartMonth).map((m) => [m, { volume: "", futuresMonth: suggestFuturesMonth(m), notes: "" }]));
   const [rows, setRows] = useState<Record<string, MRow>>(() => mkRows(config.fiscalYear));
 
-  const sharedTotalPerMt = components.reduce((sum, r) => {
+  const sharedTotalPerBu = components.reduce((sum, r) => {
     const val = parseFloat(r.targetValue);
     if (isNaN(val)) return sum;
-    return sum + (r.unit === "¢/bu" ? (val / 100) * BUSHELS_PER_MT : r.unit === "$/bu" ? val * BUSHELS_PER_MT : val);
+    return sum + (r.unit === "¢/bu" ? val / 100 : r.unit === "$/bu" ? val : val / BUSHELS_PER_MT);
   }, 0);
-  const sharedTotalDollarsBu = sharedTotalPerMt > 0 ? sharedTotalPerMt / BUSHELS_PER_MT : 0;
 
   function handleFYChange(fy: string) {
     setConfig((c) => ({ ...c, fiscalYear: fy }));
@@ -43,15 +41,13 @@ export function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSave
 
   const months = fiscalYearMonths(config.fiscalYear, fyStartMonth);
 
-  const totals = useMemo(() => {
-    let totalBu = 0, totalMt = 0;
+  const totalBu = useMemo(() => {
+    let total = 0;
     for (const m of months) {
-      const raw = parseFloat(rows[m]?.volume) || 0;
-      if (volumeUnit === "BU") { totalBu += raw; totalMt += raw / BUSHELS_PER_MT; }
-      else { totalMt += raw; totalBu += raw * BUSHELS_PER_MT; }
+      total += parseFloat(rows[m]?.volume) || 0;
     }
-    return { totalBu, totalMt };
-  }, [months, rows, volumeUnit]);
+    return total;
+  }, [months, rows]);
 
   const filledCount = months.filter((m) => parseFloat(rows[m]?.volume) > 0).length;
 
@@ -62,9 +58,8 @@ export function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSave
       .map((r, i) => ({ componentName: r.componentName, unit: r.unit, targetValue: parseFloat(r.targetValue), displayOrder: i + 1 }))
       .filter((c) => c.componentName && !isNaN(c.targetValue));
     const lines = months.filter((m) => parseFloat(rows[m]?.volume) > 0).map((m) => {
-      const raw = parseFloat(rows[m].volume);
-      const bu = volumeUnit === "BU" ? raw : raw * BUSHELS_PER_MT;
-      const mt = volumeUnit === "MT" ? raw : raw / BUSHELS_PER_MT;
+      const bu = parseFloat(rows[m].volume);
+      const mt = bu / BUSHELS_PER_MT;
       return { siteCode: config.siteCode, commodityCode: config.commodityCode, budgetMonth: m,
         futuresMonth: rows[m].futuresMonth || null, budgetVolumeBu: bu, budgetVolumeMt: mt,
         fiscalYear: config.fiscalYear, notes: rows[m].notes || null,
@@ -124,14 +119,10 @@ export function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSave
       <div className="rounded-lg bg-slate-800/40 border border-slate-700/50 px-4 py-3 space-y-1">
         <div className="flex items-center gap-2">
           <label className="text-xs text-slate-400 whitespace-nowrap">Default volume:</label>
-          <input type="number" placeholder={volumeUnit === "BU" ? "bushels" : "MT"} step={volumeUnit === "BU" ? "1" : "any"} min="0"
+          <input type="number" placeholder="bushels" step="1" min="0"
             className="w-32 bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-600"
             onChange={(e) => applyAll(e.target.value)} />
-          <span className="text-xs text-slate-600">{volumeUnit === "BU" ? "bu" : "MT"}/month</span>
-          <button type="button" onClick={() => setVolumeUnit(volumeUnit === "BU" ? "MT" : "BU")}
-            className="text-xs text-blue-400 hover:text-blue-300 transition-colors ml-2">
-            Switch to {volumeUnit === "BU" ? "MT" : "BU"}
-          </button>
+          <span className="text-xs text-slate-600">bu/month</span>
         </div>
         <p className="text-xs text-slate-600">Sets all months &mdash; override individually below</p>
       </div>
@@ -141,9 +132,8 @@ export function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSave
           <thead>
             <tr className="bg-slate-800/60 border-b border-slate-700">
               <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium w-20">Month</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">{volumeUnit === "BU" ? "Bushels" : "MT"}</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-28">{volumeUnit === "BU" ? "MT (auto)" : "BU (auto)"}</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-36">All-in</th>
+              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">Bushels</th>
+              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium w-36">All-in $/bu</th>
               <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium w-28">Futures Ref</th>
               <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium">Notes</th>
             </tr>
@@ -151,32 +141,17 @@ export function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSave
           <tbody className="divide-y divide-slate-800">
             {months.map((m) => {
               const row = rows[m] ?? { volume: "", futuresMonth: "", notes: "" };
-              const raw  = parseFloat(row.volume) || 0;
-              const bu = volumeUnit === "BU" ? raw : raw * BUSHELS_PER_MT;
-              const mt = volumeUnit === "MT" ? raw : raw / BUSHELS_PER_MT;
-              const autoVal = volumeUnit === "BU" ? mt : bu;
               return (
                 <tr key={m} className={m.endsWith("-07") ? "border-t-2 border-blue-500/30" : ""}>
                   <td className="px-3 py-2 font-medium text-slate-300 whitespace-nowrap">{monthLabel(m)}</td>
                   <td className="px-3 py-1.5">
-                    <input type="number" step={volumeUnit === "BU" ? "1" : "any"} min="0" placeholder="0" value={row.volume}
+                    <input type="number" step="1" min="0" placeholder="0" value={row.volume}
                       onChange={(e) => updateRow(m, "volume", e.target.value)}
                       className="w-full bg-transparent text-slate-200 text-right tabular-nums placeholder:text-slate-700 focus:outline-none" />
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-slate-500 text-xs">
-                    {autoVal > 0
-                      ? (volumeUnit === "BU"
-                          ? autoVal.toLocaleString("en-US", { maximumFractionDigits: 1 })
-                          : autoVal.toLocaleString("en-US", { maximumFractionDigits: 0 }))
-                      : "\u2014"}
-                  </td>
                   <td className="px-3 py-2 text-right tabular-nums text-xs">
-                    {sharedTotalPerMt > 0 ? (
-                      <div>
-                        <span className="text-blue-400">${sharedTotalDollarsBu.toFixed(2)}/bu</span>
-                        <br />
-                        <span className="text-slate-500">${fmtPrice(sharedTotalPerMt)}/MT</span>
-                      </div>
+                    {sharedTotalPerBu > 0 ? (
+                      <span className="text-blue-400">${sharedTotalPerBu.toFixed(4)}/bu</span>
                     ) : <span className="text-slate-700">&mdash;</span>}
                   </td>
                   <td className="px-3 py-1.5">
@@ -197,17 +172,12 @@ export function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSave
             <tr className="bg-slate-800/50 border-t border-slate-700">
               <td className="px-3 py-2 text-xs text-slate-500 font-medium">Total</td>
               <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-200 text-sm">
-                {(volumeUnit === "BU" ? totals.totalBu : totals.totalMt) > 0
-                  ? (volumeUnit === "BU" ? totals.totalBu : totals.totalMt).toLocaleString("en-US", { maximumFractionDigits: 0 })
-                  : "\u2014"}
-              </td>
-              <td className="px-3 py-2 text-right tabular-nums text-slate-400 text-xs">
-                {(volumeUnit === "BU" ? totals.totalMt : totals.totalBu) > 0
-                  ? (volumeUnit === "BU" ? totals.totalMt : totals.totalBu).toLocaleString("en-US", { maximumFractionDigits: 0 })
+                {totalBu > 0
+                  ? totalBu.toLocaleString("en-US", { maximumFractionDigits: 0 })
                   : "\u2014"}
               </td>
               <td className="px-3 py-2 text-right tabular-nums text-xs">
-                {sharedTotalPerMt > 0 ? <span className="text-blue-400 font-medium">${fmtPrice(sharedTotalPerMt)}/MT</span> : ""}
+                {sharedTotalPerBu > 0 ? <span className="text-blue-400 font-medium">${sharedTotalPerBu.toFixed(4)}/bu</span> : ""}
               </td>
               <td colSpan={2} />
             </tr>

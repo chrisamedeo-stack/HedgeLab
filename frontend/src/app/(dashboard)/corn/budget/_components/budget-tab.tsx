@@ -44,7 +44,6 @@ export function BudgetTab({
   }, {});
 
   const totalBu = lines.reduce((s, l) => s + (l.budgetVolumeBu ?? l.budgetVolumeMt * BUSHELS_PER_MT), 0);
-  const totalMt = lines.reduce((s, l) => s + l.budgetVolumeMt, 0);
 
   const wtdAvg = useMemo(() => {
     let sumPriceVol = 0, sumVol = 0;
@@ -84,17 +83,11 @@ export function BudgetTab({
             <p className="text-2xl font-bold tabular-nums text-slate-100">
               {totalBu > 0 ? `${(totalBu / 1_000_000).toFixed(2)}M bu` : "\u2014"}
             </p>
-            <p className="text-xs text-slate-400 tabular-nums mt-0.5">
-              {totalMt > 0 ? `${fmtVol(Math.round(totalMt))} MT` : ""}
-            </p>
           </div>
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
             <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Wtd Avg Price</p>
             <p className="text-2xl font-bold tabular-nums text-slate-100">
-              {wtdAvg != null ? `$${fmtPrice(wtdAvg)}/MT` : "\u2014"}
-            </p>
-            <p className="text-xs text-slate-400 tabular-nums mt-0.5">
-              {wtdAvg != null ? `$${(wtdAvg / BUSHELS_PER_MT).toFixed(4)}/bu` : ""}
+              {wtdAvg != null ? `$${(wtdAvg / BUSHELS_PER_MT).toFixed(4)}/bu` : "\u2014"}
             </p>
           </div>
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
@@ -121,7 +114,6 @@ export function BudgetTab({
           {Object.entries(bySite).map(([siteCode, siteLines]) => {
             const siteName = siteLines[0]?.siteName ?? siteCode;
             const siteBu   = siteLines.reduce((s, l) => s + (l.budgetVolumeBu ?? l.budgetVolumeMt * BUSHELS_PER_MT), 0);
-            const siteMt   = siteLines.reduce((s, l) => s + l.budgetVolumeMt, 0);
             let siteSumPriceVol = 0, siteSumVol = 0;
             for (const l of siteLines) {
               if (l.targetAllInPerMt != null && l.budgetVolumeMt > 0) {
@@ -142,14 +134,11 @@ export function BudgetTab({
                   <div className="flex gap-4 text-xs text-slate-400">
                     <span>{fmtVol(siteBu)} bu</span>
                     <span className="text-slate-600">&middot;</span>
-                    <span>{fmtVol(siteMt)} MT</span>
-                    <span className="text-slate-600">&middot;</span>
                     <span>{siteLines.length} line{siteLines.length !== 1 ? "s" : ""}</span>
                     {siteWtdAvg != null && (
                       <>
                         <span className="text-slate-600">&middot;</span>
-                        <span className="text-blue-400">${fmtPrice(siteWtdAvg)}/MT</span>
-                        <span className="text-slate-500">(${(siteWtdAvg / BUSHELS_PER_MT).toFixed(4)}/bu)</span>
+                        <span className="text-blue-400">${(siteWtdAvg / BUSHELS_PER_MT).toFixed(4)}/bu</span>
                       </>
                     )}
                     {siteNotional > 0 && (
@@ -167,8 +156,7 @@ export function BudgetTab({
                       <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Month</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Futures Ref</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Bushels</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">MT</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">All-in $/MT</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">All-in $/bu</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Notional $</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Notes</th>
                       <th className="w-16" />
@@ -183,7 +171,6 @@ export function BudgetTab({
                     <tr className="border-t border-slate-700 bg-slate-800/30">
                       <td colSpan={3} className="px-4 py-2 text-xs text-slate-500 text-right font-medium">Subtotal</td>
                       <td className="px-4 py-2 text-right tabular-nums font-semibold text-slate-300 text-xs">{fmtVol(siteBu)} bu</td>
-                      <td className="px-4 py-2 text-right tabular-nums font-semibold text-slate-400 text-xs">{fmtVol(siteMt)} MT</td>
                       <td />
                       <td className="px-4 py-2 text-right tabular-nums text-emerald-400 text-xs font-medium">{siteNotional > 0 ? fmtDollars(siteNotional) : ""}</td>
                       <td colSpan={2} />

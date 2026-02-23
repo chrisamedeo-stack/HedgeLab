@@ -4,21 +4,23 @@ import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { CornBudgetLineResponse } from "@/hooks/useCorn";
 import { api } from "@/lib/api";
+import { BUSHELS_PER_MT } from "@/lib/corn-utils";
 import { useToast } from "@/contexts/ToastContext";
 
 export function InlineForecastEdit({ line, onSaved, onCancel }: {
   line: CornBudgetLineResponse; onSaved: () => void; onCancel: () => void;
 }) {
   const { toast } = useToast();
-  const [value, setValue] = useState(String(line.forecastVolumeMt ?? line.budgetVolumeMt ?? ""));
+  const [value, setValue] = useState(String(Math.round((line.forecastVolumeMt ?? line.budgetVolumeMt ?? 0) * BUSHELS_PER_MT)));
   const [noteText, setNoteText] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSave() {
     setSubmitting(true);
     try {
+      const bu = parseFloat(value) || 0;
       await api.put(`/api/v1/corn/budget/${line.id}`, {
-        forecastVolumeMt: parseFloat(value) || null,
+        forecastVolumeMt: bu > 0 ? bu / BUSHELS_PER_MT : null,
         forecastNotes: noteText || null,
       });
       toast("Forecast updated", "success");

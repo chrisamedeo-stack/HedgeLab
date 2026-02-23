@@ -15,7 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  Wheat,
+
   FileText,
   BarChart2,
   Package,
@@ -60,7 +60,7 @@ const navSections: NavSection[] = [
       { href: "/corn/sites",      label: "Sites",             icon: MapPin },
       { href: "/corn/coverage",  label: "Coverage",   icon: BarChart2 },
       { href: "/corn/contracts", label: "Contracts",  icon: FileText },
-      { href: "/corn/hedges",    label: "Hedges",     icon: Wheat },
+
       { href: "/corn/efp",       label: "EFP",        icon: ArrowLeftRight },
       { href: "/corn/receipts",  label: "Receipts",   icon: Package },
     ],
