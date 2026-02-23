@@ -17,6 +17,7 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/ExportController.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/HedgeAllocationController.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/HedgeController.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/HedgeOffsetController.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/MarketDataController.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/PhysicalContractController.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/PositionController.java
@@ -24,12 +25,16 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/ReceiptController.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/RiskController.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/SchedulerController.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/SettingsController.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/SettlementController.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/SiteController.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/SupplierController.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/TradeController.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/controller/ValuationController.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/converter/YearMonthConverter.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/AmendTradeRequest.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/AssignSiteRequest.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/BatchForecastUpdateRequest.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/CreateBookRequest.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/CreateCommodityRequest.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/CreateCounterpartyRequest.java
@@ -37,9 +42,12 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/CreateFormulaRequest.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/CreateHedgeAllocationRequest.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/CreateHedgeTradeRequest.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/CreateOffsetRequest.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/CreatePhysicalContractRequest.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/CreatePriceIndexRequest.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/CreateReceiptRequest.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/CreateSiteRequest.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/CreateSupplierRequest.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/CreateTradeRequest.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/ExportFilter.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/LockBasisRequest.java
@@ -50,6 +58,7 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/RecordPaymentRequest.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/RegisterRequest.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/SaveBudgetLineRequest.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/request/UpdateSettingRequest.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/AuditLogResponse.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/AuthResponse.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/Black76Result.java
@@ -65,6 +74,7 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/EFPTicketResponse.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/ForwardCurveResponse.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/HedgeAllocationResponse.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/HedgeOffsetResponse.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/HedgeTradeResponse.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/InvoiceResponse.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/MtmValuationResponse.java
@@ -76,9 +86,11 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/ReceiptResponse.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/RiskMetricResponse.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/SiteResponse.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/SupplierResponse.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/TradeResponse.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/dto/response/VaRResult.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/AppRole.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/AppSetting.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/AppUser.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/AuditAction.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/AuditLog.java
@@ -89,6 +101,7 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/CornBudgetComponent.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/CornBudgetLine.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/CornDailySettle.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/CornForecastHistory.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/Counterparty.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/CounterpartyStatus.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/CounterpartyType.java
@@ -102,6 +115,7 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/FormulaComponent.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/ForwardCurvePoint.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/HedgeAllocation.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/HedgeOffset.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/HedgeTrade.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/HedgeTradeStatus.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/Invoice.java
@@ -110,6 +124,7 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/Payment.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/PhysicalContract.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/PhysicalContractStatus.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/PhysicalContractTradeType.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/PnlSnapshot.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/Position.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/PositionType.java
@@ -121,6 +136,9 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/RiskMetricType.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/Site.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/SiteBudget.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/SiteCommodity.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/SiteSupplier.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/Supplier.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/Trade.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/TradeStatus.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/entity/TradeType.java
@@ -131,12 +149,14 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/exception/InvalidStateException.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/exception/MarketDataNotFoundException.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/exception/ResourceNotFoundException.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/AppSettingRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/AppUserRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/AuditLogRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/BookRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/CommodityRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/CornBudgetLineRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/CornDailySettleRepository.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/CornForecastHistoryRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/CounterpartyRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/CreditUtilizationRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/DailyPriceRepository.java
@@ -144,6 +164,7 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/EFPTicketRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/ForwardCurvePointRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/HedgeAllocationRepository.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/HedgeOffsetRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/HedgeTradeRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/InvoiceRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/MtmValuationRepository.java
@@ -156,11 +177,15 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/ReceiptTicketRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/RiskMetricRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/SiteBudgetRepository.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/SiteCommodityRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/SiteRepository.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/SiteSupplierRepository.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/SupplierRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/repository/TradeRepository.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/security/JwtAuthenticationFilter.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/security/JwtTokenProvider.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/security/UserDetailsServiceImpl.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/AppSettingService.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/AuditLogService.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/Black76Service.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/BookService.java
@@ -175,6 +200,7 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/ExportService.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/FormulaService.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/HedgeAllocationService.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/HedgeOffsetService.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/HedgeService.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/MarketDataService.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/PhysicalContractService.java
@@ -185,6 +211,7 @@
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/RiskService.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/SettlementService.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/SiteService.java
+/mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/SupplierService.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/TradeService.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/VaRCalculationService.java
 /mnt/c/Users/chris/HedgeLab/api-server/src/main/java/com/hedgelab/api/service/ValuationService.java

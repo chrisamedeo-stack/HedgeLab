@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useContracts, useSites, PhysicalContractResponse } from "@/hooks/useCorn";
+import { useSuppliers } from "@/hooks/useSettings";
 import { api } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -58,13 +59,15 @@ function StatusBadge({ status }: { status: string }) {
 
 function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () => void }) {
   const { sites } = useSites();
+  const { suppliers } = useSuppliers();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     siteCode: "", supplierName: "", deliveryMonth: "", futuresRef: "",
     quantityBu: "", basisCentsBu: "", freightPerMt: "", currency: "USD",
     contractDate: new Date().toISOString().slice(0, 10), notes: "",
-    tradeType: "BASIS" as "INDEX" | "BASIS",
+    tradeType: "BASIS" as "INDEX" | "BASIS" | "ALL_IN",
+    boardPriceBu: "",
   });
 
   function f(k: keyof typeof form, v: string) { setForm((p) => ({ ...p, [k]: v })); }
@@ -80,13 +83,15 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
     if (!buVal) { toast("Enter quantity in bushels", "error"); return; }
     setSubmitting(true);
     try {
+      const boardBu = parseFloat(form.boardPriceBu);
       await api.post("/api/v1/corn/contracts", {
         siteCode: form.siteCode,
         supplierName: form.supplierName || null,
         deliveryMonth: form.deliveryMonth,
         futuresRef: form.futuresRef || null,
         quantityBu: buVal,
-        basisCentsBu: form.tradeType === "BASIS" && !isNaN(basis) ? basis * 100 : null,
+        basisCentsBu: (form.tradeType === "BASIS" || form.tradeType === "ALL_IN") && !isNaN(basis) ? basis * 100 : null,
+        boardPriceCentsBu: form.tradeType === "ALL_IN" && !isNaN(boardBu) ? boardBu * 100 : null,
         freightPerMt: parseFloat(form.freightPerMt) || null,
         currency: form.currency,
         contractDate: form.contractDate || null,
@@ -115,20 +120,22 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
       <div className="flex items-center gap-3">
         <span className="text-xs text-slate-400">Trade Type:</span>
         <div className="flex gap-1 p-0.5 bg-slate-800 border border-slate-700 rounded-lg">
-          {(["BASIS", "INDEX"] as const).map((t) => (
+          {(["BASIS", "ALL_IN", "INDEX"] as const).map((t) => (
             <button key={t} type="button"
               onClick={() => f("tradeType", t)}
               className={cn(
                 "px-3 py-1 rounded-md text-xs font-medium transition-colors",
                 form.tradeType === t
-                  ? t === "BASIS" ? "bg-blue-600 text-white" : "bg-amber-600 text-white"
+                  ? t === "BASIS" ? "bg-blue-600 text-white" : t === "ALL_IN" ? "bg-emerald-600 text-white" : "bg-amber-600 text-white"
                   : "text-slate-400 hover:text-slate-200"
-              )}>{t}</button>
+              )}>{t === "ALL_IN" ? "ALL-IN" : t}</button>
           ))}
         </div>
         <span className="text-xs text-slate-500">
           {form.tradeType === "INDEX"
             ? "Committed at floating market/index price"
+            : form.tradeType === "ALL_IN"
+            ? "Board + basis locked at purchase time"
             : "Has basis component relative to futures"}
         </span>
       </div>
@@ -144,9 +151,11 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
         </div>
         <div className="space-y-1">
           <label className="text-xs text-slate-400">Supplier</label>
-          <input type="text" placeholder="e.g. Grain Farmers of Ontario" value={form.supplierName}
-            onChange={(e) => f("supplierName", e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+          <select value={form.supplierName} onChange={(e) => f("supplierName", e.target.value)}
+            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+            <option value="">— Select —</option>
+            {suppliers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
+          </select>
         </div>
         <div className="space-y-1">
           <label className="text-xs text-slate-400">Delivery Month</label>
@@ -175,7 +184,7 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
           </select>
         </div>
 
-        {form.tradeType === "BASIS" && (
+        {(form.tradeType === "BASIS" || form.tradeType === "ALL_IN") && (
           <div className="space-y-1">
             <label className="text-xs text-slate-400">Basis ($/bu)</label>
             <input type="number" step="0.0025" placeholder="e.g. -0.25" value={form.basisCentsBu}
@@ -183,11 +192,19 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
               className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
           </div>
         )}
-        {form.tradeType === "BASIS" && (
+        {(form.tradeType === "BASIS" || form.tradeType === "ALL_IN") && (
           <div className="space-y-1">
             <label className="text-xs text-slate-400">Against Futures</label>
             <input type="text" placeholder="e.g. ZCN26" value={form.futuresRef}
               onChange={(e) => f("futuresRef", e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+          </div>
+        )}
+        {form.tradeType === "ALL_IN" && (
+          <div className="space-y-1">
+            <label className="text-xs text-slate-400">Board Price ($/bu)</label>
+            <input type="number" step="0.0025" placeholder="e.g. 4.55" value={form.boardPriceBu}
+              onChange={(e) => f("boardPriceBu", e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
           </div>
         )}
@@ -333,8 +350,10 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
                 "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
                 contract.tradeType === "INDEX"
                   ? "bg-amber-500/20 text-amber-400"
+                  : contract.tradeType === "ALL_IN"
+                  ? "bg-emerald-500/20 text-emerald-400"
                   : "bg-blue-500/20 text-blue-400"
-              )}>{contract.tradeType}</span>
+              )}>{contract.tradeType === "ALL_IN" ? "ALL-IN" : contract.tradeType}</span>
             )}
           </div>
           <p className="text-xs text-slate-500 truncate">{contract.supplierName ?? "—"}</p>
@@ -353,7 +372,7 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
         <div className="w-36 min-w-0 hidden md:block">
           {contract.tradeType === "INDEX" ? (
             <p className="text-sm text-amber-500/60 italic">N/A (Index)</p>
-          ) : contract.basisCentsBu != null ? (
+          ) : (contract.basisCentsBu != null) ? (
             <>
               <p className="text-sm tabular-nums text-slate-300">{fmtCents(contract.basisCentsBu)}/bu</p>
               <p className="text-xs text-slate-500">{contract.futuresRef ?? "—"}</p>
@@ -376,7 +395,7 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
 
         <div className="ml-auto flex items-center gap-3 flex-shrink-0">
           <StatusBadge status={contract.status} />
-          {!isCancelled && contract.status === "OPEN" && contract.tradeType !== "INDEX" && (
+          {!isCancelled && contract.status === "OPEN" && contract.tradeType === "BASIS" && (
             <button
               onClick={() => { setLockingBasis((v) => !v); setExpanded(true); }}
               className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs rounded-lg transition-colors">
@@ -444,7 +463,7 @@ export default function ContractsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">Physical Contracts</h1>
+          <h1 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Physical Contracts</h1>
           <p className="text-sm text-slate-400 mt-0.5">
             Corn procurement · basis &amp; board pricing lifecycle
           </p>

@@ -28,6 +28,12 @@ public class HedgeController {
         return service.create(req);
     }
 
+    @PostMapping("/bulk")
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<HedgeTradeResponse> createBulk(@RequestBody List<CreateHedgeTradeRequest> requests) {
+        return service.createBulk(requests);
+    }
+
     @PutMapping("/{id}")
     public HedgeTradeResponse update(@PathVariable Long id, @RequestBody CreateHedgeTradeRequest req) {
         return service.update(id, req);

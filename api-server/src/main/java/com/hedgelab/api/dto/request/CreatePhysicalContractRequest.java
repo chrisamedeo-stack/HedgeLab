@@ -18,5 +18,6 @@ public class CreatePhysicalContractRequest {
     private String currency;           // USD or CAD
     private LocalDate contractDate;
     private String notes;
-    private String tradeType;              // INDEX or BASIS (defaults to BASIS)
+    private String tradeType;              // INDEX, BASIS, or ALL_IN (defaults to BASIS)
+    private BigDecimal boardPriceCentsBu;  // ¢/bu — required for ALL_IN trades
 }

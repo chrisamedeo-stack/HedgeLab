@@ -22,6 +22,9 @@ public class CornPositionResponse {
     /** Site Allocations — allocated futures per site/month */
     private List<SiteAllocationItem> siteAllocations;
 
+    /** Month-only allocations (siteCode IS NULL) awaiting site assignment */
+    private List<MonthAllocationItem> monthAllocations;
+
     /** Active physical contracts showing commitment, basis, pricing, and trade type */
     private List<PhysicalPositionItem> physicalPositions;
 
@@ -56,6 +59,7 @@ public class CornPositionResponse {
         private List<String> validDeliveryMonths;
         private String status;
         private String brokerAccount;
+        private String side;             // LONG or SHORT
     }
 
     @Data
@@ -77,6 +81,24 @@ public class CornPositionResponse {
         private Integer efpdLots;
         private Integer offsetLots;
         private Integer openAllocatedLots;
+        private String side;             // LONG or SHORT (from parent hedge)
+        private LocalDate tradeDate;     // from parent hedge trade
+    }
+
+    @Data
+    @Builder
+    public static class MonthAllocationItem {
+        private Long allocationId;
+        private Long hedgeTradeId;
+        private String tradeRef;
+        private String futuresMonth;
+        private String budgetMonth;
+        private Integer allocatedLots;
+        private Integer allocatedBushels;
+        private BigDecimal allocatedMt;
+        private BigDecimal entryPrice;      // ¢/bu from parent hedge
+        private String side;
+        private LocalDate tradeDate;
     }
 
     @Data

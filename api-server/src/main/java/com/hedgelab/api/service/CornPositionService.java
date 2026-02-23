@@ -47,7 +47,8 @@ public class CornPositionService {
 
         // ---- 1. Hedge Book: OPEN + PARTIALLY_ALLOCATED hedges ---------------
         List<HedgeTradeStatus> poolStatuses = List.of(
-                HedgeTradeStatus.OPEN, HedgeTradeStatus.PARTIALLY_ALLOCATED);
+                HedgeTradeStatus.OPEN, HedgeTradeStatus.PARTIALLY_ALLOCATED,
+                HedgeTradeStatus.FULLY_ALLOCATED);
         List<HedgeTrade> openHedges;
         if (book != null && !book.isBlank()) {
             openHedges = hedgeRepo.findByStatusInAndBookOrderByTradeDateDesc(
@@ -66,7 +67,6 @@ public class CornPositionService {
 
         List<HedgeBookItem> hedgeBook = openHedges.stream()
                 .map(h -> buildHedgeBookItem(h, settles))
-                .filter(item -> item.getUnallocatedLots() > 0)
                 .collect(Collectors.toList());
 
         // ---- 2. Site Allocations: all allocations ---------------------------
@@ -85,6 +85,24 @@ public class CornPositionService {
 
         List<SiteAllocationItem> siteAllocations = allAllocations.stream()
                 .map(a -> buildSiteAllocationItem(a, settles))
+                .collect(Collectors.toList());
+
+        // ---- 2b. Month-only Allocations: site IS NULL ----------------------------
+        List<HedgeAllocation> monthOnlyAllocs;
+        if (book != null && !book.isBlank()) {
+            final String bookUpper = book.toUpperCase();
+            monthOnlyAllocs = allocationRepo.findAll().stream()
+                    .filter(a -> a.getSite() == null)
+                    .filter(a -> bookUpper.equalsIgnoreCase(a.getHedgeTrade().getBook()))
+                    .collect(Collectors.toList());
+        } else {
+            monthOnlyAllocs = allocationRepo.findAll().stream()
+                    .filter(a -> a.getSite() == null)
+                    .collect(Collectors.toList());
+        }
+
+        List<MonthAllocationItem> monthAllocations = monthOnlyAllocs.stream()
+                .map(this::buildMonthAllocationItem)
                 .collect(Collectors.toList());
 
         // ---- 3. Physical positions: all non-terminal contracts --------------
@@ -149,6 +167,7 @@ public class CornPositionService {
         return CornPositionResponse.builder()
                 .hedgeBook(hedgeBook)
                 .siteAllocations(siteAllocations)
+                .monthAllocations(monthAllocations)
                 .physicalPositions(physical)
                 .lockedPositions(locked)
                 .offsets(offsets)
@@ -212,6 +231,7 @@ public class CornPositionService {
                 .validDeliveryMonths(zcMonthMapper.getValidDeliveryMonths(h.getFuturesMonth()))
                 .status(h.getStatus().name())
                 .brokerAccount(h.getBrokerAccount())
+                .side(h.getSide())
                 .build();
     }
 
@@ -267,6 +287,29 @@ public class CornPositionService {
                 .efpdLots(efpdLots)
                 .offsetLots(offsetLots)
                 .openAllocatedLots(openAllocated)
+                .side(h.getSide())
+                .tradeDate(h.getTradeDate())
+                .build();
+    }
+
+    private MonthAllocationItem buildMonthAllocationItem(HedgeAllocation a) {
+        HedgeTrade h = a.getHedgeTrade();
+        int allocBushels = a.getAllocatedLots() * BUSHELS_PER_LOT_INT;
+        BigDecimal allocMt = BUSHELS_PER_LOT
+                .multiply(BigDecimal.valueOf(a.getAllocatedLots()))
+                .divide(BUSHELS_PER_MT, 2, RoundingMode.HALF_UP);
+        return MonthAllocationItem.builder()
+                .allocationId(a.getId())
+                .hedgeTradeId(h.getId())
+                .tradeRef(h.getTradeRef())
+                .futuresMonth(h.getFuturesMonth())
+                .budgetMonth(a.getBudgetMonth())
+                .allocatedLots(a.getAllocatedLots())
+                .allocatedBushels(allocBushels)
+                .allocatedMt(allocMt)
+                .entryPrice(h.getPricePerBushel())
+                .side(h.getSide())
+                .tradeDate(h.getTradeDate())
                 .build();
     }
 

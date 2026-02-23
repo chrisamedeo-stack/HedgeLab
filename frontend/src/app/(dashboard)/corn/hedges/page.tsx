@@ -939,7 +939,7 @@ export default function HedgesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">Hedge Books</h1>
+          <h1 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Hedge Books</h1>
           <p className="text-sm text-slate-400 mt-0.5">CBOT ZC corn futures · allocate lots to sites and budget months</p>
         </div>
         <button

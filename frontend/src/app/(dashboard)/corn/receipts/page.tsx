@@ -86,7 +86,7 @@ export default function ReceiptsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">Receipt Ledger</h1>
+          <h1 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Receipt Ledger</h1>
           <p className="text-sm text-slate-400 mt-0.5">Physical corn deliveries received at plant</p>
         </div>
         <button

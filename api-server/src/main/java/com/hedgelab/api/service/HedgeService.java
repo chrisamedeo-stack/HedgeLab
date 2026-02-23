@@ -46,6 +46,10 @@ public class HedgeService {
         return toResponse(hedgeRepository.save(hedge));
     }
 
+    public List<HedgeTradeResponse> createBulk(List<CreateHedgeTradeRequest> requests) {
+        return requests.stream().map(this::create).collect(Collectors.toList());
+    }
+
     public HedgeTradeResponse update(Long id, CreateHedgeTradeRequest req) {
         HedgeTrade hedge = hedgeRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Hedge trade not found"));

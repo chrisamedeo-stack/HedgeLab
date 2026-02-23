@@ -29,4 +29,8 @@ public class HedgeTrade extends AuditableEntity {
     /** Hedge book: CANADA or US */
     @Column(length = 10)
     private String book;
+    /** LONG or SHORT */
+    @Column(length = 5)
+    @Builder.Default
+    private String side = "LONG";
 }

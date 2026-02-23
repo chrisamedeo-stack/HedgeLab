@@ -201,6 +201,7 @@ export interface HedgeBookItem {
   validDeliveryMonths: string[];
   status: string;
   brokerAccount: string;
+  side: string;
 }
 
 export interface SiteAllocationItem {
@@ -220,6 +221,22 @@ export interface SiteAllocationItem {
   efpdLots: number;
   offsetLots: number;
   openAllocatedLots: number;
+  side: string;
+  tradeDate: string;
+}
+
+export interface MonthAllocationItem {
+  allocationId: number;
+  hedgeTradeId: number;
+  tradeRef: string;
+  futuresMonth: string;
+  budgetMonth: string;
+  allocatedLots: number;
+  allocatedBushels: number;
+  allocatedMt: number;
+  entryPrice: number;
+  side: string;
+  tradeDate: string;
 }
 
 export interface PhysicalPositionItem {
@@ -286,6 +303,7 @@ export interface OffsetItem {
 export interface CornPositionResponse {
   hedgeBook: HedgeBookItem[];
   siteAllocations: SiteAllocationItem[];
+  monthAllocations: MonthAllocationItem[];
   physicalPositions: PhysicalPositionItem[];
   lockedPositions: LockedPositionItem[];
   offsets: OffsetItem[];

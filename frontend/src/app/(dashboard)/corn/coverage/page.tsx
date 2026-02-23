@@ -97,7 +97,7 @@ export default function CoveragePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-semibold text-slate-100">Coverage Dashboard</h1>
+        <h1 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Coverage Dashboard</h1>
         <p className="text-sm text-slate-400 mt-0.5">
           Corn procurement hedge coverage by site and month · click a site to expand monthly detail
         </p>

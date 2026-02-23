@@ -70,6 +70,18 @@ public class PhysicalContractService {
                 req.getDeliveryMonth() != null ? req.getDeliveryMonth().replace("-", "") : "0000",
                 nextNum);
 
+        PhysicalContractTradeType tt = parseTradeType(req.getTradeType());
+
+        // ALL_IN: board + basis are locked at contract creation
+        PhysicalContractStatus initialStatus = PhysicalContractStatus.OPEN;
+        BigDecimal boardPrice = null;
+        LocalDate basisLockedDate = null;
+        if (tt == PhysicalContractTradeType.ALL_IN) {
+            boardPrice = req.getBoardPriceCentsBu();
+            basisLockedDate = req.getContractDate() != null ? req.getContractDate() : LocalDate.now();
+            initialStatus = PhysicalContractStatus.BASIS_LOCKED;
+        }
+
         var contract = PhysicalContract.builder()
                 .contractRef(ref)
                 .site(site)
@@ -81,10 +93,12 @@ public class PhysicalContractService {
                 .futuresRef(req.getFuturesRef())
                 .freightPerMt(req.getFreightPerMt())
                 .currency(req.getCurrency() != null ? req.getCurrency() : "USD")
-                .status(PhysicalContractStatus.OPEN)
+                .status(initialStatus)
+                .boardPriceCentsBu(boardPrice)
+                .basisLockedDate(basisLockedDate)
                 .contractDate(req.getContractDate() != null ? req.getContractDate() : LocalDate.now())
                 .notes(req.getNotes())
-                .tradeType(parseTradeType(req.getTradeType()))
+                .tradeType(tt)
                 .build();
 
         return toResponse(contractRepository.save(contract));

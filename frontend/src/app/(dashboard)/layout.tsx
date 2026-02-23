@@ -21,6 +21,7 @@ import {
   Package,
   Activity,
   BookOpen,
+  MapPin,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -38,23 +39,25 @@ interface NavSection {
 }
 
 const navSections: NavSection[] = [
-  {
-    label: "General",
-    items: [
-      { href: "/dashboard",   label: "Dashboard",   icon: LayoutDashboard },
-      { href: "/trades",      label: "Trades",      icon: ArrowLeftRight },
-      { href: "/positions",   label: "Positions",   icon: Layers },
-      { href: "/risk",        label: "Risk",        icon: ShieldAlert },
-      { href: "/market-data", label: "Market Data", icon: TrendingUp },
-      { href: "/audit",       label: "Audit Log",   icon: ScrollText },
-      { href: "/exports",     label: "Exports",     icon: Download },
-    ],
-  },
+  // General section hidden — pages retained for future use
+  // {
+  //   label: "General",
+  //   items: [
+  //     { href: "/dashboard",   label: "Dashboard",   icon: LayoutDashboard },
+  //     { href: "/trades",      label: "Trades",      icon: ArrowLeftRight },
+  //     { href: "/positions",   label: "Positions",   icon: Layers },
+  //     { href: "/risk",        label: "Risk",        icon: ShieldAlert },
+  //     { href: "/market-data", label: "Market Data", icon: TrendingUp },
+  //     { href: "/audit",       label: "Audit Log",   icon: ScrollText },
+  //     { href: "/exports",     label: "Exports",     icon: Download },
+  //   ],
+  // },
   {
     label: "Corn Procurement",
     items: [
       { href: "/corn/budget",     label: "Budgets & Forecasts", icon: BookOpen },
-      { href: "/corn/positions",  label: "Positions",  icon: Activity },
+      { href: "/corn/positions",  label: "Position Manager",  icon: Activity },
+      { href: "/corn/sites",      label: "Sites",             icon: MapPin },
       { href: "/corn/coverage",  label: "Coverage",   icon: BarChart2 },
       { href: "/corn/contracts", label: "Contracts",  icon: FileText },
       { href: "/corn/hedges",    label: "Hedges",     icon: Wheat },

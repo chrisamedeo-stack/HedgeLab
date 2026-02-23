@@ -78,8 +78,8 @@ function SiteLinkingPanel({ site }: { site: SiteResponse }) {
   async function toggleSupplier(supplierId: number) {
     setSavingS(true);
     const next = linkedSupplierIds.has(supplierId)
-      ? [...linkedSupplierIds].filter((id) => id !== supplierId)
-      : [...linkedSupplierIds, supplierId];
+      ? Array.from(linkedSupplierIds).filter((id) => id !== supplierId)
+      : Array.from(linkedSupplierIds).concat(supplierId);
     try {
       await api.put(`/api/v1/corn/sites/${site.id}/suppliers`, next);
       mutateSuppliers();
@@ -93,8 +93,8 @@ function SiteLinkingPanel({ site }: { site: SiteResponse }) {
   async function toggleCommodity(commodityId: number) {
     setSavingC(true);
     const next = linkedCommodityIds.has(commodityId)
-      ? [...linkedCommodityIds].filter((id) => id !== commodityId)
-      : [...linkedCommodityIds, commodityId];
+      ? Array.from(linkedCommodityIds).filter((id) => id !== commodityId)
+      : Array.from(linkedCommodityIds).concat(commodityId);
     try {
       await api.put(`/api/v1/corn/sites/${site.id}/commodities`, next);
       mutateCommodities();
@@ -1020,7 +1020,7 @@ export default function SettingsPage() {
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-semibold text-slate-100">Settings</h1>
+        <h1 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Settings</h1>
         <p className="text-sm text-slate-400 mt-0.5">Manage sites, suppliers, commodities, fiscal year, and futures month mappings</p>
       </div>
 
