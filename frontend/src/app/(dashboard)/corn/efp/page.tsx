@@ -7,8 +7,11 @@ import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatNumber } from "@/lib/format";
-import { ArrowLeftRight, Plus, X } from "lucide-react";
+import { ArrowLeftRight, Plus, X, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { toCsv, downloadCsv } from "@/lib/csv-export";
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING:   "text-amber-400 bg-amber-500/10 ring-1 ring-amber-500/20",
@@ -25,6 +28,8 @@ export default function EFPPage() {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; ref: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [form, setForm] = useState({
     hedgeTradeId: "",
@@ -72,6 +77,21 @@ export default function EFPPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/api/v1/corn/efp/${deleteTarget.id}`);
+      toast("EFP ticket deleted", "success");
+      mutate();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Delete failed", "error");
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  }
+
   const openHedges = hedges.filter((h) => (h.openLots ?? 0) > 0);
   const openContracts = contracts.filter((c) => c.status === "OPEN" || c.status === "PARTIALLY_DELIVERED");
 
@@ -85,13 +105,26 @@ export default function EFPPage() {
             Exchange for Physical — convert futures to fixed-price physical
           </p>
         </div>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showForm ? "Cancel" : "New EFP"}
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportButton
+            onClick={() => {
+              const headers = ["Ticket", "Hedge Ref", "Contract Ref", "Lots", "Board Price ($/bu)", "Date"];
+              const rows = efps.map((e) => [
+                e.ticketRef, e.hedgeTradeRef, e.contractRef,
+                e.lots, e.boardPrice != null ? (e.boardPrice / 100).toFixed(4) : "", e.efpDate,
+              ]);
+              downloadCsv("efp-tickets.csv", toCsv(headers, rows));
+            }}
+            disabled={efps.length === 0}
+          />
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {showForm ? "Cancel" : "New EFP"}
+          </button>
+        </div>
       </div>
 
       {/* Create form */}
@@ -267,7 +300,7 @@ export default function EFPPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-800/50 border-b border-slate-800">
-                {["Ticket", "Hedge", "Contract", "Site", "Lots", "Board ($/bu)", "Qty (bu)", "Date", "Status"].map((h) => (
+                {["Ticket", "Hedge", "Contract", "Site", "Lots", "Board ($/bu)", "Qty (bu)", "Date", "Status", ""].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
@@ -293,12 +326,32 @@ export default function EFPPage() {
                       {e.status}
                     </span>
                   </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => setDeleteTarget({ id: e.id, ref: e.ticketRef })}
+                      className="text-slate-600 hover:text-red-400 transition-colors"
+                      title="Delete EFP"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete EFP Ticket"
+        description={`This will delete ${deleteTarget?.ref ?? "this EFP ticket"} and restore the lots back to the hedge trade. This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
+      />
     </div>
   );
 }

@@ -45,6 +45,10 @@ import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { MtmPnlChart } from "./_components/mtm-pnl-chart";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { toCsv, downloadCsv } from "@/lib/csv-export";
 
 // ─── Settle Publisher ────────────────────────────────────────────────────────
 
@@ -1189,6 +1193,8 @@ export default function PositionsPage() {
   const [settleOpen, setSettleOpen] = useState(false);
   const [hedgeFormOpen, setHedgeFormOpen] = useState(false);
   const [editing, setEditing] = useState<HedgeTradeResponse | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const hedgeBook     = positions?.hedgeBook          ?? [];
   const allocations   = positions?.siteAllocations    ?? [];
@@ -1230,14 +1236,19 @@ export default function PositionsPage() {
     }
   }
 
-  async function handleDelete(tradeId: number) {
+  async function handleDeleteConfirm() {
+    if (deleteTarget === null) return;
+    setDeleteLoading(true);
     try {
-      await api.delete(`/api/v1/corn/hedges/${tradeId}`);
+      await api.delete(`/api/v1/corn/hedges/${deleteTarget}`);
       toast.toast("Hedge trade deleted", "success");
       mutate();
       hedgesMutate();
     } catch (e: unknown) {
       toast.toast((e as Error).message ?? "Delete failed", "error");
+    } finally {
+      setDeleteLoading(false);
+      setDeleteTarget(null);
     }
   }
 
@@ -1264,6 +1275,19 @@ export default function PositionsPage() {
           <h1 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Position Manager</h1>
         </div>
         <div className="flex items-center gap-2">
+          <ExportButton
+            onClick={() => {
+              const headers = ["Ref", "Side", "Futures Month", "Lots", "Open Lots", "Price ($/bu)", "MTM P&L", "Status"];
+              const rows = hedgeBook.map((h) => [
+                h.tradeRef, h.side, h.futuresMonth, h.lots, h.openLots,
+                h.entryPrice != null ? (h.entryPrice / 100).toFixed(4) : "",
+                h.mtmPnlUsd != null ? h.mtmPnlUsd.toFixed(2) : "",
+                h.status,
+              ]);
+              downloadCsv("positions.csv", toCsv(headers, rows));
+            }}
+            disabled={hedgeBook.length === 0}
+          />
           <button
             onClick={() => {
               setEditing(null);
@@ -1363,26 +1387,31 @@ export default function PositionsPage() {
 
       {/* ═══════════════════ HEDGE BOOK TAB ═══════════════════ */}
       {view === "hedge-book" && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-200">
-                Hedge Book &middot; {bookLabel}
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {hedgeBook.length} trade{hedgeBook.length !== 1 ? "s" : ""} &middot; grouped by futures month
-              </p>
+        <>
+          {/* MTM P&L Chart */}
+          <MtmPnlChart hedgeBook={hedgeBook} />
+
+          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-200">
+                  Hedge Book &middot; {bookLabel}
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {hedgeBook.length} trade{hedgeBook.length !== 1 ? "s" : ""} &middot; grouped by futures month
+                </p>
+              </div>
+              <span className="text-xs text-slate-600">Click to expand. Includes fully allocated trades.</span>
             </div>
-            <span className="text-xs text-slate-600">Click to expand. Includes fully allocated trades.</span>
+            <HedgeBookTable
+              hedgeBook={hedgeBook}
+              sites={sites}
+              onRefresh={() => mutate()}
+              onEdit={handleEdit}
+              onDelete={(id) => setDeleteTarget(id)}
+            />
           </div>
-          <HedgeBookTable
-            hedgeBook={hedgeBook}
-            sites={sites}
-            onRefresh={() => mutate()}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        </div>
+        </>
       )}
 
       {/* ═══════════════════ ALLOCATIONS TAB ═══════════════════ */}
@@ -1405,6 +1434,17 @@ export default function PositionsPage() {
           />
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete Hedge Trade"
+        description="This will permanently delete this hedge trade and all its allocations. This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleteLoading}
+      />
     </div>
   );
 }

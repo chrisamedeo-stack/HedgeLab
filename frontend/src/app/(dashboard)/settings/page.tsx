@@ -31,6 +31,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -179,6 +180,8 @@ function SitesTab() {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ code: "", name: "", country: "Canada", province: "" });
   const [expandedSiteId, setExpandedSiteId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SiteResponse | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   function field(k: keyof typeof form, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -217,10 +220,11 @@ function SitesTab() {
     }
   }
 
-  async function handleDelete(s: SiteResponse) {
-    if (!window.confirm(`Delete site "${s.code} — ${s.name}"?`)) return;
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
     try {
-      await api.delete(`/api/v1/corn/sites/${s.id}`);
+      await api.delete(`/api/v1/corn/sites/${deleteTarget.id}`);
       toast("Site deleted", "success");
       mutate();
     } catch (err: unknown) {
@@ -230,6 +234,9 @@ function SitesTab() {
       } else {
         toast(msg || "Delete failed", "error");
       }
+    } finally {
+      setDeleteLoading(false);
+      setDeleteTarget(null);
     }
   }
 
@@ -351,7 +358,7 @@ function SitesTab() {
                               <button onClick={() => startEdit(s)} className="text-slate-600 hover:text-blue-400 transition-colors" title="Edit">
                                 <Edit2 className="h-3.5 w-3.5" />
                               </button>
-                              <button onClick={() => handleDelete(s)} className="text-slate-600 hover:text-red-400 transition-colors" title="Delete">
+                              <button onClick={() => setDeleteTarget(s)} className="text-slate-600 hover:text-red-400 transition-colors" title="Delete">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
@@ -373,6 +380,17 @@ function SitesTab() {
           </div>
         ))
       )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete Site"
+        description={`Delete site "${deleteTarget?.code ?? ""} — ${deleteTarget?.name ?? ""}"? This cannot be undone. Sites that are in use by budgets or contracts cannot be deleted.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleteLoading}
+      />
     </div>
   );
 }
@@ -385,6 +403,8 @@ function SuppliersTab() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<SupplierResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deactivateTarget, setDeactivateTarget] = useState<SupplierResponse | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
 
   const defaultForm = { code: "", name: "", country: "", contactEmail: "", contactPhone: "" };
   const [form, setForm] = useState(defaultForm);
@@ -438,13 +458,18 @@ function SuppliersTab() {
     }
   }
 
-  async function handleDeactivate(s: SupplierResponse) {
+  async function handleDeactivateConfirm() {
+    if (!deactivateTarget) return;
+    setDeactivating(true);
     try {
-      await api.delete(`/api/v1/suppliers/${s.id}`);
-      toast(`${s.code} deactivated`, "success");
+      await api.delete(`/api/v1/suppliers/${deactivateTarget.id}`);
+      toast(`${deactivateTarget.code} deactivated`, "success");
       mutate();
     } catch (err: unknown) {
       toast((err as Error).message ?? "Deactivation failed", "error");
+    } finally {
+      setDeactivating(false);
+      setDeactivateTarget(null);
     }
   }
 
@@ -555,7 +580,7 @@ function SuppliersTab() {
                         <Edit2 className="h-3.5 w-3.5" />
                       </button>
                       {s.active ? (
-                        <button onClick={() => handleDeactivate(s)} className="text-slate-600 hover:text-red-400 transition-colors" title="Deactivate">
+                        <button onClick={() => setDeactivateTarget(s)} className="text-slate-600 hover:text-red-400 transition-colors" title="Deactivate">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       ) : (
@@ -571,6 +596,17 @@ function SuppliersTab() {
           </table>
         </div>
       )}
+
+      <ConfirmDialog
+        open={deactivateTarget !== null}
+        title="Deactivate Supplier"
+        description={`Deactivate supplier "${deactivateTarget?.code ?? ""} — ${deactivateTarget?.name ?? ""}"? You can reactivate it later.`}
+        confirmLabel="Deactivate"
+        variant="warning"
+        onConfirm={handleDeactivateConfirm}
+        onCancel={() => setDeactivateTarget(null)}
+        loading={deactivating}
+      />
     </div>
   );
 }
@@ -583,6 +619,8 @@ function CommoditiesTab() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CommodityResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deactivateTarget, setDeactivateTarget] = useState<CommodityResponse | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
 
   const defaultForm = {
     code: "", name: "", category: "AGRICULTURAL", unitOfMeasure: "BUSHEL",
@@ -638,13 +676,18 @@ function CommoditiesTab() {
     }
   }
 
-  async function handleDeactivate(c: CommodityResponse) {
+  async function handleDeactivateConfirm() {
+    if (!deactivateTarget) return;
+    setDeactivating(true);
     try {
-      await api.delete(`/api/v1/commodities/${c.id}`);
-      toast(`${c.code} deactivated`, "success");
+      await api.delete(`/api/v1/commodities/${deactivateTarget.id}`);
+      toast(`${deactivateTarget.code} deactivated`, "success");
       mutate();
     } catch (err: unknown) {
       toast((err as Error).message ?? "Deactivation failed", "error");
+    } finally {
+      setDeactivating(false);
+      setDeactivateTarget(null);
     }
   }
 
@@ -768,7 +811,7 @@ function CommoditiesTab() {
                         <Edit2 className="h-3.5 w-3.5" />
                       </button>
                       {c.active && (
-                        <button onClick={() => handleDeactivate(c)} className="text-slate-600 hover:text-red-400 transition-colors" title="Deactivate">
+                        <button onClick={() => setDeactivateTarget(c)} className="text-slate-600 hover:text-red-400 transition-colors" title="Deactivate">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       )}
@@ -780,6 +823,17 @@ function CommoditiesTab() {
           </table>
         </div>
       )}
+
+      <ConfirmDialog
+        open={deactivateTarget !== null}
+        title="Deactivate Commodity"
+        description={`Deactivate commodity "${deactivateTarget?.code ?? ""} — ${deactivateTarget?.name ?? ""}"? You can reactivate it later.`}
+        confirmLabel="Deactivate"
+        variant="warning"
+        onConfirm={handleDeactivateConfirm}
+        onCancel={() => setDeactivateTarget(null)}
+        loading={deactivating}
+      />
     </div>
   );
 }

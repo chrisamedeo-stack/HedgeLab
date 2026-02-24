@@ -24,4 +24,15 @@ public class ReceiptController {
     public ReceiptResponse create(@RequestBody CreateReceiptRequest req) {
         return service.create(req);
     }
+
+    @PutMapping("/{id}")
+    public ReceiptResponse update(@PathVariable Long id, @RequestBody CreateReceiptRequest req) {
+        return service.update(id, req);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        service.delete(id);
+    }
 }

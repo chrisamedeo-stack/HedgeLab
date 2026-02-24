@@ -7,19 +7,24 @@ import { api } from "@/lib/api";
 import { BUSHELS_PER_MT, monthLabel } from "@/lib/corn-utils";
 import { useToast } from "@/contexts/ToastContext";
 import { fmtVol, fmtPrice, fmtDollars, lineNotional } from "./shared";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export function BudgetRow({ line, onEdit, onDeleted }: {
   line: CornBudgetLineResponse; onEdit: (l: CornBudgetLineResponse) => void; onDeleted: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
   async function handleDelete() {
+    setDeleting(true);
     try {
       await api.delete(`/api/v1/corn/budget/${line.id}`);
       toast("Budget line deleted", "success");
       onDeleted();
     } catch { toast("Delete failed", "error"); }
+    finally { setDeleting(false); setShowConfirm(false); }
   }
 
   const buVal = line.budgetVolumeBu ?? (line.budgetVolumeMt * BUSHELS_PER_MT);
@@ -50,7 +55,7 @@ export function BudgetRow({ line, onEdit, onDeleted }: {
         <td className="px-4 py-3">
           <div className="flex items-center gap-2 justify-end">
             <button onClick={() => onEdit(line)} className="text-slate-600 hover:text-blue-400 transition-colors"><Edit2 className="h-3.5 w-3.5" /></button>
-            <button onClick={handleDelete} className="text-slate-600 hover:text-red-400 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+            <button onClick={() => setShowConfirm(true)} className="text-slate-600 hover:text-red-400 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
           </div>
         </td>
       </tr>
@@ -74,6 +79,16 @@ export function BudgetRow({ line, onEdit, onDeleted }: {
           </td>
         </tr>
       )}
+      <ConfirmDialog
+        open={showConfirm}
+        title="Delete Budget Line"
+        description={`Delete the ${monthLabel(line.budgetMonth)} budget line? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleDelete}
+        onCancel={() => setShowConfirm(false)}
+        loading={deleting}
+      />
     </>
   );
 }

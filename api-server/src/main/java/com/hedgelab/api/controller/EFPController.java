@@ -24,4 +24,10 @@ public class EFPController {
     public EFPTicketResponse create(@RequestBody CreateEFPRequest req) {
         return service.create(req);
     }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        service.delete(id);
+    }
 }

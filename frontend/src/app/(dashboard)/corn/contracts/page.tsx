@@ -11,6 +11,9 @@ import { formatNumber } from "@/lib/format";
 import { FileText, Plus, ChevronDown, ChevronRight, Lock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BUSHELS_PER_MT } from "@/lib/corn-utils";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { toCsv, downloadCsv } from "@/lib/csv-export";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -306,19 +309,24 @@ function LockBasisPanel({ contract, onDone }: { contract: PhysicalContractRespon
 function ContractRow({ contract, onRefresh }: { contract: PhysicalContractResponse; onRefresh: () => void }) {
   const [expanded, setExpanded]         = useState(false);
   const [lockingBasis, setLockingBasis] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const { toast } = useToast();
 
   const isFullyPriced = contract.allInPerMt != null;
   const isCancelled   = contract.status === "CANCELLED";
 
   async function handleCancel() {
-    if (!confirm(`Cancel contract ${contract.contractRef}?`)) return;
+    setCancelling(true);
     try {
       await api.post(`/api/v1/corn/contracts/${contract.id}/cancel`, {});
       toast("Contract cancelled", "success");
       onRefresh();
     } catch (err: unknown) {
       toast((err as Error).message ?? "Cancel failed", "error");
+    } finally {
+      setCancelling(false);
+      setShowCancelConfirm(false);
     }
   }
 
@@ -387,7 +395,7 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
             </button>
           )}
           {!isCancelled && contract.status !== "CLOSED" && (
-            <button onClick={handleCancel}
+            <button onClick={() => setShowCancelConfirm(true)}
               className="text-slate-600 hover:text-red-400 text-xs transition-colors">
               Cancel
             </button>
@@ -422,6 +430,17 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showCancelConfirm}
+        title="Cancel Contract"
+        description={`Cancel contract ${contract.contractRef}? This will mark the contract as cancelled.`}
+        confirmLabel="Cancel Contract"
+        variant="warning"
+        onConfirm={handleCancel}
+        onCancel={() => setShowCancelConfirm(false)}
+        loading={cancelling}
+      />
     </div>
   );
 }
@@ -451,10 +470,24 @@ export default function ContractsPage() {
             Corn procurement · basis &amp; board pricing lifecycle
           </p>
         </div>
-        <button onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
-          <Plus className="h-4 w-4" /> New Contract
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportButton
+            onClick={() => {
+              const headers = ["Ref", "Supplier", "Site", "Contract Month", "Volume (bu)", "Basis ($/bu)", "Delivery", "Status"];
+              const rows = filtered.map((c) => [
+                c.contractRef, c.supplierName ?? "", c.siteCode, c.deliveryMonth,
+                c.quantityBu, c.basisCentsBu != null ? (c.basisCentsBu / 100).toFixed(4) : "",
+                c.contractDate, c.status,
+              ]);
+              downloadCsv("contracts.csv", toCsv(headers, rows));
+            }}
+            disabled={filtered.length === 0}
+          />
+          <button onClick={() => setShowForm((v) => !v)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
+            <Plus className="h-4 w-4" /> New Contract
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-3 flex-wrap">

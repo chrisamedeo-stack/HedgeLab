@@ -7,6 +7,8 @@ import com.hedgelab.api.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -53,6 +55,22 @@ public class EFPService {
         contract.setStatus(PhysicalContractStatus.EFP_EXECUTED);
         contractRepository.save(contract);
         return toResponse(efpRepository.save(efp));
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        var efp = efpRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "EFP ticket not found"));
+        // Restore hedge trade open lots
+        var hedge = efp.getHedgeTrade();
+        hedge.setOpenLots(hedge.getOpenLots() + efp.getLots());
+        if (hedge.getOpenLots() > 0 && hedge.getOpenLots() < hedge.getLots()) {
+            hedge.setStatus(HedgeTradeStatus.PARTIALLY_ALLOCATED);
+        } else if (hedge.getOpenLots() >= hedge.getLots()) {
+            hedge.setStatus(HedgeTradeStatus.OPEN);
+        }
+        hedgeRepository.save(hedge);
+        efpRepository.delete(efp);
     }
 
     private EFPTicketResponse toResponse(EFPTicket e) {

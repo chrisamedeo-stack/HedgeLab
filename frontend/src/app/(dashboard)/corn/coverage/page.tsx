@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { formatNumber, formatPct } from "@/lib/format";
 import { TrendingUp, MapPin, Package, Layers, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CoverageStackedChart } from "./_components/coverage-stacked-chart";
 
 const BUSHELS_PER_MT = 39.3683;
 
@@ -120,6 +121,9 @@ export default function CoveragePage() {
           </div>
         ))}
       </div>
+
+      {/* Coverage stacked chart */}
+      <CoverageStackedChart coverage={coverage} />
 
       {/* Per-site cards */}
       <div className="space-y-4">

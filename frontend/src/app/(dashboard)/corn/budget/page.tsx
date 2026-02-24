@@ -4,8 +4,10 @@ import { useState, useMemo } from "react";
 import {
   Plus, CalendarDays, RefreshCw,
 } from "lucide-react";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { toCsv, downloadCsv } from "@/lib/csv-export";
 import {
-  useBudget, useSites,
+  useBudget, useSites, useCoverage,
   CornBudgetLineResponse,
 } from "@/hooks/useCorn";
 import { useAdminSites, useAppSettings } from "@/hooks/useSettings";
@@ -16,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { BudgetTab } from "./_components/budget-tab";
 import { ForecastTab } from "./_components/forecast-tab";
+import { BudgetVsCommittedChart } from "./_components/budget-vs-committed-chart";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,6 +29,7 @@ type Book = "CANADA" | "US";
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BudgetPage() {
+  const { coverage } = useCoverage();
   const { sites: adminSites } = useAdminSites();
   const { settings } = useAppSettings();
   const fyStartMonth = parseInt(settings.find((s) => s.settingKey === "FISCAL_YEAR_START_MONTH")?.value ?? "7") || 7;
@@ -62,6 +66,18 @@ export default function BudgetPage() {
           <p className="text-sm text-slate-400 mt-0.5">Fiscal year starting {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][fyStartMonth - 1]} &middot; volume targets by site and month</p>
         </div>
         <div className="flex gap-2">
+          <ExportButton
+            onClick={() => {
+              const headers = ["Month", "Futures Month", "Volume (bu)", "Target $/bu", "Notional", "Notes"];
+              const rows = filteredBudget.map((l) => [
+                l.budgetMonth, l.futuresMonth ?? "",
+                l.budgetVolumeBu ?? "", l.targetAllInPerMt ?? "",
+                l.totalNotionalSpend ?? "", l.notes ?? "",
+              ]);
+              downloadCsv("budget.csv", toCsv(headers, rows));
+            }}
+            disabled={filteredBudget.length === 0}
+          />
           {activeTab === "budget" ? (
             <>
               <button onClick={() => { setFormMode("fiscal-year"); setEditing(undefined); }}
@@ -133,6 +149,11 @@ export default function BudgetPage() {
           {availableFiscalYears(fyStartMonth).map((fy) => <option key={fy}>{fy}</option>)}
         </select>
       </div>
+
+      {/* Budget vs Committed chart */}
+      {activeTab === "budget" && (
+        <BudgetVsCommittedChart lines={filteredBudget} coverage={coverage} />
+      )}
 
       {/* Active Tab Content */}
       {activeTab === "budget" ? (

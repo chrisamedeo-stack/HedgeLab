@@ -14,8 +14,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -39,6 +41,17 @@ public class DataInitializer implements ApplicationRunner {
     private final PasswordEncoder passwordEncoder;
     private final com.hedgelab.api.repository.SiteRepository siteRepository;
     private final com.hedgelab.api.repository.SiteBudgetRepository siteBudgetRepository;
+    private final AppSettingRepository appSettingRepository;
+    private final CornBudgetLineRepository cornBudgetLineRepository;
+    private final HedgeTradeRepository hedgeTradeRepository;
+    private final HedgeAllocationRepository hedgeAllocationRepository;
+    private final PhysicalContractRepository physicalContractRepository;
+    private final EFPTicketRepository efpTicketRepository;
+    private final ReceiptTicketRepository receiptTicketRepository;
+    private final CornDailySettleRepository cornDailySettleRepository;
+
+    private static final BigDecimal BUSHELS_PER_MT = new BigDecimal("39.3683");
+    private static final int BUSHELS_PER_LOT = 5000;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -239,11 +252,11 @@ public class DataInitializer implements ApplicationRunner {
 
     private void seedCornData() {
         // ── Sites ────────────────────────────────────────────────────────────────
-        com.hedgelab.api.entity.Site gm1 = siteRepository.findByCode("GM1").orElseGet(() ->
-            siteRepository.save(com.hedgelab.api.entity.Site.builder()
+        Site gm1 = siteRepository.findByCode("GM1").orElseGet(() ->
+            siteRepository.save(Site.builder()
                 .code("GM1").name("Gimli").country("Canada").province("MB").build()));
-        com.hedgelab.api.entity.Site vf1 = siteRepository.findByCode("VF1").orElseGet(() ->
-            siteRepository.save(com.hedgelab.api.entity.Site.builder()
+        Site vf1 = siteRepository.findByCode("VF1").orElseGet(() ->
+            siteRepository.save(Site.builder()
                 .code("VF1").name("Valleyfield").country("Canada").province("QC").build()));
         log.info("Seeded corn sites: GM1, VF1");
 
@@ -254,8 +267,8 @@ public class DataInitializer implements ApplicationRunner {
                 .legalEntityCode("SCOULAR-AG").shortName("Scoular")
                 .fullLegalName("The Scoular Company")
                 .type(CounterpartyType.SUPPLIER).status(CounterpartyStatus.ACTIVE)
-                .creditLimitUsd(java.math.BigDecimal.ZERO)
-                .currentExposureUsd(java.math.BigDecimal.ZERO)
+                .creditLimitUsd(BigDecimal.ZERO)
+                .currentExposureUsd(BigDecimal.ZERO)
                 .country("CA").build()));
         counterpartyRepo.findAll().stream()
             .filter(cp -> cp.getShortName().equals("BPGrain")).findFirst()
@@ -263,14 +276,14 @@ public class DataInitializer implements ApplicationRunner {
                 .legalEntityCode("BPGRAIN-AG").shortName("BPGrain")
                 .fullLegalName("BP Grain Ltd")
                 .type(CounterpartyType.SUPPLIER).status(CounterpartyStatus.ACTIVE)
-                .creditLimitUsd(java.math.BigDecimal.ZERO)
-                .currentExposureUsd(java.math.BigDecimal.ZERO)
+                .creditLimitUsd(BigDecimal.ZERO)
+                .currentExposureUsd(BigDecimal.ZERO)
                 .country("CA").build()));
         log.info("Seeded corn supplier counterparties: Scoular, BPGrain");
 
         // ── GM1 Site Budgets (Jul 2025 - Jun 2026) ───────────────────────────────
-        java.math.BigDecimal gm1Price = new java.math.BigDecimal("244.87");
-        java.util.List<Object[]> gm1Budgets = java.util.List.of(
+        BigDecimal gm1Price = new BigDecimal("244.87");
+        List<Object[]> gm1Budgets = List.of(
             new Object[]{"2025-07", 5200}, new Object[]{"2025-08", 3400},
             new Object[]{"2025-09", 0},    new Object[]{"2025-10", 3750},
             new Object[]{"2025-11", 5000}, new Object[]{"2025-12", 4000},
@@ -282,16 +295,16 @@ public class DataInitializer implements ApplicationRunner {
             String month = (String) row[0];
             int vol = (int) row[1];
             siteBudgetRepository.findBySiteCodeAndDeliveryMonth("GM1", month).orElseGet(() ->
-                siteBudgetRepository.save(com.hedgelab.api.entity.SiteBudget.builder()
+                siteBudgetRepository.save(SiteBudget.builder()
                     .site(gm1).deliveryMonth(month)
-                    .budgetVolumeMt(new java.math.BigDecimal(vol))
+                    .budgetVolumeMt(new BigDecimal(vol))
                     .budgetPricePerMt(gm1Price).build()));
         }
         log.info("Seeded GM1 site budgets (Jul 2025 - Jun 2026)");
 
         // ── VF1 Site Budgets (Aug 2025 - Jun 2026) ───────────────────────────────
-        java.math.BigDecimal vf1Price = new java.math.BigDecimal("250.78");
-        java.util.List<Object[]> vf1Budgets = java.util.List.of(
+        BigDecimal vf1Price = new BigDecimal("250.78");
+        List<Object[]> vf1Budgets = List.of(
             new Object[]{"2025-08", 2080}, new Object[]{"2025-09", 3528},
             new Object[]{"2025-10", 3711}, new Object[]{"2025-11", 3528},
             new Object[]{"2025-12", 1158}, new Object[]{"2026-01", 2210},
@@ -303,11 +316,338 @@ public class DataInitializer implements ApplicationRunner {
             String month = (String) row[0];
             int vol = (int) row[1];
             siteBudgetRepository.findBySiteCodeAndDeliveryMonth("VF1", month).orElseGet(() ->
-                siteBudgetRepository.save(com.hedgelab.api.entity.SiteBudget.builder()
+                siteBudgetRepository.save(SiteBudget.builder()
                     .site(vf1).deliveryMonth(month)
-                    .budgetVolumeMt(new java.math.BigDecimal(vol))
+                    .budgetVolumeMt(new BigDecimal(vol))
                     .budgetPricePerMt(vf1Price).build()));
         }
         log.info("Seeded VF1 site budgets (Aug 2025 - Jun 2026)");
+
+        // ── App Settings ──────────────────────────────────────────────────────────
+        appSettingRepository.findBySettingKey("corn.crop_year").orElseGet(() ->
+            appSettingRepository.save(AppSetting.builder()
+                .settingKey("corn.crop_year").value("2025")
+                .description("Active corn crop year").build()));
+        log.info("Seeded app setting: corn.crop_year=2025");
+
+        // ── Corn Budget Lines (24 lines: 12 months × 2 sites) ────────────────────
+        if (cornBudgetLineRepository.count() == 0) {
+            seedCornBudgetLines(gm1, vf1);
+        }
+
+        // ── Hedge Trades (10 trades) ──────────────────────────────────────────────
+        if (hedgeTradeRepository.count() == 0) {
+            seedHedgeTrades(gm1, vf1);
+        }
+
+        // ── Settle Prices ─────────────────────────────────────────────────────────
+        if (cornDailySettleRepository.count() == 0) {
+            seedSettlePrices();
+        }
+    }
+
+    private void seedCornBudgetLines(Site gm1, Site vf1) {
+        String cropYear = "2025/2026";
+
+        // Futures month mapping: budgetMonth -> futuresMonth
+        // ZCN25 for Jul-Aug, ZCU25 for Sep-Nov, ZCZ25 for Dec-Feb, ZCH26 for Mar-May, ZCN26 for Jun
+        Map<String, String> futuresMap = Map.ofEntries(
+            Map.entry("2025-07", "ZCN25"), Map.entry("2025-08", "ZCN25"),
+            Map.entry("2025-09", "ZCU25"), Map.entry("2025-10", "ZCU25"),
+            Map.entry("2025-11", "ZCU25"), Map.entry("2025-12", "ZCZ25"),
+            Map.entry("2026-01", "ZCZ25"), Map.entry("2026-02", "ZCZ25"),
+            Map.entry("2026-03", "ZCH26"), Map.entry("2026-04", "ZCH26"),
+            Map.entry("2026-05", "ZCH26"), Map.entry("2026-06", "ZCN26")
+        );
+
+        // GM1: ~650 MT/month → ~25,587 bu/month
+        int[] gm1Vols = {650, 650, 650, 650, 650, 650, 650, 650, 650, 650, 650, 650};
+        String[] months = {"2025-07","2025-08","2025-09","2025-10","2025-11","2025-12",
+                           "2026-01","2026-02","2026-03","2026-04","2026-05","2026-06"};
+
+        for (int i = 0; i < months.length; i++) {
+            BigDecimal volMt = new BigDecimal(gm1Vols[i]);
+            BigDecimal volBu = volMt.multiply(BUSHELS_PER_MT).setScale(2, RoundingMode.HALF_UP);
+            CornBudgetLine line = cornBudgetLineRepository.save(CornBudgetLine.builder()
+                .site(gm1).commodityCode("CORN").budgetMonth(months[i])
+                .futuresMonth(futuresMap.get(months[i]))
+                .budgetVolumeMt(volMt).budgetVolumeBu(volBu)
+                .cropYear(cropYear).build());
+            addComponents(line, futuresMap.get(months[i]));
+        }
+
+        // VF1: ~400 MT/month → ~15,747 bu/month
+        int[] vf1Vols = {400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400};
+
+        for (int i = 0; i < months.length; i++) {
+            BigDecimal volMt = new BigDecimal(vf1Vols[i]);
+            BigDecimal volBu = volMt.multiply(BUSHELS_PER_MT).setScale(2, RoundingMode.HALF_UP);
+            CornBudgetLine line = cornBudgetLineRepository.save(CornBudgetLine.builder()
+                .site(vf1).commodityCode("CORN").budgetMonth(months[i])
+                .futuresMonth(futuresMap.get(months[i]))
+                .budgetVolumeMt(volMt).budgetVolumeBu(volBu)
+                .cropYear(cropYear).build());
+            addComponents(line, futuresMap.get(months[i]));
+        }
+
+        log.info("Seeded 24 corn budget lines (12 months x 2 sites)");
+    }
+
+    private void addComponents(CornBudgetLine line, String futuresMonth) {
+        List<CornBudgetComponent> comps = new ArrayList<>();
+        comps.add(CornBudgetComponent.builder().budgetLine(line)
+            .componentName("Board Price").unit("\u00a2/bu")
+            .targetValue(new BigDecimal("450.00")).displayOrder(1).build());
+        comps.add(CornBudgetComponent.builder().budgetLine(line)
+            .componentName("Basis").unit("\u00a2/bu")
+            .targetValue(new BigDecimal("-20.00")).displayOrder(2).build());
+        comps.add(CornBudgetComponent.builder().budgetLine(line)
+            .componentName("Freight").unit("$/MT")
+            .targetValue(new BigDecimal("15.00")).displayOrder(3).build());
+        line.setComponents(comps);
+        cornBudgetLineRepository.save(line);
+    }
+
+    private void seedHedgeTrades(Site gm1, Site vf1) {
+        LocalDate td = LocalDate.of(2025, 6, 15);
+
+        // 10 hedge trades across various futures months
+        HedgeTrade ht1 = hedgeTradeRepository.save(HedgeTrade.builder()
+            .tradeRef("HT-2025-001").futuresMonth("ZCN25").lots(5).pricePerBushel(new BigDecimal("44500"))
+            .brokerAccount("StoneX").tradeDate(td).status(HedgeTradeStatus.FULLY_ALLOCATED)
+            .openLots(3).book("CANADA").side("LONG").build());
+
+        HedgeTrade ht2 = hedgeTradeRepository.save(HedgeTrade.builder()
+            .tradeRef("HT-2025-002").futuresMonth("ZCN25").lots(3).pricePerBushel(new BigDecimal("44750"))
+            .brokerAccount("StoneX").tradeDate(td.plusDays(2)).status(HedgeTradeStatus.PARTIALLY_ALLOCATED)
+            .openLots(2).book("CANADA").side("LONG").build());
+
+        HedgeTrade ht3 = hedgeTradeRepository.save(HedgeTrade.builder()
+            .tradeRef("HT-2025-003").futuresMonth("ZCU25").lots(4).pricePerBushel(new BigDecimal("45200"))
+            .brokerAccount("StoneX").tradeDate(td.plusDays(5)).status(HedgeTradeStatus.FULLY_ALLOCATED)
+            .openLots(2).book("CANADA").side("LONG").build());
+
+        HedgeTrade ht4 = hedgeTradeRepository.save(HedgeTrade.builder()
+            .tradeRef("HT-2025-004").futuresMonth("ZCU25").lots(3).pricePerBushel(new BigDecimal("45000"))
+            .brokerAccount("StoneX").tradeDate(td.plusDays(7)).status(HedgeTradeStatus.PARTIALLY_ALLOCATED)
+            .openLots(2).book("CANADA").side("LONG").build());
+
+        HedgeTrade ht5 = hedgeTradeRepository.save(HedgeTrade.builder()
+            .tradeRef("HT-2025-005").futuresMonth("ZCZ25").lots(5).pricePerBushel(new BigDecimal("46000"))
+            .brokerAccount("StoneX").tradeDate(td.plusDays(10)).status(HedgeTradeStatus.FULLY_ALLOCATED)
+            .openLots(3).book("CANADA").side("LONG").build());
+
+        HedgeTrade ht6 = hedgeTradeRepository.save(HedgeTrade.builder()
+            .tradeRef("HT-2025-006").futuresMonth("ZCZ25").lots(2).pricePerBushel(new BigDecimal("46200"))
+            .brokerAccount("StoneX").tradeDate(td.plusDays(12)).status(HedgeTradeStatus.OPEN)
+            .openLots(2).book("CANADA").side("LONG").build());
+
+        HedgeTrade ht7 = hedgeTradeRepository.save(HedgeTrade.builder()
+            .tradeRef("HT-2025-007").futuresMonth("ZCH26").lots(4).pricePerBushel(new BigDecimal("47500"))
+            .brokerAccount("StoneX").tradeDate(td.plusDays(15)).status(HedgeTradeStatus.PARTIALLY_ALLOCATED)
+            .openLots(2).book("CANADA").side("LONG").build());
+
+        HedgeTrade ht8 = hedgeTradeRepository.save(HedgeTrade.builder()
+            .tradeRef("HT-2025-008").futuresMonth("ZCH26").lots(3).pricePerBushel(new BigDecimal("47800"))
+            .brokerAccount("StoneX").tradeDate(td.plusDays(18)).status(HedgeTradeStatus.OPEN)
+            .openLots(3).book("CANADA").side("LONG").build());
+
+        HedgeTrade ht9 = hedgeTradeRepository.save(HedgeTrade.builder()
+            .tradeRef("HT-2025-009").futuresMonth("ZCN26").lots(3).pricePerBushel(new BigDecimal("49000"))
+            .brokerAccount("StoneX").tradeDate(td.plusDays(20)).status(HedgeTradeStatus.OPEN)
+            .openLots(3).book("CANADA").side("LONG").build());
+
+        HedgeTrade ht10 = hedgeTradeRepository.save(HedgeTrade.builder()
+            .tradeRef("HT-2025-010").futuresMonth("ZCN26").lots(2).pricePerBushel(new BigDecimal("48500"))
+            .brokerAccount("StoneX").tradeDate(td.plusDays(22)).status(HedgeTradeStatus.OPEN)
+            .openLots(2).book("CANADA").side("LONG").build());
+
+        log.info("Seeded 10 corn hedge trades");
+
+        // ── Hedge Allocations (9 allocations) ─────────────────────────────────────
+        // HT1: 5 lots → 3 to GM1 Jul, 2 to VF1 Aug
+        hedgeAllocationRepository.save(HedgeAllocation.builder()
+            .hedgeTrade(ht1).site(gm1).budgetMonth("2025-07").allocatedLots(3).build());
+        hedgeAllocationRepository.save(HedgeAllocation.builder()
+            .hedgeTrade(ht1).site(vf1).budgetMonth("2025-08").allocatedLots(2).build());
+
+        // HT2: 3 lots → 1 to GM1 Aug
+        hedgeAllocationRepository.save(HedgeAllocation.builder()
+            .hedgeTrade(ht2).site(gm1).budgetMonth("2025-08").allocatedLots(1).build());
+
+        // HT3: 4 lots → 2 to GM1 Sep, 2 to VF1 Oct
+        hedgeAllocationRepository.save(HedgeAllocation.builder()
+            .hedgeTrade(ht3).site(gm1).budgetMonth("2025-09").allocatedLots(2).build());
+        hedgeAllocationRepository.save(HedgeAllocation.builder()
+            .hedgeTrade(ht3).site(vf1).budgetMonth("2025-10").allocatedLots(2).build());
+
+        // HT4: 3 lots → 1 to GM1 Nov
+        hedgeAllocationRepository.save(HedgeAllocation.builder()
+            .hedgeTrade(ht4).site(gm1).budgetMonth("2025-11").allocatedLots(1).build());
+
+        // HT5: 5 lots → 3 to GM1 Dec, 2 to VF1 Jan
+        hedgeAllocationRepository.save(HedgeAllocation.builder()
+            .hedgeTrade(ht5).site(gm1).budgetMonth("2025-12").allocatedLots(3).build());
+        hedgeAllocationRepository.save(HedgeAllocation.builder()
+            .hedgeTrade(ht5).site(vf1).budgetMonth("2026-01").allocatedLots(2).build());
+
+        // HT7: 4 lots → 2 to GM1 Mar
+        hedgeAllocationRepository.save(HedgeAllocation.builder()
+            .hedgeTrade(ht7).site(gm1).budgetMonth("2026-03").allocatedLots(2).build());
+
+        log.info("Seeded 9 hedge allocations");
+
+        // ── Physical Contracts (7 contracts) ──────────────────────────────────────
+        PhysicalContract pc1 = physicalContractRepository.save(PhysicalContract.builder()
+            .contractRef("PC-GM1-2025-001").site(gm1).supplierName("Scoular")
+            .commodityCode("CORN").quantityMt(new BigDecimal("635.000"))
+            .deliveryMonth("2025-07").basisCentsBu(new BigDecimal("-1800"))
+            .futuresRef("ZCN25").currency("USD").status(PhysicalContractStatus.OPEN)
+            .contractDate(LocalDate.of(2025, 5, 20)).tradeType(PhysicalContractTradeType.BASIS).build());
+
+        PhysicalContract pc2 = physicalContractRepository.save(PhysicalContract.builder()
+            .contractRef("PC-GM1-2025-002").site(gm1).supplierName("BPGrain")
+            .commodityCode("CORN").quantityMt(new BigDecimal("508.000"))
+            .deliveryMonth("2025-08").basisCentsBu(new BigDecimal("-2000"))
+            .futuresRef("ZCN25").currency("USD").status(PhysicalContractStatus.OPEN)
+            .contractDate(LocalDate.of(2025, 5, 25)).tradeType(PhysicalContractTradeType.BASIS).build());
+
+        PhysicalContract pc3 = physicalContractRepository.save(PhysicalContract.builder()
+            .contractRef("PC-VF1-2025-001").site(vf1).supplierName("Scoular")
+            .commodityCode("CORN").quantityMt(new BigDecimal("381.000"))
+            .deliveryMonth("2025-09").basisCentsBu(new BigDecimal("-1500"))
+            .futuresRef("ZCU25").currency("USD").status(PhysicalContractStatus.OPEN)
+            .contractDate(LocalDate.of(2025, 6, 1)).tradeType(PhysicalContractTradeType.BASIS).build());
+
+        PhysicalContract pc4 = physicalContractRepository.save(PhysicalContract.builder()
+            .contractRef("PC-GM1-2025-003").site(gm1).supplierName("Scoular")
+            .commodityCode("CORN").quantityMt(new BigDecimal("762.000"))
+            .deliveryMonth("2025-10").basisCentsBu(new BigDecimal("-1700"))
+            .futuresRef("ZCU25").currency("USD").status(PhysicalContractStatus.BASIS_LOCKED)
+            .basisLockedDate(LocalDate.of(2025, 6, 10))
+            .contractDate(LocalDate.of(2025, 6, 5)).tradeType(PhysicalContractTradeType.BASIS).build());
+
+        PhysicalContract pc5 = physicalContractRepository.save(PhysicalContract.builder()
+            .contractRef("PC-VF1-2025-002").site(vf1).supplierName("BPGrain")
+            .commodityCode("CORN").quantityMt(new BigDecimal("400.000"))
+            .deliveryMonth("2025-11").basisCentsBu(new BigDecimal("-2200"))
+            .futuresRef("ZCU25").currency("USD").status(PhysicalContractStatus.OPEN)
+            .contractDate(LocalDate.of(2025, 6, 8)).tradeType(PhysicalContractTradeType.BASIS).build());
+
+        PhysicalContract pc6 = physicalContractRepository.save(PhysicalContract.builder()
+            .contractRef("PC-GM1-2025-004").site(gm1).supplierName("Scoular")
+            .commodityCode("CORN").quantityMt(new BigDecimal("635.000"))
+            .deliveryMonth("2025-12").basisCentsBu(new BigDecimal("-1600"))
+            .futuresRef("ZCZ25").currency("USD").status(PhysicalContractStatus.CLOSED)
+            .boardPriceCentsBu(new BigDecimal("46000")).basisLockedDate(LocalDate.of(2025, 6, 15))
+            .contractDate(LocalDate.of(2025, 6, 10)).tradeType(PhysicalContractTradeType.BASIS).build());
+
+        PhysicalContract pc7 = physicalContractRepository.save(PhysicalContract.builder()
+            .contractRef("PC-GM1-2025-005").site(gm1).supplierName("BPGrain")
+            .commodityCode("CORN").quantityMt(new BigDecimal("254.000"))
+            .deliveryMonth("2026-01").basisCentsBu(new BigDecimal("-1900"))
+            .futuresRef("ZCZ25").currency("USD").status(PhysicalContractStatus.CANCELLED)
+            .contractDate(LocalDate.of(2025, 6, 12)).tradeType(PhysicalContractTradeType.BASIS).build());
+
+        log.info("Seeded 7 physical contracts");
+
+        // ── EFP Tickets (4 tickets) ────────────────────────────────────────────────
+        efpTicketRepository.save(EFPTicket.builder()
+            .ticketRef("EFP-2025-001").hedgeTrade(ht1).physicalContract(pc1)
+            .lots(2).futuresMonth("ZCN25")
+            .boardPrice(new BigDecimal("44500")).basisValue(new BigDecimal("-1800"))
+            .quantityMt(lotToMt(2)).efpDate(LocalDate.of(2025, 6, 20))
+            .confirmationRef("SX-EFP-001").status(EFPTicketStatus.CONFIRMED)
+            .entryPrice(new BigDecimal("44500")).build());
+
+        efpTicketRepository.save(EFPTicket.builder()
+            .ticketRef("EFP-2025-002").hedgeTrade(ht3).physicalContract(pc3)
+            .lots(2).futuresMonth("ZCU25")
+            .boardPrice(new BigDecimal("45200")).basisValue(new BigDecimal("-1500"))
+            .quantityMt(lotToMt(2)).efpDate(LocalDate.of(2025, 6, 25))
+            .confirmationRef("SX-EFP-002").status(EFPTicketStatus.CONFIRMED)
+            .entryPrice(new BigDecimal("45200")).build());
+
+        efpTicketRepository.save(EFPTicket.builder()
+            .ticketRef("EFP-2025-003").hedgeTrade(ht5).physicalContract(pc6)
+            .lots(2).futuresMonth("ZCZ25")
+            .boardPrice(new BigDecimal("46000")).basisValue(new BigDecimal("-1600"))
+            .quantityMt(lotToMt(2)).efpDate(LocalDate.of(2025, 7, 1))
+            .confirmationRef("SX-EFP-003").status(EFPTicketStatus.CONFIRMED)
+            .entryPrice(new BigDecimal("46000")).build());
+
+        efpTicketRepository.save(EFPTicket.builder()
+            .ticketRef("EFP-2025-004").hedgeTrade(ht4).physicalContract(pc5)
+            .lots(1).futuresMonth("ZCU25")
+            .boardPrice(new BigDecimal("45000")).basisValue(new BigDecimal("-2200"))
+            .quantityMt(lotToMt(1)).efpDate(LocalDate.of(2025, 7, 5))
+            .confirmationRef("SX-EFP-004").status(EFPTicketStatus.PENDING)
+            .entryPrice(new BigDecimal("45000")).build());
+
+        log.info("Seeded 4 EFP tickets");
+
+        // ── Receipt Tickets (10 receipts) ──────────────────────────────────────────
+        seedReceipts(gm1, vf1, pc1, pc2, pc3, pc4, pc6);
+    }
+
+    private void seedReceipts(Site gm1, Site vf1, PhysicalContract pc1, PhysicalContract pc2,
+                              PhysicalContract pc3, PhysicalContract pc4, PhysicalContract pc6) {
+        // GM1 receipts
+        saveReceipt("RT-GM1-2025-001", pc1, gm1, LocalDate.of(2025, 7, 5),  "32.500", "15.2", "ON-7001");
+        saveReceipt("RT-GM1-2025-002", pc1, gm1, LocalDate.of(2025, 7, 12), "28.100", "14.8", "ON-7002");
+        saveReceipt("RT-GM1-2025-003", pc1, gm1, LocalDate.of(2025, 7, 19), "35.200", "16.1", "ON-7003");
+        saveReceipt("RT-GM1-2025-004", pc2, gm1, LocalDate.of(2025, 8, 3),  "30.000", "15.5", "ON-8001");
+        saveReceipt("RT-GM1-2025-005", pc2, gm1, LocalDate.of(2025, 8, 15), "27.400", "14.5", "ON-8002");
+        saveReceipt("RT-GM1-2025-006", pc4, gm1, LocalDate.of(2025, 10, 2), "38.000", "15.8", "ON-1001");
+        saveReceipt("RT-GM1-2025-007", pc6, gm1, LocalDate.of(2025, 12, 5), "25.600", "16.5", "ON-1201");
+
+        // VF1 receipts
+        saveReceipt("RT-VF1-2025-001", pc3, vf1, LocalDate.of(2025, 9, 8),  "33.200", "15.0", "QC-9001");
+        saveReceipt("RT-VF1-2025-002", pc3, vf1, LocalDate.of(2025, 9, 18), "29.800", "16.8", "QC-9002");
+        saveReceipt("RT-VF1-2025-003", pc3, vf1, LocalDate.of(2025, 9, 28), "36.500", "15.3", "QC-9003");
+
+        log.info("Seeded 10 receipt tickets");
+    }
+
+    private void saveReceipt(String ticketRef, PhysicalContract contract, Site site,
+                             LocalDate date, String grossStr, String moistureStr, String vehicleRef) {
+        BigDecimal grossMt = new BigDecimal(grossStr);
+        BigDecimal moisturePct = new BigDecimal(moistureStr);
+
+        // Shrink: standard 15.5% base moisture
+        BigDecimal shrinkFactor = BigDecimal.ZERO;
+        double moisture = moisturePct.doubleValue();
+        if (moisture > 15.5) {
+            shrinkFactor = BigDecimal.valueOf((moisture - 15.5) * 1.183 / 100.0)
+                .setScale(4, RoundingMode.HALF_UP);
+        }
+
+        BigDecimal netMt = grossMt.multiply(BigDecimal.ONE.subtract(shrinkFactor))
+            .setScale(4, RoundingMode.HALF_UP);
+        BigDecimal netBushels = netMt.multiply(BUSHELS_PER_MT).setScale(4, RoundingMode.HALF_UP);
+
+        receiptTicketRepository.save(ReceiptTicket.builder()
+            .ticketRef(ticketRef).physicalContract(contract).site(site)
+            .receiptDate(date).grossMt(grossMt).netMt(netMt)
+            .moisturePct(moisturePct).shrinkFactor(shrinkFactor)
+            .netBushels(netBushels).vehicleRef(vehicleRef).build());
+    }
+
+    private void seedSettlePrices() {
+        LocalDate settleDate = LocalDate.now();
+        cornDailySettleRepository.saveAll(List.of(
+            CornDailySettle.builder().futuresMonth("ZCN25").settleDate(settleDate).pricePerBushel(new BigDecimal("44800")).build(),
+            CornDailySettle.builder().futuresMonth("ZCU25").settleDate(settleDate).pricePerBushel(new BigDecimal("45500")).build(),
+            CornDailySettle.builder().futuresMonth("ZCZ25").settleDate(settleDate).pricePerBushel(new BigDecimal("46500")).build(),
+            CornDailySettle.builder().futuresMonth("ZCH26").settleDate(settleDate).pricePerBushel(new BigDecimal("47200")).build(),
+            CornDailySettle.builder().futuresMonth("ZCK26").settleDate(settleDate).pricePerBushel(new BigDecimal("48000")).build(),
+            CornDailySettle.builder().futuresMonth("ZCN26").settleDate(settleDate).pricePerBushel(new BigDecimal("49500")).build()
+        ));
+        log.info("Seeded 6 corn settle prices");
+    }
+
+    private BigDecimal lotToMt(int lots) {
+        return new BigDecimal(lots * BUSHELS_PER_LOT)
+            .divide(BUSHELS_PER_MT, 4, RoundingMode.HALF_UP);
     }
 }
