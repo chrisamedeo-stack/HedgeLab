@@ -2,12 +2,15 @@ package com.hedgelab.api.service;
 
 import com.hedgelab.api.dto.request.CreatePhysicalContractRequest;
 import com.hedgelab.api.dto.request.LockBasisRequest;
+import com.hedgelab.api.dto.request.UpdatePhysicalContractRequest;
 import com.hedgelab.api.dto.response.PhysicalContractResponse;
 import com.hedgelab.api.entity.PhysicalContract;
 import com.hedgelab.api.entity.PhysicalContractStatus;
 import com.hedgelab.api.entity.PhysicalContractTradeType;
 import com.hedgelab.api.exception.InvalidStateException;
+import com.hedgelab.api.repository.EFPTicketRepository;
 import com.hedgelab.api.repository.PhysicalContractRepository;
+import com.hedgelab.api.repository.ReceiptTicketRepository;
 import com.hedgelab.api.repository.SiteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,6 +33,8 @@ public class PhysicalContractService {
 
     private final PhysicalContractRepository contractRepository;
     private final SiteRepository             siteRepository;
+    private final EFPTicketRepository        efpTicketRepository;
+    private final ReceiptTicketRepository    receiptTicketRepository;
 
     @Transactional(readOnly = true)
     public List<PhysicalContractResponse> getAllContracts() {
@@ -142,6 +147,68 @@ public class PhysicalContractService {
         }
         contract.setStatus(PhysicalContractStatus.CANCELLED);
         return toResponse(contractRepository.save(contract));
+    }
+
+    @Transactional
+    public PhysicalContractResponse update(Long id, UpdatePhysicalContractRequest req) {
+        var contract = findOrThrow(id);
+        if (contract.getStatus() == PhysicalContractStatus.CLOSED
+                || contract.getStatus() == PhysicalContractStatus.CANCELLED) {
+            throw new InvalidStateException(
+                    "Cannot edit a contract in status " + contract.getStatus());
+        }
+
+        if (req.getSiteCode() != null) {
+            var site = siteRepository.findByCode(req.getSiteCode())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Site not found: " + req.getSiteCode()));
+            contract.setSite(site);
+        }
+        if (req.getSupplierName() != null) contract.setSupplierName(req.getSupplierName());
+        if (req.getDeliveryMonth() != null) contract.setDeliveryMonth(req.getDeliveryMonth());
+        if (req.getFuturesRef() != null) contract.setFuturesRef(req.getFuturesRef());
+        if (req.getCurrency() != null) contract.setCurrency(req.getCurrency());
+        if (req.getContractDate() != null) contract.setContractDate(req.getContractDate());
+        if (req.getNotes() != null) contract.setNotes(req.getNotes());
+        if (req.getBasisCentsBu() != null) contract.setBasisCentsBu(req.getBasisCentsBu());
+        if (req.getFreightPerMt() != null) contract.setFreightPerMt(req.getFreightPerMt());
+        if (req.getBoardPriceCentsBu() != null) contract.setBoardPriceCentsBu(req.getBoardPriceCentsBu());
+
+        // Update quantity
+        BigDecimal mt = req.getQuantityMt();
+        BigDecimal bu = req.getQuantityBu();
+        if (mt == null && bu != null) {
+            mt = bu.divide(BUSHELS_PER_MT, 4, RoundingMode.HALF_UP);
+        }
+        if (mt != null) contract.setQuantityMt(mt);
+
+        // Update trade type
+        if (req.getTradeType() != null) {
+            contract.setTradeType(parseTradeType(req.getTradeType()));
+        }
+
+        return toResponse(contractRepository.save(contract));
+    }
+
+    @Transactional
+    public void deleteContract(Long id) {
+        var contract = findOrThrow(id);
+
+        // Check for linked EFP tickets
+        var efps = efpTicketRepository.findByPhysicalContractIdOrderByEfpDateDesc(id);
+        if (!efps.isEmpty()) {
+            throw new InvalidStateException(
+                    "Cannot delete: contract has " + efps.size() + " linked EFP ticket(s). Delete them first.");
+        }
+
+        // Check for linked receipt tickets
+        var receipts = receiptTicketRepository.findByPhysicalContractIdOrderByReceiptDateDesc(id);
+        if (!receipts.isEmpty()) {
+            throw new InvalidStateException(
+                    "Cannot delete: contract has " + receipts.size() + " linked receipt(s). Delete them first.");
+        }
+
+        contractRepository.delete(contract);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

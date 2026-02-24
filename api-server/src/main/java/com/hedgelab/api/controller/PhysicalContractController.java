@@ -2,6 +2,7 @@ package com.hedgelab.api.controller;
 
 import com.hedgelab.api.dto.request.CreatePhysicalContractRequest;
 import com.hedgelab.api.dto.request.LockBasisRequest;
+import com.hedgelab.api.dto.request.UpdatePhysicalContractRequest;
 import com.hedgelab.api.dto.response.PhysicalContractResponse;
 import com.hedgelab.api.service.PhysicalContractService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,12 @@ public class PhysicalContractController {
         return service.create(req);
     }
 
+    @PutMapping("/{id}")
+    public PhysicalContractResponse update(@PathVariable Long id,
+                                           @RequestBody UpdatePhysicalContractRequest req) {
+        return service.update(id, req);
+    }
+
     @PatchMapping("/{id}/lock-basis")
     public PhysicalContractResponse lockBasis(@PathVariable Long id,
                                               @RequestBody LockBasisRequest req) {
@@ -48,8 +55,8 @@ public class PhysicalContractController {
     }
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
-        service.cancel(id);
+        service.deleteContract(id);
     }
 }

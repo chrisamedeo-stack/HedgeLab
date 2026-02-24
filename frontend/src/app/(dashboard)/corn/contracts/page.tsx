@@ -8,7 +8,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatNumber } from "@/lib/format";
-import { FileText, Plus, ChevronDown, ChevronRight, Lock, X } from "lucide-react";
+import { FileText, Plus, ChevronDown, ChevronRight, Lock, X, Edit2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BUSHELS_PER_MT } from "@/lib/corn-utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -55,17 +55,39 @@ function StatusBadge({ status }: { status: string }) {
 
 // ─── New Contract Form ────────────────────────────────────────────────────────
 
-function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () => void }) {
+function ContractForm({ editing, onSaved, onCancel }: {
+  editing?: PhysicalContractResponse;
+  onSaved: () => void;
+  onCancel: () => void;
+}) {
   const { sites } = useSites();
   const { suppliers } = useSuppliers();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({
-    siteCode: "", supplierName: "", deliveryMonth: "", futuresRef: "",
-    quantityBu: "", basisCentsBu: "", freightPerMt: "", currency: "USD",
-    contractDate: new Date().toISOString().slice(0, 10), notes: "",
-    tradeType: "BASIS" as "INDEX" | "BASIS" | "ALL_IN",
-    boardPriceBu: "",
+  const [form, setForm] = useState(() => {
+    if (editing) {
+      return {
+        siteCode: editing.siteCode ?? "",
+        supplierName: editing.supplierName ?? "",
+        deliveryMonth: editing.deliveryMonth ?? "",
+        futuresRef: editing.futuresRef ?? "",
+        quantityBu: editing.quantityBu != null ? String(Math.round(editing.quantityBu)) : "",
+        basisCentsBu: editing.basisCentsBu != null ? String(editing.basisCentsBu / 100) : "",
+        freightPerMt: editing.freightPerMt != null ? String(editing.freightPerMt) : "",
+        currency: editing.currency ?? "USD",
+        contractDate: editing.contractDate ?? new Date().toISOString().slice(0, 10),
+        notes: editing.notes ?? "",
+        tradeType: (editing.tradeType ?? "BASIS") as "INDEX" | "BASIS" | "ALL_IN",
+        boardPriceBu: editing.boardPriceCentsBu != null ? String(editing.boardPriceCentsBu / 100) : "",
+      };
+    }
+    return {
+      siteCode: "", supplierName: "", deliveryMonth: "", futuresRef: "",
+      quantityBu: "", basisCentsBu: "", freightPerMt: "", currency: "USD",
+      contractDate: new Date().toISOString().slice(0, 10), notes: "",
+      tradeType: "BASIS" as "INDEX" | "BASIS" | "ALL_IN",
+      boardPriceBu: "",
+    };
   });
 
   function f(k: keyof typeof form, v: string) { setForm((p) => ({ ...p, [k]: v })); }
@@ -81,7 +103,7 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
     setSubmitting(true);
     try {
       const boardBu = parseFloat(form.boardPriceBu);
-      await api.post("/api/v1/corn/contracts", {
+      const payload = {
         siteCode: form.siteCode,
         supplierName: form.supplierName || null,
         deliveryMonth: form.deliveryMonth,
@@ -94,8 +116,14 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
         contractDate: form.contractDate || null,
         notes: form.notes || null,
         tradeType: form.tradeType,
-      });
-      toast("Contract created", "success");
+      };
+      if (editing) {
+        await api.put(`/api/v1/corn/contracts/${editing.id}`, payload);
+        toast("Contract updated", "success");
+      } else {
+        await api.post("/api/v1/corn/contracts", payload);
+        toast("Contract created", "success");
+      }
       onSaved();
     } catch (err: unknown) {
       toast((err as Error).message ?? "Save failed", "error");
@@ -107,7 +135,9 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
   return (
     <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-200">New Physical Contract</h2>
+        <h2 className="text-sm font-semibold text-slate-200">
+          {editing ? `Edit ${editing.contractRef}` : "New Physical Contract"}
+        </h2>
         <button type="button" onClick={onCancel} className="text-slate-500 hover:text-slate-300 transition-colors">
           <X className="h-4 w-4" />
         </button>
@@ -236,7 +266,7 @@ function ContractForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: ()
           className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">Cancel</button>
         <button type="submit" disabled={submitting}
           className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
-          {submitting ? "Saving…" : "Create Contract"}
+          {submitting ? "Saving…" : editing ? "Update Contract" : "Create Contract"}
         </button>
       </div>
     </form>
@@ -306,7 +336,12 @@ function LockBasisPanel({ contract, onDone }: { contract: PhysicalContractRespon
 
 // ─── Contract Row ─────────────────────────────────────────────────────────────
 
-function ContractRow({ contract, onRefresh }: { contract: PhysicalContractResponse; onRefresh: () => void }) {
+function ContractRow({ contract, onRefresh, onEdit, onDelete }: {
+  contract: PhysicalContractResponse;
+  onRefresh: () => void;
+  onEdit: (c: PhysicalContractResponse) => void;
+  onDelete: (c: PhysicalContractResponse) => void;
+}) {
   const [expanded, setExpanded]         = useState(false);
   const [lockingBasis, setLockingBasis] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -315,6 +350,7 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
 
   const isFullyPriced = contract.allInPerMt != null;
   const isCancelled   = contract.status === "CANCELLED";
+  const isClosed      = contract.status === "CLOSED";
 
   async function handleCancel() {
     setCancelling(true);
@@ -365,9 +401,7 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
         </div>
 
         <div className="w-36 min-w-0 hidden md:block">
-          {contract.tradeType === "INDEX" ? (
-            <p className="text-sm text-amber-500/60 italic">N/A (Index)</p>
-          ) : (contract.basisCentsBu != null) ? (
+          {(contract.basisCentsBu != null) ? (
             <>
               <p className="text-sm tabular-nums text-slate-300">{fmtCents(contract.basisCentsBu)}/bu</p>
               <p className="text-xs text-slate-500">{contract.futuresRef ?? "—"}</p>
@@ -385,21 +419,39 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
           )}
         </div>
 
-        <div className="ml-auto flex items-center gap-3 flex-shrink-0">
+        <div className="ml-auto flex items-center gap-2 flex-shrink-0">
           <StatusBadge status={contract.status} />
-          {!isCancelled && contract.status === "OPEN" && contract.tradeType === "BASIS" && (
+          {!isCancelled && contract.status === "OPEN" && contract.tradeType !== "ALL_IN" && (
             <button
               onClick={() => { setLockingBasis((v) => !v); setExpanded(true); }}
               className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs rounded-lg transition-colors">
               <Lock className="h-3 w-3" /> Lock Basis
             </button>
           )}
-          {!isCancelled && contract.status !== "CLOSED" && (
+          {!isCancelled && !isClosed && (
+            <button
+              onClick={() => onEdit(contract)}
+              className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs rounded-lg transition-colors"
+              title="Edit contract"
+            >
+              <Edit2 className="h-3 w-3" />
+            </button>
+          )}
+          {!isCancelled && !isClosed && (
             <button onClick={() => setShowCancelConfirm(true)}
-              className="text-slate-600 hover:text-red-400 text-xs transition-colors">
+              className="text-slate-600 hover:text-amber-400 text-xs transition-colors"
+              title="Cancel contract"
+            >
               Cancel
             </button>
           )}
+          <button
+            onClick={() => onDelete(contract)}
+            className="text-slate-600 hover:text-red-400 transition-colors"
+            title="Delete contract"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
@@ -417,8 +469,8 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
               { label: "Currency",      value: contract.currency },
               { label: "Freight",       value: contract.freightPerMt != null ? `$${(contract.freightPerMt / BUSHELS_PER_MT).toFixed(4)}/bu` : "—" },
               { label: "Basis",         value: contract.basisCentsBu != null ? `${fmtCents(contract.basisCentsBu)}/bu vs ${contract.futuresRef ?? "?"}` : "Open" },
-              { label: "Board Price",   value: contract.boardPriceCentsBu != null ? `$${(contract.boardPriceCentsBu / 100).toFixed(4)}/bu` : "Open (floating with futures)" },
-              { label: "All-in Price",  value: isFullyPriced ? `${fmtCents(contract.allInCentsBu)}/bu` : "Pending board price lock" },
+              { label: "Board Price",   value: contract.boardPriceCentsBu != null ? `$${(contract.boardPriceCentsBu / 100).toFixed(4)}/bu` : "Open" },
+              { label: "All-in Price",  value: isFullyPriced ? `${fmtCents(contract.allInCentsBu)}/bu` : "Pending" },
               { label: "Basis Locked",  value: contract.basisLockedDate ?? "Not yet locked" },
               { label: "Notes",         value: contract.notes ?? "—" },
             ].map(({ label, value }) => (
@@ -449,9 +501,13 @@ function ContractRow({ contract, onRefresh }: { contract: PhysicalContractRespon
 
 export default function ContractsPage() {
   const { sites } = useSites();
+  const { toast } = useToast();
   const [filterSite, setFilterSite]     = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [showForm, setShowForm]         = useState(false);
+  const [editing, setEditing]           = useState<PhysicalContractResponse | undefined>();
+  const [deleteTarget, setDeleteTarget] = useState<PhysicalContractResponse | null>(null);
+  const [deleting, setDeleting]         = useState(false);
   const { contracts, isLoading, mutate } = useContracts(filterSite || undefined);
 
   const filtered = filterStatus
@@ -460,6 +516,36 @@ export default function ContractsPage() {
 
   const totalBu     = filtered.reduce((s, c) => s + (c.quantityBu ?? 0), 0);
   const pricedCount = filtered.filter((c) => c.allInPerMt != null).length;
+
+  function handleEdit(c: PhysicalContractResponse) {
+    setEditing(c);
+    setShowForm(true);
+  }
+
+  function handleFormClose() {
+    setShowForm(false);
+    setEditing(undefined);
+  }
+
+  function handleFormSaved() {
+    handleFormClose();
+    mutate();
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/api/v1/corn/contracts/${deleteTarget.id}`);
+      toast("Contract deleted", "success");
+      mutate();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Delete failed", "error");
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -483,9 +569,10 @@ export default function ContractsPage() {
             }}
             disabled={filtered.length === 0}
           />
-          <button onClick={() => setShowForm((v) => !v)}
+          <button onClick={() => { setEditing(undefined); setShowForm((v) => !v); }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
-            <Plus className="h-4 w-4" /> New Contract
+            {showForm && !editing ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {showForm && !editing ? "Cancel" : "New Contract"}
           </button>
         </div>
       </div>
@@ -506,7 +593,7 @@ export default function ContractsPage() {
       </div>
 
       {showForm && (
-        <ContractForm onSaved={() => { setShowForm(false); mutate(); }} onCancel={() => setShowForm(false)} />
+        <ContractForm editing={editing} onSaved={handleFormSaved} onCancel={handleFormClose} />
       )}
 
       {filtered.length > 0 && (
@@ -538,10 +625,21 @@ export default function ContractsPage() {
       ) : (
         <div className="space-y-3">
           {filtered.map((c) => (
-            <ContractRow key={c.id} contract={c} onRefresh={mutate} />
+            <ContractRow key={c.id} contract={c} onRefresh={mutate} onEdit={handleEdit} onDelete={setDeleteTarget} />
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete Contract"
+        description={`This will permanently delete ${deleteTarget?.contractRef ?? "this contract"}. If the contract has linked EFP tickets or receipts, you must delete those first.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
+      />
     </div>
   );
 }
