@@ -561,109 +561,67 @@ function SiteAllocationsTable({
   );
 }
 
-// ─── Site Cost Summary Card ──────────────────────────────────────────────────
+// ─── Site Summary Card (P&L focused) ─────────────────────────────────────────
 
-function SiteCostSummary({
-  physicalPositions,
+function SiteSummary({
+  allocations,
   lockedPositions,
   offsets,
   siteCode,
 }: {
-  physicalPositions: PhysicalPositionItem[];
+  allocations: SiteAllocationItem[];
   lockedPositions: LockedPositionItem[];
   offsets: OffsetItem[];
   siteCode: string;
 }) {
   const summary = useMemo(() => {
-    const contracts = physicalPositions.filter((p) => p.siteCode === siteCode);
-    const efps = lockedPositions.filter((l) => l.siteCode === siteCode);
+    const openAllocs = allocations.filter((a) => a.siteCode === siteCode && a.openAllocatedLots > 0);
+    const siteEfps = lockedPositions.filter((l) => l.siteCode === siteCode);
     const siteOffsets = offsets.filter((o) => o.siteCode === siteCode);
 
-    if (contracts.length === 0 && efps.length === 0) return null;
+    const unrealizedPnl = openAllocs.reduce((s, a) => s + (a.mtmPnlUsd ?? 0), 0);
+    const realizedEfp = siteEfps.reduce((s, e) => s + (e.gainLossUsd ?? 0), 0);
+    const realizedOffset = siteOffsets.reduce((s, o) => s + o.pnlUsd, 0);
+    const totalRealized = realizedEfp + realizedOffset;
+    const totalPnl = totalRealized + unrealizedPnl;
 
-    const totalVolume = contracts.reduce((s, c) => s + c.committedMt, 0);
+    return { unrealizedPnl, realizedEfp, realizedOffset, totalRealized, totalPnl };
+  }, [allocations, lockedPositions, offsets, siteCode]);
 
-    const efpPnl = efps.reduce((s, e) => s + (e.gainLossUsd ?? 0), 0);
-    const offsetPnl = siteOffsets.reduce((s, o) => s + o.pnlUsd, 0);
-    const hedgePnl = efpPnl + offsetPnl;
-
-    let basisWeightedSum = 0, basisVolume = 0;
-    for (const e of efps) {
-      if (e.basisValue != null) {
-        basisWeightedSum += e.basisValue * e.quantityMt;
-        basisVolume += e.quantityMt;
-      }
-    }
-    const avgBasisCents = basisVolume > 0 ? basisWeightedSum / basisVolume : null;
-
-    let freightWeightedSum = 0, freightVolume = 0;
-    for (const e of efps) {
-      if (e.freightValue != null) {
-        freightWeightedSum += e.freightValue * e.quantityMt;
-        freightVolume += e.quantityMt;
-      }
-    }
-    const avgFreight = freightVolume > 0 ? freightWeightedSum / freightVolume : null;
-
-    let boardWeightedSum = 0, boardVolume = 0;
-    for (const e of efps) {
-      if (e.boardPrice != null) {
-        boardWeightedSum += e.boardPrice * e.quantityMt;
-        boardVolume += e.quantityMt;
-      }
-    }
-    const avgBoardCents = boardVolume > 0 ? boardWeightedSum / boardVolume : null;
-
-    let blendedAllInBu: number | null = null;
-    if (avgBoardCents != null && avgBasisCents != null) {
-      const rawPerBu = (avgBoardCents + avgBasisCents) / 100 + (avgFreight != null ? avgFreight / BUSHELS_PER_MT : 0);
-      const hedgePnlPerBu = totalVolume > 0 ? hedgePnl / (totalVolume * BUSHELS_PER_MT) : 0;
-      blendedAllInBu = rawPerBu - hedgePnlPerBu;
-    }
-
-    const avgFreightBu = avgFreight != null ? avgFreight / BUSHELS_PER_MT : null;
-
-    return { totalVolume, hedgePnl, avgBasisCents, avgFreightBu, avgBoardCents, blendedAllInBu };
-  }, [physicalPositions, lockedPositions, offsets, siteCode]);
-
-  if (!summary) return null;
+  const pnlCls = (v: number) => v > 0 ? "text-emerald-400" : v < 0 ? "text-red-400" : "text-slate-400";
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl px-5 py-4">
-      <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-3 font-semibold">Site Cost Summary</h3>
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+      <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-3 font-semibold">Site Summary</h3>
+      <div className="grid grid-cols-5 gap-4">
         <div>
-          <p className="text-xs text-slate-500 mb-0.5">Total Volume</p>
-          <p className="text-sm font-bold tabular-nums text-slate-100">{fmtVol(summary.totalVolume, "MT")} <span className="text-xs text-slate-500 font-normal">bu</span></p>
-        </div>
-        <div>
-          <p className="text-xs text-slate-500 mb-0.5">Hedge P&L</p>
-          <p className={cn("text-sm font-bold tabular-nums", summary.hedgePnl > 0 ? "text-emerald-400" : summary.hedgePnl < 0 ? "text-red-400" : "text-slate-300")}>
-            {fmtPnl(summary.hedgePnl)}
+          <p className="text-xs text-slate-500 mb-0.5">Unrealized P&L</p>
+          <p className={cn("text-sm font-bold tabular-nums", pnlCls(summary.unrealizedPnl))}>
+            {fmtPnl(summary.unrealizedPnl)}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 mb-0.5">Avg Basis</p>
-          <p className="text-sm font-bold tabular-nums text-slate-100 font-mono">
-            {summary.avgBasisCents != null ? `${(summary.avgBasisCents / 100).toFixed(4)} $/bu` : "\u2013"}
+          <p className="text-xs text-slate-500 mb-0.5">Realized (EFP)</p>
+          <p className={cn("text-sm font-bold tabular-nums", pnlCls(summary.realizedEfp))}>
+            {fmtPnl(summary.realizedEfp)}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 mb-0.5">Avg Freight</p>
-          <p className="text-sm font-bold tabular-nums text-slate-100 font-mono">
-            {summary.avgFreightBu != null ? `$${summary.avgFreightBu.toFixed(4)}/bu` : "\u2013"}
+          <p className="text-xs text-slate-500 mb-0.5">Realized (Offset)</p>
+          <p className={cn("text-sm font-bold tabular-nums", pnlCls(summary.realizedOffset))}>
+            {fmtPnl(summary.realizedOffset)}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 mb-0.5">Board Cost</p>
-          <p className="text-sm font-bold tabular-nums text-slate-100 font-mono">
-            {summary.avgBoardCents != null ? `${(summary.avgBoardCents / 100).toFixed(4)} $/bu` : "\u2013"}
+          <p className="text-xs text-slate-500 mb-0.5">Total Realized</p>
+          <p className={cn("text-sm font-bold tabular-nums", pnlCls(summary.totalRealized))}>
+            {fmtPnl(summary.totalRealized)}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 mb-0.5">Blended All-In</p>
-          <p className={cn("text-sm font-bold tabular-nums", summary.blendedAllInBu != null ? "text-cyan-300" : "text-slate-500")}>
-            {summary.blendedAllInBu != null ? `$${summary.blendedAllInBu.toFixed(4)}/bu` : "\u2013"}
+          <p className="text-xs text-slate-500 mb-0.5">Total P&L</p>
+          <p className={cn("text-sm font-bold tabular-nums", pnlCls(summary.totalPnl))}>
+            {fmtPnl(summary.totalPnl)}
           </p>
         </div>
       </div>
@@ -681,11 +639,30 @@ function tradeTypeBadge(type: string) {
 
 function PhysicalPositionsTable({
   positions,
+  allocations,
   settles,
 }: {
   positions: PhysicalPositionItem[];
+  allocations: SiteAllocationItem[];
   settles: Record<string, number>;
 }) {
+  // VWAP board price from open hedge allocations for non-EFP'd contracts
+  const vwapBySite = useMemo(() => {
+    const map: Record<string, number> = {};
+    const grouped: Record<string, { sumPriceVol: number; sumVol: number }> = {};
+    for (const a of allocations) {
+      if (a.openAllocatedLots > 0) {
+        const key = a.siteCode;
+        if (!grouped[key]) grouped[key] = { sumPriceVol: 0, sumVol: 0 };
+        grouped[key].sumPriceVol += a.entryPrice * a.openAllocatedLots;
+        grouped[key].sumVol += a.openAllocatedLots;
+      }
+    }
+    for (const [key, val] of Object.entries(grouped)) {
+      map[key] = val.sumPriceVol / val.sumVol;
+    }
+    return map;
+  }, [allocations]);
   const blended = useMemo(() => {
     let hedgedCostBu = 0;
     let hedgedBu = 0;
@@ -745,6 +722,8 @@ function PhysicalPositionsTable({
                     <span className="flex items-center gap-1 text-emerald-400 font-mono">
                       <Lock className="h-3 w-3" /> {centsToUsd(p.boardPriceLocked)}
                     </span>
+                  ) : vwapBySite[p.siteCode] != null ? (
+                    <span className="text-amber-300 font-mono text-xs">~{centsToUsd(vwapBySite[p.siteCode])} <span className="text-amber-500/70">(VWAP)</span></span>
                   ) : (
                     <span className="text-orange-400 italic text-xs">Open</span>
                   )}
@@ -791,58 +770,150 @@ function PhysicalPositionsTable({
   );
 }
 
-// ─── Locked Positions Table ─────────────────────────────────────────────────
+// ─── EFP Hedges Table (Buy/Sell Pairs) ──────────────────────────────────────
 
-function LockedPositionsTable({ locked }: { locked: LockedPositionItem[] }) {
+function EFPHedgesTable({ locked }: { locked: LockedPositionItem[] }) {
+  const totalPnl = locked.reduce((s, l) => s + (l.gainLossUsd ?? 0), 0);
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-slate-800/50">
-            {["Ticket", "Site", "Delivery", "ZC", "Lots", "Fut.Buy", "Fut.Sell", "P&L \u00a2/bu", "P&L $", "Board", "Basis", "Freight", "All-In $/bu", "Eff.All-In $/bu"].map((h) => (
-              <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {locked.length === 0 && (
-            <tr><td colSpan={14} className="px-4 py-8 text-center text-slate-500 text-sm">No EFP positions locked yet</td></tr>
-          )}
-          {locked.map((l) => {
-            const pnlPositive = (l.gainLossCentsBu ?? 0) > 0;
-            const pnlNegative = (l.gainLossCentsBu ?? 0) < 0;
-            const pnlColor = pnlPositive ? "text-emerald-400" : pnlNegative ? "text-red-400" : "text-slate-400";
-            return (
-              <tr key={l.efpTicketId} className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
-                <td className="px-3 py-3 font-mono text-slate-300 text-xs">{l.ticketRef}</td>
-                <td className="px-3 py-3"><span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">{l.siteCode}</span></td>
-                <td className="px-3 py-3 font-mono text-slate-400 text-xs">{l.deliveryMonth}</td>
-                <td className="px-3 py-3">
-                  <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono">{l.futuresMonth}</span>
-                </td>
-                <td className="px-3 py-3 text-slate-300">{l.lots}</td>
-                <td className="px-3 py-3 text-slate-300 font-mono">{centsToUsd(l.futuresBuyPrice)}</td>
-                <td className="px-3 py-3 text-emerald-400 font-mono">{centsToUsd(l.futuresSellPrice)}</td>
-                <td className={cn("px-3 py-3 font-mono font-semibold", pnlColor)}>
-                  {l.gainLossCentsBu != null ? `${l.gainLossCentsBu > 0 ? "+" : ""}${(l.gainLossCentsBu / 100).toFixed(4)}` : "\u2013"}
-                </td>
-                <td className={cn("px-3 py-3 font-semibold", pnlColor)}>
-                  {l.gainLossUsd != null ? fmtPnl(l.gainLossUsd) : "\u2013"}
-                </td>
-                <td className="px-3 py-3 text-emerald-400 font-mono">{centsToUsd(l.boardPrice)}</td>
-                <td className="px-3 py-3 text-slate-400 font-mono">{l.basisValue != null ? (l.basisValue / 100).toFixed(4) : "\u2013"}</td>
-                <td className="px-3 py-3 text-slate-400 font-mono">{fmt2(l.freightValue)}</td>
-                <td className="px-3 py-3 text-emerald-300 font-semibold">{l.allInPricePerMt != null ? `$${(l.allInPricePerMt / BUSHELS_PER_MT).toFixed(4)}` : "\u2013"}</td>
-                <td className="px-3 py-3">
-                  {l.effectiveAllInPerMt != null ? (
-                    <span className="text-cyan-300 font-semibold">${(l.effectiveAllInPerMt / BUSHELS_PER_MT).toFixed(4)}</span>
-                  ) : <span className="text-slate-600">&ndash;</span>}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-slate-800/50">
+              {["Ticket", "Dir", "ZC", "Lots", "Bu", "Trade Date", "Price $/bu", "P&L \u00a2/bu", "P&L $"].map((h) => (
+                <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {locked.length === 0 && (
+              <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-500 text-sm">No EFP positions locked yet</td></tr>
+            )}
+            {locked.map((l) => {
+              const bu = l.lots * 5000;
+              const pnlColor = (l.gainLossCentsBu ?? 0) > 0 ? "text-emerald-400" : (l.gainLossCentsBu ?? 0) < 0 ? "text-red-400" : "text-slate-400";
+              return (
+                <Fragment key={l.efpTicketId}>
+                  {/* Buy row */}
+                  <tr className="border-t border-slate-800 hover:bg-slate-800/30">
+                    <td className="px-3 py-2 font-mono text-slate-300 text-xs" rowSpan={2}>{l.ticketRef}</td>
+                    <td className="px-3 py-2"><span className="bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded text-xs font-semibold">BUY</span></td>
+                    <td className="px-3 py-2"><span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{l.futuresMonth}</span></td>
+                    <td className="px-3 py-2 text-slate-300">{l.lots}</td>
+                    <td className="px-3 py-2 text-slate-300">{fmtVol(bu)}</td>
+                    <td className="px-3 py-2 text-slate-500 text-xs font-mono">{l.efpDate}</td>
+                    <td className="px-3 py-2 text-slate-300 font-mono">{centsToUsd(l.futuresBuyPrice)}</td>
+                    <td className="px-3 py-2" rowSpan={2}>
+                      <span className={cn("font-mono font-semibold", pnlColor)}>
+                        {l.gainLossCentsBu != null ? `${l.gainLossCentsBu > 0 ? "+" : ""}${(l.gainLossCentsBu / 100).toFixed(4)}` : "\u2013"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2" rowSpan={2}>
+                      <span className={cn("font-semibold", pnlColor)}>
+                        {l.gainLossUsd != null ? fmtPnl(l.gainLossUsd) : "\u2013"}
+                      </span>
+                    </td>
+                  </tr>
+                  {/* Sell row */}
+                  <tr className="border-t border-slate-800/50 hover:bg-slate-800/30">
+                    <td className="px-3 py-2"><span className="bg-red-500/15 text-red-300 px-2 py-0.5 rounded text-xs font-semibold">SELL</span></td>
+                    <td className="px-3 py-2"><span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{l.futuresMonth}</span></td>
+                    <td className="px-3 py-2 text-slate-300">{l.lots}</td>
+                    <td className="px-3 py-2 text-slate-300">{fmtVol(bu)}</td>
+                    <td className="px-3 py-2 text-slate-500 text-xs font-mono">{l.efpDate}</td>
+                    <td className="px-3 py-2 text-emerald-400 font-mono">{centsToUsd(l.futuresSellPrice)}</td>
+                  </tr>
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {locked.length > 0 && (
+        <div className="px-5 py-3 border-t border-slate-800 bg-slate-800/30">
+          <span className="text-xs text-slate-400">
+            Total Realized (EFP):{" "}
+            <span className={cn("font-semibold", totalPnl > 0 ? "text-emerald-400" : totalPnl < 0 ? "text-red-400" : "text-slate-400")}>
+              {fmtPnl(totalPnl)}
+            </span>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Offset Hedges Table (Buy/Sell Pairs) ───────────────────────────────────
+
+function OffsetHedgesTable({ offsets }: { offsets: OffsetItem[] }) {
+  const totalPnl = offsets.reduce((s, o) => s + o.pnlUsd, 0);
+
+  return (
+    <div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-slate-800/50">
+              {["Trade", "Dir", "ZC", "Lots", "Bu", "Date", "Price $/bu", "P&L \u00a2/bu", "P&L $"].map((h) => (
+                <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {offsets.length === 0 && (
+              <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-500 text-sm">No offset hedges yet</td></tr>
+            )}
+            {offsets.map((o) => {
+              const pnlColor = o.pnlCentsBu > 0 ? "text-emerald-400" : o.pnlCentsBu < 0 ? "text-red-400" : "text-slate-400";
+              return (
+                <Fragment key={o.offsetId}>
+                  {/* Buy row */}
+                  <tr className="border-t border-slate-800 hover:bg-slate-800/30">
+                    <td className="px-3 py-2 font-mono text-slate-300 text-xs">{o.tradeRef}</td>
+                    <td className="px-3 py-2"><span className="bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded text-xs font-semibold">BUY</span></td>
+                    <td className="px-3 py-2"><span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{o.futuresMonth}</span></td>
+                    <td className="px-3 py-2 text-slate-300">{o.lots}</td>
+                    <td className="px-3 py-2 text-slate-300">{fmtVol(o.bushels)}</td>
+                    <td className="px-3 py-2 text-slate-500 text-xs font-mono">{o.offsetDate}</td>
+                    <td className="px-3 py-2 text-slate-300 font-mono">{centsToUsd(o.entryPrice)}</td>
+                    <td className="px-3 py-2" rowSpan={2}>
+                      <span className={cn("font-mono font-semibold", pnlColor)}>
+                        {`${o.pnlCentsBu > 0 ? "+" : ""}${(o.pnlCentsBu / 100).toFixed(4)}`}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2" rowSpan={2}>
+                      <span className={cn("font-semibold", pnlColor)}>
+                        {fmtPnl(o.pnlUsd)}
+                      </span>
+                    </td>
+                  </tr>
+                  {/* Sell row */}
+                  <tr className="border-t border-slate-800/50 hover:bg-slate-800/30">
+                    <td className="px-3 py-2 font-mono text-amber-400 text-xs">OFFSET</td>
+                    <td className="px-3 py-2"><span className="bg-red-500/15 text-red-300 px-2 py-0.5 rounded text-xs font-semibold">SELL</span></td>
+                    <td className="px-3 py-2"><span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{o.futuresMonth}</span></td>
+                    <td className="px-3 py-2 text-slate-300">{o.lots}</td>
+                    <td className="px-3 py-2 text-slate-300">{fmtVol(o.bushels)}</td>
+                    <td className="px-3 py-2 text-slate-500 text-xs font-mono">{o.offsetDate}</td>
+                    <td className="px-3 py-2 text-emerald-400 font-mono">{centsToUsd(o.exitPrice)}</td>
+                  </tr>
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {offsets.length > 0 && (
+        <div className="px-5 py-3 border-t border-slate-800 bg-slate-800/30">
+          <span className="text-xs text-slate-400">
+            Total Realized (Offset):{" "}
+            <span className={cn("font-semibold", totalPnl > 0 ? "text-emerald-400" : totalPnl < 0 ? "text-red-400" : "text-slate-400")}>
+              {fmtPnl(totalPnl)}
+            </span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -1083,7 +1154,7 @@ export default function SitesPage() {
     let result = allocations;
     if (siteFilter) result = result.filter((a) => a.siteCode === siteFilter);
     if (budgetMonth) result = result.filter((a) => a.budgetMonth === budgetMonth);
-    return result;
+    return result.filter((a) => a.openAllocatedLots > 0);
   }, [allocations, siteFilter, budgetMonth]);
 
   const filteredPhysical = useMemo(() => {
@@ -1099,6 +1170,12 @@ export default function SitesPage() {
     if (budgetMonth) result = result.filter((l) => l.deliveryMonth === budgetMonth);
     return result;
   }, [locked, siteFilter, budgetMonth]);
+
+  const filteredOffsets = useMemo(() => {
+    let result = offsets;
+    if (siteFilter) result = result.filter((o) => o.siteCode === siteFilter);
+    return result;
+  }, [offsets, siteFilter]);
 
   const filterLabel = [siteFilter, budgetMonth ? monthLabel(budgetMonth) : ""].filter(Boolean).join(" \u00b7 ");
 
@@ -1191,15 +1268,25 @@ export default function SitesPage() {
         />
       )}
 
-      {/* Allocated Hedges */}
+      {/* 1. Site Summary */}
+      {siteFilter && (
+        <SiteSummary
+          allocations={allocations}
+          lockedPositions={locked}
+          offsets={offsets}
+          siteCode={siteFilter}
+        />
+      )}
+
+      {/* 2. Open Hedges */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800">
           <h2 className="text-sm font-semibold text-slate-200">
-            Allocated Hedges{filterLabel && ` \u00b7 ${filterLabel}`}
+            Open Hedges{filterLabel && ` \u00b7 ${filterLabel}`}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            {filteredAllocations.length} allocation{filteredAllocations.length !== 1 ? "s" : ""} &middot;{" "}
-            {fmtVol(filteredAllocations.reduce((s, a) => s + a.allocatedBushels, 0))} bu allocated
+            {filteredAllocations.length} open allocation{filteredAllocations.length !== 1 ? "s" : ""} &middot;{" "}
+            {fmtVol(filteredAllocations.reduce((s, a) => s + a.openAllocatedLots * 5000, 0))} bu open
           </p>
         </div>
         <SiteAllocationsTable
@@ -1211,12 +1298,40 @@ export default function SitesPage() {
         />
       </div>
 
-      {/* Physical Commitments */}
+      {/* 3. EFP Hedges */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-800">
+          <h2 className="text-sm font-semibold text-slate-200">
+            EFP Hedges{filterLabel && ` \u00b7 ${filterLabel}`}
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {filteredLocked.length} EFP ticket{filteredLocked.length !== 1 ? "s" : ""} &middot;{" "}
+            {filteredLocked.reduce((s, l) => s + l.lots, 0)} lots locked
+          </p>
+        </div>
+        <EFPHedgesTable locked={filteredLocked} />
+      </div>
+
+      {/* 4. Offset Hedges */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-800">
+          <h2 className="text-sm font-semibold text-slate-200">
+            Offset Hedges{filterLabel && ` \u00b7 ${filterLabel}`}
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {filteredOffsets.length} offset{filteredOffsets.length !== 1 ? "s" : ""} &middot;{" "}
+            {fmtVol(filteredOffsets.reduce((s, o) => s + o.bushels, 0))} bu offset
+          </p>
+        </div>
+        <OffsetHedgesTable offsets={filteredOffsets} />
+      </div>
+
+      {/* 5. Physical Positions */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-slate-200">
-              Physical Commitments{filterLabel && ` \u00b7 ${filterLabel}`}
+              Physical Positions{filterLabel && ` \u00b7 ${filterLabel}`}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               {filteredPhysical.length} contract{filteredPhysical.length !== 1 ? "s" : ""} &middot;{" "}
@@ -1240,31 +1355,7 @@ export default function SitesPage() {
             />
           </div>
         )}
-        <PhysicalPositionsTable positions={filteredPhysical} settles={settles} />
-      </div>
-
-      {/* Site Cost Summary */}
-      {siteFilter && (
-        <SiteCostSummary
-          physicalPositions={physical}
-          lockedPositions={locked}
-          offsets={offsets}
-          siteCode={siteFilter}
-        />
-      )}
-
-      {/* Locked Positions */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-200">
-            Locked Positions &middot; EFP Executed{filterLabel && ` \u00b7 ${filterLabel}`}
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {filteredLocked.length} EFP ticket{filteredLocked.length !== 1 ? "s" : ""} &middot;{" "}
-            {filteredLocked.reduce((s, l) => s + l.lots, 0)} lots locked
-          </p>
-        </div>
-        <LockedPositionsTable locked={filteredLocked} />
+        <PhysicalPositionsTable positions={filteredPhysical} allocations={allocations} settles={settles} />
       </div>
     </div>
   );
