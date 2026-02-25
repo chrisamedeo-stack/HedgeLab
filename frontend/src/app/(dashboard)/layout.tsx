@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { isAuthenticated, logout, getUser } from "@/lib/auth";
@@ -123,9 +124,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           "flex items-center border-b border-b-default h-14 shrink-0",
           collapsed ? "justify-center px-0" : "px-4 gap-3"
         )}>
-          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-br from-action to-accent text-white font-bold text-sm shrink-0 shadow-sm shadow-action-20">
-            HL
-          </div>
+          <Image
+            src="/hedgelab-icon.png"
+            alt="HL"
+            width={28}
+            height={28}
+            className="shrink-0"
+          />
           {!collapsed && (
             <span className="text-sm font-semibold text-primary tracking-tight">HedgeLab</span>
           )}

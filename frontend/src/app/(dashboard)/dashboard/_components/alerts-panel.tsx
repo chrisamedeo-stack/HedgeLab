@@ -8,6 +8,7 @@ interface AlertsPanelProps {
   coverage: CoverageResponse[];
   positions: CornPositionResponse | undefined;
   contracts: PhysicalContractResponse[];
+  filterSiteCodes?: string[];
 }
 
 interface Alert {
@@ -15,11 +16,18 @@ interface Alert {
   message: string;
 }
 
-export function AlertsPanel({ coverage, positions, contracts }: AlertsPanelProps) {
+export function AlertsPanel({ coverage, positions, contracts, filterSiteCodes }: AlertsPanelProps) {
   const alerts: Alert[] = [];
 
+  const filteredCoverage = filterSiteCodes
+    ? coverage.filter((c) => filterSiteCodes.includes(c.siteCode))
+    : coverage;
+  const filteredContracts = filterSiteCodes
+    ? contracts.filter((c) => filterSiteCodes.includes(c.siteCode))
+    : contracts;
+
   // Over-hedged months
-  for (const site of coverage) {
+  for (const site of filteredCoverage) {
     for (const m of site.months ?? []) {
       if (m.coveragePct > 100) {
         alerts.push({
@@ -43,7 +51,7 @@ export function AlertsPanel({ coverage, positions, contracts }: AlertsPanelProps
   const now = new Date();
   const thirtyDaysOut = new Date(now);
   thirtyDaysOut.setDate(thirtyDaysOut.getDate() + 30);
-  const upcoming = contracts.filter((c) => {
+  const upcoming = filteredContracts.filter((c) => {
     if (c.status === "CANCELLED" || c.status === "CLOSED") return false;
     if (!c.deliveryMonth) return false;
     const deliveryDate = new Date(c.deliveryMonth + "-01");

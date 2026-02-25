@@ -11,7 +11,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        brand: { DEFAULT: "#3b82f6", dark: "#2563eb" },
+        brand: { DEFAULT: "#1383F4", dark: "#0D1775" },
 
         /* Surfaces */
         main:       "var(--bg-main)",

@@ -5,6 +5,7 @@ import { useCoverage } from "@/hooks/useCorn";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatNumber, formatPct } from "@/lib/format";
+import { fmtVol } from "@/lib/corn-format";
 import { TrendingUp, MapPin, Package, Layers, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CoverageStackedChart } from "./_components/coverage-stacked-chart";
@@ -36,12 +37,7 @@ function monthLabel(ym: string) {
 }
 
 function fmtBu(mt: number) {
-  const bu = mt * BUSHELS_PER_MT;
-  return bu >= 1_000_000
-    ? `${(bu / 1_000_000).toFixed(2)}M`
-    : bu >= 1_000
-    ? `${Math.round(bu / 1_000)}K`
-    : String(Math.round(bu));
+  return fmtVol(mt, "MT");
 }
 
 export default function CoveragePage() {

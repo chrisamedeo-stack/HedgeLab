@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { CoverageResponse } from "@/hooks/useCorn";
+import { SiteWithCountry } from "@/lib/dashboard-aggregation";
 import { cn } from "@/lib/utils";
 
 interface CoverageMiniProps {
   coverage: CoverageResponse[];
+  filterCountry?: string;
+  sites?: SiteWithCountry[];
 }
 
 function barColor(pct: number) {
@@ -20,8 +23,17 @@ function pctColor(pct: number) {
   return "text-destructive";
 }
 
-export function CoverageMini({ coverage }: CoverageMiniProps) {
-  const display = coverage.slice(0, 5);
+export function CoverageMini({ coverage, filterCountry, sites }: CoverageMiniProps) {
+  let filtered = coverage;
+  if (filterCountry && sites) {
+    const countrySites = new Set(
+      sites.filter((s) => s.country === filterCountry).map((s) => s.code)
+    );
+    filtered = coverage.filter((c) => countrySites.has(c.siteCode));
+  }
+  // Sort by lowest coverage first (most actionable)
+  const sorted = [...filtered].sort((a, b) => (a.coveragePct ?? 0) - (b.coveragePct ?? 0));
+  const display = sorted.slice(0, 5);
 
   if (display.length === 0) return null;
 
@@ -31,7 +43,7 @@ export function CoverageMini({ coverage }: CoverageMiniProps) {
         <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider">
           Coverage by Site
         </h2>
-        {coverage.length > 5 && (
+        {sorted.length > 5 && (
           <Link href="/corn/coverage" className="text-xs text-action hover:text-action-hover transition-colors">
             View all →
           </Link>

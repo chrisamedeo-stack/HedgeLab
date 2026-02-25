@@ -14,16 +14,14 @@ import {
 import { CornBudgetLineResponse, CoverageResponse } from "@/hooks/useCorn";
 import { BarChart3 } from "lucide-react";
 import { chartTheme } from "@/lib/chart-theme";
+import { fmtK } from "@/lib/chart-utils";
+import { formatNumber } from "@/lib/format";
 
 const BUSHELS_PER_MT = 39.3683;
 
 function monthLabel(ym: string) {
   if (!ym || ym.length < 7) return ym;
   return new Date(ym + "-01").toLocaleString("en-US", { month: "short", year: "2-digit" });
-}
-
-function fmtK(n: number) {
-  return n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${Math.round(n / 1_000)}K` : String(Math.round(n));
 }
 
 interface Props {
@@ -89,7 +87,7 @@ export function BudgetVsCommittedChart({ lines, coverage }: Props) {
             <YAxis tick={{ fontSize: 10, fill: chartTheme.tick }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
             <Tooltip
               contentStyle={{ backgroundColor: chartTheme.tooltipBg, border: `1px solid ${chartTheme.tooltipBorder}`, color: chartTheme.tooltipText, fontSize: 12 }}
-              formatter={(value: number, name: string) => [fmtK(value) + " bu", name]}
+              formatter={(value: number, name: string) => [formatNumber(Math.round(value)) + " bu", name]}
               labelFormatter={(label: string) => label}
             />
             <Legend wrapperStyle={{ fontSize: 11, color: "#94a3b8" }} />

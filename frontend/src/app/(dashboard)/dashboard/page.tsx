@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useSites, useBudget, useCoverage, usePositions, useContracts } from "@/hooks/useCorn";
+import { useAdminSites } from "@/hooks/useSettings";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SetupWizard } from "./_components/setup-wizard";
 import { KpiRow } from "./_components/kpi-row";
@@ -8,17 +10,28 @@ import { CoverageMini } from "./_components/coverage-mini";
 import { CoverageWaterfallChart } from "./_components/coverage-waterfall-chart";
 import { QuickActions } from "./_components/quick-actions";
 import { AlertsPanel } from "./_components/alerts-panel";
+import { DashboardBreadcrumb, ViewLevel } from "./_components/breadcrumb";
+import { CountryCards } from "./_components/country-cards";
+import { CountryView } from "./_components/country-view";
+import { SiteView } from "./_components/site-view";
+import { aggregateMtm, SiteWithCountry } from "@/lib/dashboard-aggregation";
 
 const BUSHELS_PER_MT = 39.3683;
 
 export default function DashboardPage() {
   const { sites, isLoading: sitesLoading } = useSites();
+  const { sites: adminSites, isLoading: adminSitesLoading } = useAdminSites();
   const { budget, isLoading: budgetLoading } = useBudget();
   const { coverage, isLoading: coverageLoading } = useCoverage();
   const { positions, isLoading: positionsLoading } = usePositions();
   const { contracts, isLoading: contractsLoading } = useContracts();
 
-  const isLoading = sitesLoading || budgetLoading || coverageLoading || positionsLoading || contractsLoading;
+  // Drill-down state
+  const [viewLevel, setViewLevel] = useState<ViewLevel>("company");
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedSite, setSelectedSite] = useState<string | null>(null);
+
+  const isLoading = sitesLoading || adminSitesLoading || budgetLoading || coverageLoading || positionsLoading || contractsLoading;
 
   if (isLoading) {
     return (
@@ -51,43 +64,120 @@ export default function DashboardPage() {
     );
   }
 
-  // Compute KPIs
-  const totalBudgetBu = budget.reduce((s, b) => s + (b.budgetVolumeBu ?? b.budgetVolumeMt * BUSHELS_PER_MT), 0);
+  // Use adminSites (which has the country field) for grouping
+  const sitesWithCountry: SiteWithCountry[] = adminSites.length > 0 ? adminSites : sites;
 
+  // Navigation handlers
+  function handleSelectCountry(country: string) {
+    setSelectedCountry(country);
+    setSelectedSite(null);
+    setViewLevel("country");
+  }
+
+  function handleSelectSite(siteCode: string) {
+    setSelectedSite(siteCode);
+    setViewLevel("site");
+  }
+
+  function handleBreadcrumbNavigate(level: ViewLevel) {
+    setViewLevel(level);
+    if (level === "company") {
+      setSelectedCountry(null);
+      setSelectedSite(null);
+    } else if (level === "country") {
+      setSelectedSite(null);
+    }
+  }
+
+  const selectedSiteName = selectedSite
+    ? (sitesWithCountry.find((s) => s.code === selectedSite)?.name ?? selectedSite)
+    : null;
+
+  // Company-level KPIs
+  const totalBudgetBu = budget.reduce((s, b) => s + (b.budgetVolumeBu ?? b.budgetVolumeMt * BUSHELS_PER_MT), 0);
   const totalBudgetedMt = coverage.reduce((s, c) => s + (c.budgetedMt ?? 0), 0);
   const totalHedgedMt = coverage.reduce((s, c) => s + (c.hedgedMt ?? 0), 0);
   const hedgeCoveragePct = totalBudgetedMt > 0 ? (totalHedgedMt / totalBudgetedMt) * 100 : 0;
-
   const openHedgeLots = positions?.hedgeBook?.reduce((s, h) => s + (h.openLots ?? 0), 0) ?? 0;
-
-  const activeContracts = contracts.filter(
-    (c) => c.status !== "CANCELLED" && c.status !== "CLOSED"
-  ).length;
+  const portfolioMtm = aggregateMtm(positions?.hedgeBook);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-primary">Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-primary">Dashboard</h1>
+          {viewLevel !== "company" && (
+            <div className="mt-1">
+              <DashboardBreadcrumb
+                viewLevel={viewLevel}
+                selectedCountry={selectedCountry}
+                selectedSiteName={selectedSiteName}
+                onNavigate={handleBreadcrumbNavigate}
+              />
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Show wizard if setup is incomplete */}
-      {(!hasBudget || !hasPositions) && (
+      {(!hasBudget || !hasPositions) && viewLevel === "company" && (
         <SetupWizard hasSites={hasSites} hasBudget={hasBudget} hasPositions={hasPositions} />
       )}
 
-      <KpiRow
-        totalBudgetBu={totalBudgetBu}
-        hedgeCoveragePct={hedgeCoveragePct}
-        openHedgeLots={openHedgeLots}
-        activeContracts={activeContracts}
-      />
+      {/* ─── Company View ─────────────────────────────────────────────────── */}
+      {viewLevel === "company" && (
+        <>
+          <KpiRow
+            cards={[
+              { label: "Total Budget", value: totalBudgetBu, unit: "bu" },
+              { label: "Hedge Coverage", value: hedgeCoveragePct, unit: "pct" },
+              { label: "Open Hedge Lots", value: openHedgeLots, unit: "count" },
+              { label: "Portfolio MTM", value: portfolioMtm, unit: "usd" },
+            ]}
+          />
 
-      <CoverageWaterfallChart coverage={coverage} />
+          <CountryCards
+            coverage={coverage}
+            sites={sitesWithCountry}
+            hedgeBook={positions?.hedgeBook}
+            onSelectCountry={handleSelectCountry}
+          />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <CoverageMini coverage={coverage} />
-        <AlertsPanel coverage={coverage} positions={positions} contracts={contracts} />
-      </div>
+          <CoverageWaterfallChart coverage={coverage} />
 
-      <QuickActions />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CoverageMini coverage={coverage} sites={sitesWithCountry} />
+            <AlertsPanel coverage={coverage} positions={positions} contracts={contracts} />
+          </div>
+
+          <QuickActions />
+        </>
+      )}
+
+      {/* ─── Country View ─────────────────────────────────────────────────── */}
+      {viewLevel === "country" && selectedCountry && (
+        <CountryView
+          country={selectedCountry}
+          coverage={coverage}
+          positions={positions}
+          contracts={contracts}
+          sites={sitesWithCountry}
+          budget={budget}
+          onSelectSite={handleSelectSite}
+        />
+      )}
+
+      {/* ─── Site View ────────────────────────────────────────────────────── */}
+      {viewLevel === "site" && selectedSite && (
+        <SiteView
+          siteCode={selectedSite}
+          coverage={coverage}
+          positions={positions}
+          contracts={contracts}
+          budget={budget}
+          sites={sitesWithCountry}
+        />
+      )}
     </div>
   );
 }

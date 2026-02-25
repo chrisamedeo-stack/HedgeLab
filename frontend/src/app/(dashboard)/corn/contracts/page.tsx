@@ -22,11 +22,7 @@ import { FiscalYearContractGrid } from "./_components/fiscal-year-contract-grid"
 
 function fmtBu(n: number | null | undefined) {
   if (n == null) return "—";
-  return n >= 1_000_000
-    ? `${(n / 1_000_000).toFixed(2)}M`
-    : n >= 1_000
-    ? `${Math.round(n / 1_000)}K`
-    : String(Math.round(n));
+  return Math.round(n).toLocaleString("en-US");
 }
 function fmtPrice(n: number | null | undefined) {
   if (n == null) return "—";

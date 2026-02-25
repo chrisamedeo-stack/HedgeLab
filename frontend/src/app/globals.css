@@ -3,65 +3,72 @@
 @tailwind utilities;
 
 :root {
-  /* Surfaces */
-  --bg-main:       #0D1117;
-  --bg-surface:    #161B22;
-  --bg-overlay:    #1F2937;
-  --bg-input:      #21262D;
-  --bg-hover:      #30363D;
-  --bg-row-hover:  #30363D99;
+  /* ── StoneX Digital Style Guide V1.0 ─────────────────────────────────────── */
 
-  /* Borders */
-  --border-default: #30363D;
-  --border-input:   #3D444D;
+  /* Surfaces — Midnight Blue + Saturated tints */
+  --bg-main:       #040C17;   /* Midnight Blue */
+  --bg-surface:    #0D1C30;   /* Sat 1000 */
+  --bg-overlay:    #1A2E49;   /* Sat 900 */
+  --bg-input:      #121F30;   /* Dark-theme container fill */
+  --bg-hover:      #1A2E49;   /* Sat 900 */
+  --bg-row-hover:  #1A2E4960; /* Sat 900 @ 38% */
 
-  /* Text */
-  --text-primary:     #FAF9F6;
-  --text-secondary:   #C9D1D9;
-  --text-muted:       #8B949E;
-  --text-faint:       #6E7681;
-  --text-placeholder: #484F58;
+  /* Borders — Sat tints */
+  --border-default: #2B4362;  /* Sat 800 */
+  --border-input:   #425A7C;  /* Sat 700 */
 
-  /* Semantic colors */
-  --color-primary:          #185ABF;
-  --color-primary-hover:    #2870D6;
-  --color-profit:           #3FB68B;
-  --color-profit-hover:     #56D1A0;
-  --color-loss:             #E2725B;
-  --color-destructive:      #F85149;
-  --color-destructive-hover:#FF6E65;
-  --color-warning:          #E3B341;
-  --color-warning-hover:    #ECCC6B;
-  --color-accent:           #BC8CFF;
-  --color-neutral:          #778DA9;
-  --color-focus:            #388BFD;
+  /* Text — Sat tints (light end) */
+  --text-primary:     #F3F8FE; /* Sat 50 */
+  --text-secondary:   #B3C0D3; /* Sat 300 */
+  --text-muted:       #7B90AE; /* Sat 500 */
+  --text-faint:       #5C7495; /* Sat 600 */
+  --text-placeholder: #425A7C; /* Sat 700 */
 
-  /* Opacity variants */
-  --color-primary-5:  #185ABF0D;  --color-primary-10: #185ABF1A;
-  --color-primary-15: #185ABF26;  --color-primary-20: #185ABF33;
-  --color-primary-30: #185ABF4D;
+  /* Semantic — StoneX core + functional colours */
+  --color-primary:          #1383F4; /* Light Blue */
+  --color-primary-hover:    #4A9DF7;
+  --color-profit:           #38A236; /* Green 400 */
+  --color-profit-hover:     #6AB968; /* Green 300 */
+  --color-loss:             #F14444; /* Red 400 */
+  --color-destructive:      #EB0000; /* Red 500 */
+  --color-destructive-hover:#F14444; /* Red 400 */
+  --color-warning:          #F29E1A; /* Orange 500 */
+  --color-warning-hover:    #F5B148; /* Orange 400 */
+  --color-accent:           #7B90AE; /* Sat 500 — visible on dark bg */
+  --color-neutral:          #7B90AE; /* Sat 500 */
+  --color-focus:            #1383F4; /* Light Blue */
 
-  --color-profit-5:  #3FB68B0D;   --color-profit-10: #3FB68B1A;
-  --color-profit-15: #3FB68B26;   --color-profit-20: #3FB68B33;
-  --color-profit-25: #3FB68B40;   --color-profit-30: #3FB68B4D;
-  --color-profit-40: #3FB68B66;
+  /* Opacity variants — primary #1383F4 */
+  --color-primary-5:  #1383F40D;  --color-primary-10: #1383F41A;
+  --color-primary-15: #1383F426;  --color-primary-20: #1383F433;
+  --color-primary-30: #1383F44D;
 
-  --color-destructive-5:  #F851490D;  --color-destructive-10: #F851491A;
-  --color-destructive-15: #F8514926;  --color-destructive-20: #F8514933;
-  --color-destructive-30: #F851494D;
+  /* Opacity variants — profit #38A236 */
+  --color-profit-5:  #38A2360D;   --color-profit-10: #38A2361A;
+  --color-profit-15: #38A23626;   --color-profit-20: #38A23633;
+  --color-profit-25: #38A23640;   --color-profit-30: #38A2364D;
+  --color-profit-40: #38A23666;
 
-  --color-warning-5:  #E3B3410D;   --color-warning-10: #E3B3411A;
-  --color-warning-15: #E3B34126;   --color-warning-20: #E3B34133;
-  --color-warning-25: #E3B34140;   --color-warning-30: #E3B3414D;
+  /* Opacity variants — destructive #EB0000 */
+  --color-destructive-5:  #EB00000D;  --color-destructive-10: #EB00001A;
+  --color-destructive-15: #EB000026;  --color-destructive-20: #EB000033;
+  --color-destructive-30: #EB00004D;
 
-  --color-accent-10: #BC8CFF1A;   --color-accent-15: #BC8CFF26;
-  --color-accent-20: #BC8CFF33;   --color-accent-40: #BC8CFF66;
+  /* Opacity variants — warning #F29E1A */
+  --color-warning-5:  #F29E1A0D;   --color-warning-10: #F29E1A1A;
+  --color-warning-15: #F29E1A26;   --color-warning-20: #F29E1A33;
+  --color-warning-25: #F29E1A40;   --color-warning-30: #F29E1A4D;
 
-  --color-neutral-15: #778DA926;   --color-neutral-20: #778DA933;
+  /* Opacity variants — accent #7B90AE */
+  --color-accent-10: #7B90AE1A;   --color-accent-15: #7B90AE26;
+  --color-accent-20: #7B90AE33;   --color-accent-40: #7B90AE66;
 
-  /* Chart */
-  --chart-1: #58A6FF;  --chart-2: #BC8CFF;  --chart-3: #3FB68B;
-  --chart-4: #FFA657;  --chart-5: #E3B341;  --chart-6: #F85149;
+  /* Opacity variants — neutral #7B90AE */
+  --color-neutral-15: #7B90AE26;   --color-neutral-20: #7B90AE33;
+
+  /* Chart — StoneX high-contrast range */
+  --chart-1: #1383F4;  --chart-2: #0D1775;  --chart-3: #078A04;
+  --chart-4: #F29E1A;  --chart-5: #F36666;  --chart-6: #AA3377;
 }
 
 @layer base {

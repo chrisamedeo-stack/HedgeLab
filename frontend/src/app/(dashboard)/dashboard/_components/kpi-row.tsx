@@ -1,18 +1,105 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, BarChart2, Activity, FileText, type LucideIcon } from "lucide-react";
+import { BookOpen, BarChart2, Activity, FileText, DollarSign, type LucideIcon } from "lucide-react";
 import { formatNumber } from "@/lib/format";
+import { fmtPnl, pnlColor } from "@/lib/corn-format";
 import { cn } from "@/lib/utils";
 
-interface KpiRowProps {
+// ─── Generic cards-based API ─────────────────────────────────────────────────
+
+export interface KpiCardDef {
+  label: string;
+  value: number;
+  unit: "bu" | "pct" | "count" | "usd";
+}
+
+interface GenericKpiRowProps {
+  cards: KpiCardDef[];
+}
+
+// ─── Legacy props (still used by the company-level page.tsx) ─────────────────
+
+interface LegacyKpiRowProps {
   totalBudgetBu: number;
   hedgeCoveragePct: number;
   openHedgeLots: number;
   activeContracts: number;
 }
 
-export function KpiRow({ totalBudgetBu, hedgeCoveragePct, openHedgeLots, activeContracts }: KpiRowProps) {
+type KpiRowProps = GenericKpiRowProps | LegacyKpiRowProps;
+
+function isGeneric(props: KpiRowProps): props is GenericKpiRowProps {
+  return "cards" in props;
+}
+
+const iconMap: Record<string, LucideIcon> = {
+  "Total Budget": BookOpen,
+  "Budget": BookOpen,
+  "Site Budget": BookOpen,
+  "Hedge Coverage": BarChart2,
+  "Open Hedge Lots": Activity,
+  "Active Contracts": FileText,
+  "Portfolio MTM": DollarSign,
+};
+
+const hrefMap: Record<string, string> = {
+  "Total Budget": "/corn/budget",
+  "Budget": "/corn/budget",
+  "Site Budget": "/corn/budget",
+  "Hedge Coverage": "/corn/coverage",
+  "Open Hedge Lots": "/corn/positions",
+  "Active Contracts": "/corn/contracts",
+  "Portfolio MTM": "/corn/positions",
+};
+
+function formatCardValue(value: number, unit: string): string {
+  switch (unit) {
+    case "bu":
+      return `${formatNumber(Math.round(value))} bu`;
+    case "pct":
+      return `${value.toFixed(1)}%`;
+    case "usd":
+      return fmtPnl(value);
+    case "count":
+    default:
+      return String(Math.round(value));
+  }
+}
+
+function highlightForCard(value: number, unit: string): "profit" | "warning" | "destructive" | undefined {
+  if (unit === "pct") {
+    return value >= 80 ? "profit" : value >= 50 ? "warning" : "destructive";
+  }
+  if (unit === "usd") {
+    return value >= 0 ? "profit" : "destructive";
+  }
+  return undefined;
+}
+
+export function KpiRow(props: KpiRowProps) {
+  if (isGeneric(props)) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {props.cards.map((card) => {
+          const highlight = highlightForCard(card.value, card.unit);
+          return (
+            <KpiCard
+              key={card.label}
+              label={card.label}
+              value={formatCardValue(card.value, card.unit)}
+              icon={iconMap[card.label] ?? BookOpen}
+              href={hrefMap[card.label] ?? "#"}
+              highlight={highlight}
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Legacy path
+  const { totalBudgetBu, hedgeCoveragePct, openHedgeLots, activeContracts } = props;
   const coverageColor =
     hedgeCoveragePct >= 80 ? "profit" :
     hedgeCoveragePct >= 50 ? "warning" : "destructive";

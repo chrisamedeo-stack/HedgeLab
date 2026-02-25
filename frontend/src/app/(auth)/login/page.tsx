@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { login } from "@/lib/auth";
 
 export default function LoginPage() {
@@ -29,14 +30,15 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-main bg-[radial-gradient(circle,#1e293b_1px,transparent_1px)] bg-[size:24px_24px]">
       <div className="bg-surface border border-b-default rounded-2xl p-8 w-full max-w-sm shadow-2xl">
         {/* Logo */}
-        <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-action text-white font-bold text-xl">
-            HL
-          </div>
-          <div className="text-center">
-            <h1 className="text-xl font-bold text-primary">HedgeLab CTRM</h1>
-            <p className="text-sm text-faint mt-0.5">Sign in to your account</p>
-          </div>
+        <div className="mb-8 flex flex-col items-center gap-4">
+          <Image
+            src="/hedgelab-logo.png"
+            alt="HedgeLab"
+            width={240}
+            height={56}
+            priority
+          />
+          <p className="text-sm text-faint">Sign in to your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -19,13 +19,16 @@ export function fmtBu(n: number | null | undefined): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
-export function fmtPnl(n: number | null | undefined): string {
+export function fmtPnl(n: number | null | undefined, compact = false): string {
   if (n == null) return "\u2013";
   const abs = Math.abs(n);
   const sign = n >= 0 ? "+" : "\u2212";
-  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}K`;
-  return `${sign}$${abs.toFixed(0)}`;
+  if (compact) {
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}K`;
+    return `${sign}$${abs.toFixed(0)}`;
+  }
+  return `${sign}$${abs.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
 export function fmtUsd(n: number | null | undefined): string {

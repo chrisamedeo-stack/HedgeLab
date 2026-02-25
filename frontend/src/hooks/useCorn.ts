@@ -120,6 +120,7 @@ export interface SiteResponse {
   id: number;
   code: string;
   name: string;
+  country: string;
   province: string;
   annualBudgetMt: number;
 }
