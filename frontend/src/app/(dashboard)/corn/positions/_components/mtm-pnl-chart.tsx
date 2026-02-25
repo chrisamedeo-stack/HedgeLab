@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { HedgeBookItem } from "@/hooks/useCorn";
 import { BarChart3 } from "lucide-react";
+import { chartTheme } from "@/lib/chart-theme";
 
 function fmtUsd(n: number) {
   if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
@@ -36,37 +37,37 @@ export function MtmPnlChart({ hedgeBook }: Props) {
 
   if (data.length === 0) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">
+      <div className="bg-surface border border-b-default rounded-lg p-5">
+        <h3 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-4">
           MTM P&amp;L by Trade
         </h3>
-        <div className="h-56 flex flex-col items-center justify-center text-slate-600">
+        <div className="h-56 flex flex-col items-center justify-center text-ph">
           <BarChart3 className="h-10 w-10 mb-2" />
           <p className="text-sm">No MTM data available</p>
-          <p className="text-xs text-slate-700 mt-1">Publish settle prices to calculate mark-to-market P&amp;L</p>
+          <p className="text-xs text-ph mt-1">Publish settle prices to calculate mark-to-market P&amp;L</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-      <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">
+    <div className="bg-surface border border-b-default rounded-lg p-5">
+      <h3 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-4">
         MTM P&amp;L by Trade
       </h3>
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-            <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-            <XAxis dataKey="ref" tick={{ fontSize: 9, fill: "#64748b" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} tickFormatter={fmtUsd} />
+            <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" />
+            <XAxis dataKey="ref" tick={{ fontSize: 9, fill: chartTheme.tick }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: chartTheme.tick }} axisLine={false} tickLine={false} tickFormatter={fmtUsd} />
             <Tooltip
-              contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", color: "#e2e8f0", fontSize: 12 }}
+              contentStyle={{ backgroundColor: chartTheme.tooltipBg, border: `1px solid ${chartTheme.tooltipBorder}`, color: chartTheme.tooltipText, fontSize: 12 }}
               formatter={(value: number) => [fmtUsd(value), "MTM P&L"]}
             />
             <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
               {data.map((entry, idx) => (
-                <Cell key={idx} fill={entry.pnl >= 0 ? "#10b981" : "#ef4444"} />
+                <Cell key={idx} fill={entry.pnl >= 0 ? chartTheme.profit : chartTheme.loss} />
               ))}
             </Bar>
           </BarChart>

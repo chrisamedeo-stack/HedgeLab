@@ -58,19 +58,19 @@ export function AlertsPanel({ coverage, positions, contracts }: AlertsPanelProps
 
   if (alerts.length === 0) {
     return (
-      <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-5 flex items-center gap-3">
-        <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
+      <div className="bg-profit-5 border border-profit-20 rounded-lg p-5 flex items-center gap-3">
+        <CheckCircle2 className="h-5 w-5 text-profit shrink-0" />
         <div>
-          <p className="text-sm font-medium text-emerald-300">All clear</p>
-          <p className="text-xs text-slate-500 mt-0.5">No alerts or actions needed right now.</p>
+          <p className="text-sm font-medium text-profit">All clear</p>
+          <p className="text-xs text-faint mt-0.5">No alerts or actions needed right now.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-      <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">
+    <div className="bg-surface border border-b-default rounded-lg p-5">
+      <h2 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-3">
         Alerts
       </h2>
       <div className="space-y-2">
@@ -80,19 +80,19 @@ export function AlertsPanel({ coverage, positions, contracts }: AlertsPanelProps
             className={cn(
               "flex items-start gap-3 p-3 rounded-lg border",
               alert.type === "warning"
-                ? "bg-amber-500/5 border-amber-500/20"
-                : "bg-blue-500/5 border-blue-500/20"
+                ? "bg-warning-5 border-warning-20"
+                : "bg-action-5 border-action-20"
             )}
           >
             <AlertTriangle
               className={cn(
                 "h-4 w-4 shrink-0 mt-0.5",
-                alert.type === "warning" ? "text-amber-400" : "text-blue-400"
+                alert.type === "warning" ? "text-warning" : "text-action"
               )}
             />
             <p className={cn(
               "text-sm",
-              alert.type === "warning" ? "text-amber-300" : "text-blue-300"
+              alert.type === "warning" ? "text-warning" : "text-action"
             )}>
               {alert.message}
             </p>

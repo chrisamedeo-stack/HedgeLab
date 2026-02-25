@@ -28,31 +28,31 @@ export default function PositionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Layers className="h-6 w-6 text-blue-400" />
-        <h1 className="text-xl font-bold text-slate-100">Position Matrix</h1>
+        <Layers className="h-6 w-6 text-action" />
+        <h1 className="text-xl font-bold text-primary">Position Matrix</h1>
       </div>
 
       {isLoading ? (
-        <p className="text-slate-500 text-sm">Loading positions…</p>
+        <p className="text-faint text-sm">Loading positions\u2026</p>
       ) : (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-auto">
+        <div className="bg-surface border border-b-default rounded-lg overflow-auto">
           <table className="text-sm">
-            <thead className="bg-slate-800/50 border-b border-slate-800">
+            <thead className="bg-input-bg/50 border-b border-b-default">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-800">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-faint uppercase tracking-wider sticky left-0 bg-input-bg">
                   Commodity / Month
                 </th>
                 {months.map((m) => (
-                  <th key={m} className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider font-mono whitespace-nowrap">
+                  <th key={m} className="px-4 py-3 text-right text-xs font-semibold text-faint uppercase tracking-wider font-mono whitespace-nowrap">
                     {m}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-b-default">
               {commodities.map((commodity) => (
-                <tr key={commodity} className="hover:bg-slate-800/40">
-                  <td className="px-4 py-2.5 font-medium text-slate-300 sticky left-0 bg-slate-900">{commodity}</td>
+                <tr key={commodity} className="hover:bg-row-hover">
+                  <td className="px-4 py-2.5 font-medium text-secondary sticky left-0 bg-surface">{commodity}</td>
                   {months.map((month) => {
                     const pos = positions?.find(
                       (p) => p.commodityCode === commodity && p.deliveryMonth === month
@@ -60,9 +60,9 @@ export default function PositionsPage() {
                     const qty = pos ? parseFloat(pos.netQuantity) : 0;
                     return (
                       <td key={month} className={`px-4 py-2.5 text-right font-mono text-xs ${
-                        qty > 0 ? "text-emerald-400" : qty < 0 ? "text-red-400" : "text-slate-600"
+                        qty > 0 ? "text-profit" : qty < 0 ? "text-loss" : "text-ph"
                       }`}>
-                        {qty !== 0 ? qty.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "—"}
+                        {qty !== 0 ? qty.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "\u2014"}
                       </td>
                     );
                   })}
@@ -70,7 +70,7 @@ export default function PositionsPage() {
               ))}
               {commodities.length === 0 && (
                 <tr>
-                  <td colSpan={months.length + 1} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={months.length + 1} className="px-4 py-8 text-center text-faint">
                     No positions
                   </td>
                 </tr>
@@ -82,28 +82,28 @@ export default function PositionsPage() {
 
       {/* Position list */}
       {positions && positions.length > 0 && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-slate-800/50 border-b border-slate-800">
+            <thead className="bg-input-bg/50 border-b border-b-default">
               <tr>
                 {["Book", "Commodity", "Month", "Type", "Net Qty", "Unit", "MtM USD"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-faint uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-b-default">
               {positions.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-800/40">
-                  <td className="px-4 py-2.5 text-slate-300">{p.bookCode}</td>
-                  <td className="px-4 py-2.5 text-slate-300">{p.commodityCode}</td>
-                  <td className="px-4 py-2.5 font-mono text-slate-300">{p.deliveryMonth}</td>
-                  <td className="px-4 py-2.5 text-slate-400">{p.positionType}</td>
+                <tr key={p.id} className="hover:bg-row-hover">
+                  <td className="px-4 py-2.5 text-secondary">{p.bookCode}</td>
+                  <td className="px-4 py-2.5 text-secondary">{p.commodityCode}</td>
+                  <td className="px-4 py-2.5 font-mono text-secondary">{p.deliveryMonth}</td>
+                  <td className="px-4 py-2.5 text-muted">{p.positionType}</td>
                   <td className={`px-4 py-2.5 font-mono text-right ${
-                    parseFloat(p.netQuantity) >= 0 ? "text-emerald-400" : "text-red-400"
+                    parseFloat(p.netQuantity) >= 0 ? "text-profit" : "text-loss"
                   }`}>{parseFloat(p.netQuantity).toLocaleString()}</td>
-                  <td className="px-4 py-2.5 text-slate-400">{p.quantityUnit}</td>
-                  <td className="px-4 py-2.5 text-right font-mono text-slate-300">
-                    {p.mtmValueUsd ? `$${Number(p.mtmValueUsd).toLocaleString()}` : "—"}
+                  <td className="px-4 py-2.5 text-muted">{p.quantityUnit}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-secondary">
+                    {p.mtmValueUsd ? `$${Number(p.mtmValueUsd).toLocaleString()}` : "\u2014"}
                   </td>
                 </tr>
               ))}

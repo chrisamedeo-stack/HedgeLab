@@ -1,0 +1,17 @@
+export const chartTheme = {
+  grid: "#1E293B",
+  tick: "#6E7681",
+  tooltipBg: "#1E293B",
+  tooltipBorder: "#30363D",
+  tooltipText: "#E2E8F0",
+  profit: "#3FB68B",
+  loss: "#F85149",
+  primary: "#58A6FF",
+  accent: "#BC8CFF",
+  warning: "#E3B341",
+  orange: "#FFA657",
+  unhedged: "#30363D",
+  committed: "#58A6FF",
+  hedged: "#3FB68B",
+  budget: "#E3B341",
+} as const;

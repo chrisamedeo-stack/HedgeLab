@@ -10,9 +10,9 @@ import type { AuditLog, Page } from "@/types/audit";
 import { ArrowLeft, Edit } from "lucide-react";
 
 const deliveryStatusStyle: Record<string, string> = {
-  COMPLETE:  "bg-emerald-500/10 text-emerald-400",
-  PARTIAL:   "bg-amber-500/10 text-amber-400",
-  CANCELLED: "bg-red-500/10 text-red-400",
+  COMPLETE:  "bg-profit-10 text-profit",
+  PARTIAL:   "bg-warning-10 text-warning",
+  CANCELLED: "bg-destructive-10 text-destructive",
 };
 
 export default function TradeDetailPage() {
@@ -30,24 +30,24 @@ export default function TradeDetailPage() {
     (u: string) => api.get<Page<AuditLog>>(u)
   );
 
-  if (!trade) return <div className="text-slate-500 p-6 text-sm">Loading…</div>;
+  if (!trade) return <div className="text-faint p-6 text-sm">Loading\u2026</div>;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/trades" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 transition-colors">
+        <Link href="/trades" className="flex items-center gap-1.5 text-sm text-faint hover:text-secondary transition-colors">
           <ArrowLeft className="h-4 w-4" />
           Trades
         </Link>
-        <h1 className="text-xl font-bold text-slate-100 font-mono">{trade.tradeReference}</h1>
-        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20">
+        <h1 className="text-xl font-bold text-primary font-mono">{trade.tradeReference}</h1>
+        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-profit-10 text-profit ring-1 ring-profit-20">
           {trade.status.replace(/_/g, " ")}
         </span>
         {(trade.status === "CONFIRMED" || trade.status === "AMENDED") && (
           <Link
             href={`/trades/${tradeId}/amend`}
-            className="ml-auto flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+            className="ml-auto flex items-center gap-2 px-3 py-1.5 text-sm bg-action hover:bg-action-hover text-white rounded-lg transition-colors"
           >
             <Edit className="h-3.5 w-3.5" />
             Amend Trade
@@ -56,15 +56,15 @@ export default function TradeDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-slate-800 flex gap-6">
+      <div className="border-b border-b-default flex gap-6">
         {(["details", "deliveries", "amendments"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`pb-3 text-sm font-medium capitalize border-b-2 transition-colors ${
               tab === t
-                ? "border-blue-500 text-blue-400"
-                : "border-transparent text-slate-500 hover:text-slate-300"
+                ? "border-action text-action"
+                : "border-transparent text-faint hover:text-secondary"
             }`}
           >
             {t}
@@ -73,7 +73,7 @@ export default function TradeDetailPage() {
       </div>
 
       {tab === "details" && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+        <div className="bg-surface border border-b-default rounded-lg p-6 grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
           {[
             ["Type",          trade.tradeType.replace(/_/g, " ")],
             ["Counterparty",  trade.counterpartyName],
@@ -84,51 +84,51 @@ export default function TradeDetailPage() {
             ["End Date",      trade.endDate],
             ["Quantity",      `${trade.quantity} ${trade.quantityUnit ?? ""}`],
             ["Pricing",       trade.pricingType],
-            ["Fixed Price",   trade.fixedPrice ?? "—"],
-            ["Price Index",   trade.priceIndexCode ?? "—"],
+            ["Fixed Price",   trade.fixedPrice ?? "\u2014"],
+            ["Price Index",   trade.priceIndexCode ?? "\u2014"],
             ["Spread",        trade.spread],
             ["Currency",      trade.currency],
-            ["Notional USD",  trade.notionalUsd ? `$${Number(trade.notionalUsd).toLocaleString()}` : "—"],
-            ["MtM USD",       trade.mtmValueUsd ? `$${Number(trade.mtmValueUsd).toLocaleString()}` : "—"],
-            ["Unrealized P&L",trade.unrealizedPnlUsd ? `$${Number(trade.unrealizedPnlUsd).toLocaleString()}` : "—"],
+            ["Notional USD",  trade.notionalUsd ? `$${Number(trade.notionalUsd).toLocaleString()}` : "\u2014"],
+            ["MtM USD",       trade.mtmValueUsd ? `$${Number(trade.mtmValueUsd).toLocaleString()}` : "\u2014"],
+            ["Unrealized P&L",trade.unrealizedPnlUsd ? `$${Number(trade.unrealizedPnlUsd).toLocaleString()}` : "\u2014"],
             ["Amendments",    String(trade.amendmentCount ?? 0)],
           ].map(([label, value]) => (
             <div key={label}>
-              <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</dt>
-              <dd className="mt-0.5 text-slate-200">{value}</dd>
+              <dt className="text-xs font-medium text-faint uppercase tracking-wide">{label}</dt>
+              <dd className="mt-0.5 text-secondary">{value}</dd>
             </div>
           ))}
         </div>
       )}
 
       {tab === "deliveries" && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-slate-800/50 border-b border-slate-800">
+            <thead className="bg-input-bg/50 border-b border-b-default">
               <tr>
                 {["Month", "Scheduled Qty", "Delivered Qty", "Status", "Location"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-faint uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-b-default">
               {deliveries?.length ? deliveries.map((d) => (
-                <tr key={d.id} className="hover:bg-slate-800/40">
-                  <td className="px-4 py-2.5 font-mono text-slate-300">{d.deliveryMonth}</td>
-                  <td className="px-4 py-2.5 text-slate-300">{d.scheduledQuantity}</td>
-                  <td className="px-4 py-2.5 text-slate-300">{d.deliveredQuantity}</td>
+                <tr key={d.id} className="hover:bg-row-hover">
+                  <td className="px-4 py-2.5 font-mono text-secondary">{d.deliveryMonth}</td>
+                  <td className="px-4 py-2.5 text-secondary">{d.scheduledQuantity}</td>
+                  <td className="px-4 py-2.5 text-secondary">{d.deliveredQuantity}</td>
                   <td className="px-4 py-2.5">
                     <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                      deliveryStatusStyle[d.status] ?? "bg-slate-700 text-slate-400"
+                      deliveryStatusStyle[d.status] ?? "bg-hover text-muted"
                     }`}>
                       {d.status}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-slate-500">{d.deliveryLocation ?? "—"}</td>
+                  <td className="px-4 py-2.5 text-faint">{d.deliveryLocation ?? "\u2014"}</td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">No delivery schedules</td>
+                  <td colSpan={5} className="px-4 py-8 text-center text-faint">No delivery schedules</td>
                 </tr>
               )}
             </tbody>
@@ -137,32 +137,32 @@ export default function TradeDetailPage() {
       )}
 
       {tab === "amendments" && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-slate-800/50 border-b border-slate-800">
+            <thead className="bg-input-bg/50 border-b border-b-default">
               <tr>
                 {["When", "By", "Action", "Summary"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-faint uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-b-default">
               {amendments?.content.length ? amendments.content.map((a) => (
-                <tr key={a.id} className="hover:bg-slate-800/40">
-                  <td className="px-4 py-2.5 text-xs font-mono text-slate-400">
+                <tr key={a.id} className="hover:bg-row-hover">
+                  <td className="px-4 py-2.5 text-xs font-mono text-muted">
                     {new Date(a.performedAt).toLocaleString()}
                   </td>
-                  <td className="px-4 py-2.5 text-slate-300">{a.performedBy}</td>
+                  <td className="px-4 py-2.5 text-secondary">{a.performedBy}</td>
                   <td className="px-4 py-2.5">
-                    <span className="inline-block rounded-full px-2 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-400">
+                    <span className="inline-block rounded-full px-2 py-0.5 text-xs font-medium bg-action-10 text-action">
                       {a.action}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-slate-500">{a.changeSummary}</td>
+                  <td className="px-4 py-2.5 text-faint">{a.changeSummary}</td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-slate-500">No amendment history</td>
+                  <td colSpan={4} className="px-4 py-8 text-center text-faint">No amendment history</td>
                 </tr>
               )}
             </tbody>

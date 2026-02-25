@@ -86,38 +86,38 @@ export function ForecastTab({
       {/* KPIs */}
       {lines.length > 0 && (
         <div className="grid grid-cols-4 gap-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Forecast Volume</p>
-            <p className="text-2xl font-bold tabular-nums text-slate-100">
+          <div className="bg-surface border border-b-default rounded-lg p-4">
+            <p className="text-xs text-faint uppercase tracking-wider mb-1">Forecast Volume</p>
+            <p className="text-2xl font-bold tabular-nums text-primary">
               {totalForecastMt > 0 ? `${fmtVol(Math.round(totalForecastMt * BUSHELS_PER_MT))} bu` : "\u2014"}
             </p>
           </div>
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Forecast vs Budget</p>
+          <div className="bg-surface border border-b-default rounded-lg p-4">
+            <p className="text-xs text-faint uppercase tracking-wider mb-1">Forecast vs Budget</p>
             <p className={cn("text-2xl font-bold tabular-nums",
-              totalVariance == null ? "text-slate-100"
-              : totalVariance < 0 ? "text-red-400"
-              : totalVariance > 0 ? "text-green-400"
-              : "text-slate-100")}>
+              totalVariance == null ? "text-primary"
+              : totalVariance < 0 ? "text-destructive"
+              : totalVariance > 0 ? "text-profit"
+              : "text-primary")}>
               {totalVariance != null
                 ? `${totalVariance > 0 ? "+" : ""}${fmtVol(Math.round(totalVariance * BUSHELS_PER_MT))} bu`
                 : "\u2014"}
             </p>
           </div>
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Hedge Coverage</p>
+          <div className="bg-surface border border-b-default rounded-lg p-4">
+            <p className="text-xs text-faint uppercase tracking-wider mb-1">Hedge Coverage</p>
             <p className={cn("text-2xl font-bold tabular-nums",
-              hedgeCoverage == null ? "text-slate-100"
-              : hedgeCoverage >= 100 ? "text-emerald-400"
-              : hedgeCoverage >= 50 ? "text-blue-400"
-              : "text-slate-100")}>
+              hedgeCoverage == null ? "text-primary"
+              : hedgeCoverage >= 100 ? "text-profit"
+              : hedgeCoverage >= 50 ? "text-action"
+              : "text-primary")}>
               {hedgeCoverage != null ? `${hedgeCoverage.toFixed(0)}%` : "\u2014"}
             </p>
           </div>
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Over-hedged</p>
+          <div className="bg-surface border border-b-default rounded-lg p-4">
+            <p className="text-xs text-faint uppercase tracking-wider mb-1">Over-hedged</p>
             <p className={cn("text-2xl font-bold tabular-nums",
-              overHedgedCount > 0 ? "text-orange-400" : "text-slate-100")}>
+              overHedgedCount > 0 ? "text-warning" : "text-primary")}>
               {overHedgedCount}
             </p>
           </div>
@@ -144,20 +144,20 @@ export function ForecastTab({
             const siteCoverage   = siteForecastMt > 0 ? (siteHedgedMt / siteForecastMt) * 100 : null;
 
             return (
-              <div key={siteCode} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                <div className="px-4 py-3 bg-slate-800/40 border-b border-slate-800 flex items-center justify-between">
+              <div key={siteCode} className="bg-surface border border-b-default rounded-lg overflow-hidden">
+                <div className="px-4 py-3 bg-input-bg/40 border-b border-b-default flex items-center justify-between">
                   <div>
-                    <span className="text-sm font-semibold text-slate-200">{siteName}</span>
-                    <span className="ml-2 text-xs text-slate-500">{siteCode}</span>
+                    <span className="text-sm font-semibold text-secondary">{siteName}</span>
+                    <span className="ml-2 text-xs text-faint">{siteCode}</span>
                   </div>
-                  <div className="flex gap-4 text-xs text-slate-400">
+                  <div className="flex gap-4 text-xs text-muted">
                     <span>{fmtVol(Math.round(siteForecastMt * BUSHELS_PER_MT))} bu forecast</span>
-                    <span className="text-slate-600">&middot;</span>
+                    <span className="text-ph">&middot;</span>
                     <span>{siteLines.length} line{siteLines.length !== 1 ? "s" : ""}</span>
                     {siteCoverage != null && (
                       <>
-                        <span className="text-slate-600">&middot;</span>
-                        <span className={cn(siteCoverage >= 100 ? "text-emerald-400" : siteCoverage >= 50 ? "text-blue-400" : "text-slate-400")}>
+                        <span className="text-ph">&middot;</span>
+                        <span className={cn(siteCoverage >= 100 ? "text-profit" : siteCoverage >= 50 ? "text-action" : "text-muted")}>
                           {siteCoverage.toFixed(0)}% hedged
                         </span>
                       </>
@@ -166,43 +166,43 @@ export function ForecastTab({
                 </div>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-slate-800/20 border-b border-slate-800">
+                    <tr className="bg-input-bg/20 border-b border-b-default">
                       <th className="w-8" />
-                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Month</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Budget Bu</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Forecast Bu</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Variance</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Hedged Bu</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Coverage %</th>
-                      <th className="px-4 py-2 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Notes</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-faint uppercase tracking-wider">Month</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Budget Bu</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Forecast Bu</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Variance</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Hedged Bu</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Coverage %</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-faint uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-faint uppercase tracking-wider">Notes</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800">
+                  <tbody className="divide-y divide-b-default">
                     {siteLines.map((line) => (
                       <ForecastRow key={line.id} line={line} onUpdated={mutate} />
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t border-slate-700 bg-slate-800/30">
-                      <td colSpan={2} className="px-4 py-2 text-xs text-slate-500 text-right font-medium">Subtotal</td>
-                      <td className="px-4 py-2 text-right tabular-nums font-semibold text-slate-500 text-xs">
+                    <tr className="border-t border-b-input bg-input-bg/30">
+                      <td colSpan={2} className="px-4 py-2 text-xs text-faint text-right font-medium">Subtotal</td>
+                      <td className="px-4 py-2 text-right tabular-nums font-semibold text-faint text-xs">
                         {fmtVol(Math.round(siteLines.reduce((s, l) => s + l.budgetVolumeMt, 0) * BUSHELS_PER_MT))}
                       </td>
-                      <td className="px-4 py-2 text-right tabular-nums font-semibold text-slate-300 text-xs">
+                      <td className="px-4 py-2 text-right tabular-nums font-semibold text-secondary text-xs">
                         {fmtVol(Math.round(siteForecastMt * BUSHELS_PER_MT))}
                       </td>
                       <td className="px-4 py-2 text-right tabular-nums text-xs font-medium">
                         {hasVariance ? (
-                          <span className={siteVarianceMt < 0 ? "text-red-400" : siteVarianceMt > 0 ? "text-green-400" : "text-slate-500"}>
+                          <span className={siteVarianceMt < 0 ? "text-destructive" : siteVarianceMt > 0 ? "text-profit" : "text-faint"}>
                             {siteVarianceMt > 0 ? "+" : ""}{fmtVol(Math.round(siteVarianceMt * BUSHELS_PER_MT))}
                           </span>
                         ) : ""}
                       </td>
-                      <td className="px-4 py-2 text-right tabular-nums text-slate-400 text-xs">{siteHedgedMt > 0 ? fmtVol(Math.round(siteHedgedMt * BUSHELS_PER_MT)) : ""}</td>
+                      <td className="px-4 py-2 text-right tabular-nums text-muted text-xs">{siteHedgedMt > 0 ? fmtVol(Math.round(siteHedgedMt * BUSHELS_PER_MT)) : ""}</td>
                       <td className="px-4 py-2 text-right tabular-nums text-xs font-medium">
                         {siteCoverage != null ? (
-                          <span className={cn(siteCoverage >= 100 ? "text-emerald-400" : siteCoverage >= 50 ? "text-blue-400" : "text-slate-400")}>
+                          <span className={cn(siteCoverage >= 100 ? "text-profit" : siteCoverage >= 50 ? "text-action" : "text-muted")}>
                             {siteCoverage.toFixed(0)}%
                           </span>
                         ) : ""}

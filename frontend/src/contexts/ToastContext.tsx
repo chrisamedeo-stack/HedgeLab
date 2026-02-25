@@ -19,15 +19,15 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 let nextId = 0;
 
 const borderColors: Record<ToastType, string> = {
-  success: "border-emerald-500",
-  error: "border-red-500",
-  info: "border-blue-500",
+  success: "border-profit",
+  error: "border-destructive",
+  info: "border-action",
 };
 
 const iconColors: Record<ToastType, string> = {
-  success: "text-emerald-400",
-  error: "text-red-400",
-  info: "text-blue-400",
+  success: "text-profit",
+  error: "text-destructive",
+  info: "text-action",
 };
 
 const labels: Record<ToastType, string> = {
@@ -54,12 +54,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`toast-slide pointer-events-auto flex items-start gap-3 rounded-lg bg-slate-800 border-l-4 px-4 py-3 shadow-xl min-w-[280px] max-w-sm ${borderColors[t.type]}`}
+            className={`toast-slide pointer-events-auto flex items-start gap-3 rounded-lg bg-input-bg border-l-4 px-4 py-3 shadow-xl min-w-[280px] max-w-sm ${borderColors[t.type]}`}
           >
             <span className={`text-xs font-semibold uppercase tracking-wider mt-0.5 ${iconColors[t.type]}`}>
               {labels[t.type]}
             </span>
-            <p className="text-sm text-slate-200 flex-1">{t.message}</p>
+            <p className="text-sm text-secondary flex-1">{t.message}</p>
           </div>
         ))}
       </div>

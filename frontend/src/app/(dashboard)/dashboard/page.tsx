@@ -23,16 +23,16 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-xl font-bold text-slate-100">Dashboard</h1>
+        <h1 className="text-xl font-bold text-primary">Dashboard</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+            <div key={i} className="bg-surface border border-b-default rounded-lg p-5 space-y-3">
               <Skeleton className="h-3 w-24" />
               <Skeleton className="h-7 w-16" />
             </div>
           ))}
         </div>
-        <Skeleton className="h-48 rounded-xl" />
+        <Skeleton className="h-48 rounded-lg" />
       </div>
     );
   }
@@ -45,7 +45,7 @@ export default function DashboardPage() {
   if (!hasSites) {
     return (
       <div className="space-y-6">
-        <h1 className="text-xl font-bold text-slate-100">Dashboard</h1>
+        <h1 className="text-xl font-bold text-primary">Dashboard</h1>
         <SetupWizard hasSites={hasSites} hasBudget={hasBudget} hasPositions={hasPositions} />
       </div>
     );
@@ -66,7 +66,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-100">Dashboard</h1>
+      <h1 className="text-xl font-bold text-primary">Dashboard</h1>
 
       {/* Show wizard if setup is incomplete */}
       {(!hasBudget || !hasPositions) && (

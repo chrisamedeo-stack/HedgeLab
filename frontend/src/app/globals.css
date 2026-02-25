@@ -2,21 +2,85 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Surfaces */
+  --bg-main:       #0D1117;
+  --bg-surface:    #161B22;
+  --bg-overlay:    #1F2937;
+  --bg-input:      #21262D;
+  --bg-hover:      #30363D;
+  --bg-row-hover:  #30363D99;
+
+  /* Borders */
+  --border-default: #30363D;
+  --border-input:   #3D444D;
+
+  /* Text */
+  --text-primary:     #FAF9F6;
+  --text-secondary:   #C9D1D9;
+  --text-muted:       #8B949E;
+  --text-faint:       #6E7681;
+  --text-placeholder: #484F58;
+
+  /* Semantic colors */
+  --color-primary:          #58A6FF;
+  --color-primary-hover:    #79B8FF;
+  --color-profit:           #3FB68B;
+  --color-profit-hover:     #56D1A0;
+  --color-loss:             #E2725B;
+  --color-destructive:      #F85149;
+  --color-destructive-hover:#FF6E65;
+  --color-warning:          #E3B341;
+  --color-warning-hover:    #ECCC6B;
+  --color-accent:           #BC8CFF;
+  --color-neutral:          #778DA9;
+
+  /* Opacity variants */
+  --color-primary-5:  #58A6FF0D;  --color-primary-10: #58A6FF1A;
+  --color-primary-15: #58A6FF26;  --color-primary-20: #58A6FF33;
+  --color-primary-30: #58A6FF4D;
+
+  --color-profit-5:  #3FB68B0D;   --color-profit-10: #3FB68B1A;
+  --color-profit-15: #3FB68B26;   --color-profit-20: #3FB68B33;
+  --color-profit-25: #3FB68B40;   --color-profit-30: #3FB68B4D;
+  --color-profit-40: #3FB68B66;
+
+  --color-destructive-5:  #F851490D;  --color-destructive-10: #F851491A;
+  --color-destructive-15: #F8514926;  --color-destructive-20: #F8514933;
+  --color-destructive-30: #F851494D;
+
+  --color-warning-5:  #E3B3410D;   --color-warning-10: #E3B3411A;
+  --color-warning-15: #E3B34126;   --color-warning-20: #E3B34133;
+  --color-warning-25: #E3B34140;   --color-warning-30: #E3B3414D;
+
+  --color-accent-10: #BC8CFF1A;   --color-accent-15: #BC8CFF26;
+  --color-accent-20: #BC8CFF33;   --color-accent-40: #BC8CFF66;
+
+  --color-neutral-15: #778DA926;   --color-neutral-20: #778DA933;
+
+  /* Chart */
+  --chart-1: #58A6FF;  --chart-2: #BC8CFF;  --chart-3: #3FB68B;
+  --chart-4: #FFA657;  --chart-5: #E3B341;  --chart-6: #F85149;
+}
+
 @layer base {
   * {
-    @apply border-slate-800;
+    border-color: var(--border-default);
   }
   body {
-    @apply bg-slate-950 text-slate-100 antialiased;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
   }
   ::-webkit-scrollbar {
     width: 5px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-slate-950;
+    background-color: var(--bg-main);
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-700 rounded-full;
+    background-color: var(--bg-hover);
+    border-radius: 9999px;
   }
 }
 

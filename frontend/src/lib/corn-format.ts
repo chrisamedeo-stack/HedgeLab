@@ -43,20 +43,20 @@ export function today(): string {
 }
 
 export function pnlColor(n: number | null | undefined): string {
-  if (n == null || n === 0) return "text-zinc-400";
-  return n > 0 ? "text-emerald-400" : "text-red-400";
+  if (n == null || n === 0) return "text-muted";
+  return n > 0 ? "text-profit" : "text-loss";
 }
 
 // ─── Shared CSS constants ────────────────────────────────────────────────────
 
 export const inputCls =
-  "bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500";
+  "bg-surface border border-b-input rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-action";
 
 export const btnPrimary =
-  "px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg font-medium disabled:opacity-50";
+  "px-4 py-1.5 bg-action hover:bg-action-hover text-white text-sm rounded-lg font-medium disabled:opacity-50";
 
 export const btnSecondary =
-  "px-4 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-sm rounded-lg font-medium";
+  "px-4 py-1.5 bg-hover hover:bg-overlay text-secondary text-sm rounded-lg font-medium";
 
 export const inputClsError =
-  "bg-zinc-900 border border-red-500 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-red-500";
+  "bg-surface border border-destructive rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-destructive";

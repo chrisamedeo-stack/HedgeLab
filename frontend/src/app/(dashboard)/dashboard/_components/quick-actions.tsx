@@ -16,13 +16,13 @@ export function QuickActions() {
         <Link
           key={href}
           href={href}
-          className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-blue-500/30 hover:bg-blue-500/5 transition-colors group"
+          className="bg-surface border border-b-default rounded-lg p-5 hover:border-action-30 hover:bg-action-5 transition-colors group"
         >
-          <Icon className="h-5 w-5 text-slate-600 group-hover:text-blue-400 transition-colors mb-3" />
-          <p className="text-sm font-medium text-slate-200 group-hover:text-blue-300 transition-colors">
+          <Icon className="h-5 w-5 text-ph group-hover:text-action transition-colors mb-3" />
+          <p className="text-sm font-medium text-secondary group-hover:text-action transition-colors">
             {label}
           </p>
-          <p className="text-xs text-slate-500 mt-1">{description}</p>
+          <p className="text-xs text-faint mt-1">{description}</p>
         </Link>
       ))}
     </div>

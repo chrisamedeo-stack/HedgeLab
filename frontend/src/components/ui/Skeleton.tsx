@@ -6,7 +6,7 @@ interface SkeletonProps {
 
 export function Skeleton({ className }: SkeletonProps) {
   return (
-    <div className={cn("bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 bg-[length:200%_100%] animate-shimmer rounded", className)} />
+    <div className={cn("bg-gradient-to-r from-input-bg via-hover to-input-bg bg-[length:200%_100%] animate-shimmer rounded", className)} />
   );
 }
 
@@ -17,9 +17,9 @@ interface SkeletonTableProps {
 
 export function SkeletonTable({ rows = 5, cols = 6 }: SkeletonTableProps) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+    <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
       <table className="w-full">
-        <thead className="bg-slate-800/50">
+        <thead className="bg-input-bg/50">
           <tr>
             {Array.from({ length: cols }).map((_, i) => (
               <th key={i} className="px-4 py-3">
@@ -28,7 +28,7 @@ export function SkeletonTable({ rows = 5, cols = 6 }: SkeletonTableProps) {
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-800">
+        <tbody className="divide-y divide-b-default">
           {Array.from({ length: rows }).map((_, rowIdx) => (
             <tr key={rowIdx}>
               {Array.from({ length: cols }).map((_, colIdx) => (

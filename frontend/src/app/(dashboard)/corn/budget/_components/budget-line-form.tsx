@@ -72,60 +72,60 @@ export function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editi
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
-      <h2 className="text-sm font-semibold text-slate-200">{editing ? "Edit Budget Line" : "New Budget Line"}</h2>
+    <form onSubmit={handleSubmit} className="bg-surface border border-b-default rounded-lg p-6 space-y-5">
+      <h2 className="text-sm font-semibold text-secondary">{editing ? "Edit Budget Line" : "New Budget Line"}</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <div className="space-y-1">
-          <label className="text-xs text-slate-400">Site</label>
+          <label className="text-xs text-muted">Site</label>
           <select value={form.siteCode} onChange={(e) => field("siteCode", e.target.value)} required
-            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
             <option value="">&mdash; Select &mdash;</option>
             {sites.map((s) => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-slate-400">Commodity</label>
+          <label className="text-xs text-muted">Commodity</label>
           <select value={form.commodityCode} onChange={(e) => field("commodityCode", e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
             {COMMODITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-slate-400">Budget Month</label>
+          <label className="text-xs text-muted">Budget Month</label>
           <input type="month" value={form.budgetMonth} onChange={(e) => field("budgetMonth", e.target.value)} required
-            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-slate-400">Futures Month</label>
+          <label className="text-xs text-muted">Futures Month</label>
           <input type="text" placeholder="e.g. ZCN26" value={form.futuresMonth} onChange={(e) => field("futuresMonth", e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-slate-400">Volume (bushels)</label>
+          <label className="text-xs text-muted">Volume (bushels)</label>
           <input type="number" step="1" min="0" placeholder="e.g. 196,842"
             value={form.budgetVolumeBu} onChange={(e) => field("budgetVolumeBu", e.target.value)} required
-            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
         </div>
       </div>
       {form.budgetMonth && (
-        <p className="text-xs text-slate-500">
-          Fiscal year: <span className="text-slate-300 font-medium">{fiscalYear}</span>
-          {form.futuresMonth && <> &middot; Futures: <span className="text-blue-400 font-medium">{form.futuresMonth}</span></>}
+        <p className="text-xs text-faint">
+          Fiscal year: <span className="text-secondary font-medium">{fiscalYear}</span>
+          {form.futuresMonth && <> &middot; Futures: <span className="text-action font-medium">{form.futuresMonth}</span></>}
         </p>
       )}
       <div className="space-y-2">
-        <label className="text-xs text-slate-400 block">Cost Components (optional)</label>
+        <label className="text-xs text-muted block">Cost Components (optional)</label>
         <ComponentEditor rows={components} onChange={setComponents} />
       </div>
       <div className="space-y-1">
-        <label className="text-xs text-slate-400">Notes</label>
+        <label className="text-xs text-muted">Notes</label>
         <input type="text" placeholder="Optional" value={form.notes} onChange={(e) => field("notes", e.target.value)}
-          className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+          className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
       </div>
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">Cancel</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">Cancel</button>
         <button type="submit" disabled={submitting}
-          className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+          className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
           {submitting ? "Saving\u2026" : editing ? "Update" : "Create"}
         </button>
       </div>

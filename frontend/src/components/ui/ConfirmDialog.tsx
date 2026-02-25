@@ -52,18 +52,18 @@ export function ConfirmDialog({
 
       {/* Card */}
       <div
-        className="relative bg-slate-900 border border-slate-800 rounded-xl p-6 w-full max-w-md mx-4 shadow-2xl"
+        className="relative bg-surface border border-b-default rounded-lg p-6 w-full max-w-md mx-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold text-slate-100">{title}</h2>
-        <p className="text-sm text-slate-400 mt-2">{description}</p>
+        <h2 className="text-lg font-semibold text-primary">{title}</h2>
+        <p className="text-sm text-muted mt-2">{description}</p>
 
         <div className="flex items-center justify-end gap-3 mt-6">
           <button
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-muted hover:text-secondary transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
@@ -74,8 +74,8 @@ export function ConfirmDialog({
             className={cn(
               "px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2",
               isDanger
-                ? "bg-red-600 hover:bg-red-500 text-white"
-                : "bg-amber-600 hover:bg-amber-500 text-white"
+                ? "bg-destructive hover:bg-destructive-hover text-white"
+                : "bg-warning hover:bg-warning-hover text-white"
             )}
           >
             {loading && (

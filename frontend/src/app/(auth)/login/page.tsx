@@ -26,22 +26,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 bg-[radial-gradient(circle,#1e293b_1px,transparent_1px)] bg-[size:24px_24px]">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 w-full max-w-sm shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-main bg-[radial-gradient(circle,#1e293b_1px,transparent_1px)] bg-[size:24px_24px]">
+      <div className="bg-surface border border-b-default rounded-2xl p-8 w-full max-w-sm shadow-2xl">
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-blue-600 text-white font-bold text-xl">
+          <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-action text-white font-bold text-xl">
             HL
           </div>
           <div className="text-center">
-            <h1 className="text-xl font-bold text-slate-100">HedgeLab CTRM</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Sign in to your account</p>
+            <h1 className="text-xl font-bold text-primary">HedgeLab CTRM</h1>
+            <p className="text-sm text-faint mt-0.5">Sign in to your account</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+            <label className="block text-sm font-medium text-secondary mb-1.5">
               Username
             </label>
             <input
@@ -50,13 +50,13 @@ export default function LoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               required
               autoFocus
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="w-full bg-input-bg border border-b-input rounded-lg px-3 py-2.5 text-sm text-primary placeholder:text-ph focus:outline-none focus:ring-2 focus:ring-action focus:border-transparent transition-colors"
               placeholder="username"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+            <label className="block text-sm font-medium text-secondary mb-1.5">
               Password
             </label>
             <input
@@ -64,13 +64,13 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="w-full bg-input-bg border border-b-input rounded-lg px-3 py-2.5 text-sm text-primary placeholder:text-ph focus:outline-none focus:ring-2 focus:ring-action focus:border-transparent transition-colors"
               placeholder="••••••••"
             />
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg px-3 py-2 text-sm">
+            <div className="bg-destructive-10 border border-destructive-30 text-destructive rounded-lg px-3 py-2 text-sm">
               {error}
             </div>
           )}
@@ -78,13 +78,13 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-lg py-2.5 text-sm font-medium disabled:opacity-50 transition-colors"
+            className="w-full bg-action hover:bg-action-hover text-white rounded-lg py-2.5 text-sm font-medium disabled:opacity-50 transition-colors"
           >
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? "Signing in\u2026" : "Sign in"}
           </button>
         </form>
 
-        <p className="text-xs text-slate-600 text-center mt-6">
+        <p className="text-xs text-ph text-center mt-6">
           Default: admin / admin123
         </p>
       </div>

@@ -19,14 +19,14 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const inputClass =
-  "w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder:text-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500";
+  "w-full bg-input-bg border border-b-input text-primary placeholder:text-ph rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action";
 
 function Field({ label, children, error }: { label: string; children: React.ReactNode; error?: string }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-400 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-muted mb-1">{label}</label>
       {children}
-      {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
+      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
     </div>
   );
 }
@@ -49,15 +49,15 @@ export default function AmendTradePage() {
   return (
     <div className="max-w-xl space-y-6">
       <div className="flex items-center gap-3">
-        <Link href={`/trades/${id}`} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 transition-colors">
+        <Link href={`/trades/${id}`} className="flex items-center gap-1.5 text-sm text-faint hover:text-secondary transition-colors">
           <ArrowLeft className="h-4 w-4" />
           Trade Detail
         </Link>
-        <h1 className="text-xl font-bold text-slate-100">Amend Trade</h1>
+        <h1 className="text-xl font-bold text-primary">Amend Trade</h1>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
-        <p className="text-sm text-slate-500">Only fill in the fields you want to change.</p>
+      <form onSubmit={handleSubmit(onSubmit)} className="bg-surface border border-b-default rounded-lg p-6 space-y-4">
+        <p className="text-sm text-faint">Only fill in the fields you want to change.</p>
 
         <Field label="New Quantity" error={errors.quantity?.message}>
           <input type="number" step="0.000001" {...register("quantity")}
@@ -86,13 +86,13 @@ export default function AmendTradePage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+            className="px-4 py-2 bg-action hover:bg-action-hover text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
           >
-            {isSubmitting ? "Submitting…" : "Submit Amendment"}
+            {isSubmitting ? "Submitting\u2026" : "Submit Amendment"}
           </button>
           <Link
             href={`/trades/${id}`}
-            className="px-4 py-2 border border-slate-700 text-slate-300 rounded-lg text-sm hover:bg-slate-800 transition-colors"
+            className="px-4 py-2 border border-b-input text-secondary rounded-lg text-sm hover:bg-input-bg transition-colors"
           >
             Cancel
           </Link>

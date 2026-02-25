@@ -36,52 +36,52 @@ export function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onCh
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-1.5">
-        <span className="text-xs text-zinc-500 self-center">Quick add:</span>
+        <span className="text-xs text-faint self-center">Quick add:</span>
         {PRESET_COMPONENTS.map((p) => (
           <button key={p.name} type="button" onClick={() => addPreset(p)}
-            className="px-2 py-0.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded border border-zinc-700 transition-colors">
+            className="px-2 py-0.5 bg-input-bg hover:bg-hover text-secondary text-xs rounded border border-b-input transition-colors">
             {p.name}
           </button>
         ))}
       </div>
       {rows.length > 0 && (
-        <div className="rounded-lg border border-zinc-700 overflow-hidden">
+        <div className="rounded-lg border border-b-input overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-zinc-800/60">
-                <th className="px-3 py-2 text-left text-xs text-zinc-500 font-medium">Component</th>
-                <th className="px-3 py-2 text-left text-xs text-zinc-500 font-medium w-28">Unit</th>
-                <th className="px-3 py-2 text-right text-xs text-zinc-500 font-medium w-32">Target Value</th>
-                <th className="px-3 py-2 text-right text-xs text-zinc-500 font-medium w-28">&asymp; $/bu</th>
+              <tr className="bg-input-bg/60">
+                <th className="px-3 py-2 text-left text-xs text-faint font-medium">Component</th>
+                <th className="px-3 py-2 text-left text-xs text-faint font-medium w-28">Unit</th>
+                <th className="px-3 py-2 text-right text-xs text-faint font-medium w-32">Target Value</th>
+                <th className="px-3 py-2 text-right text-xs text-faint font-medium w-28">&asymp; $/bu</th>
                 <th className="w-8" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800">
+            <tbody className="divide-y divide-b-default">
               {rows.map((r) => {
                 const val = parseFloat(r.targetValue);
                 const perBu = isNaN(val) ? null : r.unit === "$/bu" ? val : val / BUSHELS_PER_MT;
                 return (
-                  <tr key={r.key} className="hover:bg-zinc-800/30">
+                  <tr key={r.key} className="hover:bg-row-hover">
                     <td className="px-3 py-1.5">
                       <input type="text" value={r.componentName} onChange={(e) => updateRow(r.key, "componentName", e.target.value)}
-                        placeholder="e.g. Basis" className="w-full bg-transparent text-zinc-200 placeholder:text-zinc-600 focus:outline-none" />
+                        placeholder="e.g. Basis" className="w-full bg-transparent text-secondary placeholder:text-ph focus:outline-none" />
                     </td>
                     <td className="px-3 py-1.5">
                       <select value={r.unit} onChange={(e) => updateRow(r.key, "unit", e.target.value)}
-                        className="bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 w-full">
+                        className="bg-input-bg border border-b-input text-secondary text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-action w-full">
                         {UNIT_OPTIONS.map((u) => <option key={u}>{u}</option>)}
                         {!UNIT_OPTIONS.includes(r.unit) && <option value={r.unit}>{r.unit}</option>}
                       </select>
                     </td>
                     <td className="px-3 py-1.5 text-right">
                       <input type="number" step="any" value={r.targetValue} onChange={(e) => updateRow(r.key, "targetValue", e.target.value)}
-                        className="w-full bg-transparent text-zinc-200 text-right placeholder:text-zinc-600 focus:outline-none tabular-nums" />
+                        className="w-full bg-transparent text-secondary text-right placeholder:text-ph focus:outline-none tabular-nums" />
                     </td>
-                    <td className="px-3 py-1.5 text-right text-zinc-400 tabular-nums text-xs">
+                    <td className="px-3 py-1.5 text-right text-muted tabular-nums text-xs">
                       {perBu != null ? perBu.toFixed(4) : "\u2014"}
                     </td>
                     <td className="px-3 py-1.5 text-center">
-                      <button type="button" onClick={() => removeRow(r.key)} className="text-zinc-600 hover:text-red-400 transition-colors">
+                      <button type="button" onClick={() => removeRow(r.key)} className="text-ph hover:text-destructive transition-colors">
                         <X className="h-3.5 w-3.5" />
                       </button>
                     </td>
@@ -90,9 +90,9 @@ export function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onCh
               })}
             </tbody>
             <tfoot>
-              <tr className="bg-zinc-800/40 border-t border-zinc-700">
-                <td colSpan={3} className="px-3 py-2 text-xs text-zinc-500 text-right font-medium">All-in target</td>
-                <td className="px-3 py-2 text-right font-bold text-blue-400 tabular-nums text-sm">
+              <tr className="bg-input-bg/40 border-t border-b-input">
+                <td colSpan={3} className="px-3 py-2 text-xs text-faint text-right font-medium">All-in target</td>
+                <td className="px-3 py-2 text-right font-bold text-action tabular-nums text-sm">
                   {totalPerBu > 0 ? `$${totalPerBu.toFixed(4)}` : "\u2014"}
                 </td>
                 <td />
@@ -102,7 +102,7 @@ export function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onCh
         </div>
       )}
       <button type="button" onClick={() => onChange([...rows, { key: Date.now(), componentName: "", unit: "$/bu", targetValue: "", displayOrder: rows.length + 1 }])}
-        className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors mt-1">
+        className="flex items-center gap-1.5 text-xs text-faint hover:text-secondary transition-colors mt-1">
         <Plus className="h-3.5 w-3.5" /> Add custom component
       </button>
     </div>
@@ -122,14 +122,14 @@ export function ComponentTokenBar({ rows }: { rows: ComponentRow[] }) {
     <div className="flex flex-wrap items-center gap-1.5 mt-2">
       {filled.map((r, i) => (
         <Fragment key={r.key}>
-          {i > 0 && <span className="text-zinc-600 text-xs">+</span>}
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 ring-1 ring-blue-500/20 text-blue-300 text-xs tabular-nums">
+          {i > 0 && <span className="text-ph text-xs">+</span>}
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-action-10 ring-1 ring-action-20 text-action text-xs tabular-nums">
             {r.componentName}: {parseFloat(r.targetValue).toFixed(2)} {r.unit}
           </span>
         </Fragment>
       ))}
-      <span className="text-zinc-600 text-xs">=</span>
-      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/20 text-emerald-400 text-xs font-medium tabular-nums">
+      <span className="text-ph text-xs">=</span>
+      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-profit-10 ring-1 ring-profit-20 text-profit text-xs font-medium tabular-nums">
         ${totalPerBu.toFixed(4)}/bu
       </span>
     </div>

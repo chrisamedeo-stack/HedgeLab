@@ -97,19 +97,19 @@ function SettlePublisher({
   }
 
   return (
-    <div className="bg-zinc-800/60 border border-zinc-700 rounded-lg p-4 mb-4">
+    <div className="bg-input-bg border border-b-input rounded-lg p-4 mb-4">
       <div className="flex items-center gap-3 mb-3">
-        <span className="text-sm font-semibold text-zinc-200">Publish Settle Prices</span>
-        <span className="text-xs text-zinc-500">Enter ZC close prices ($/bu)</span>
+        <span className="text-sm font-semibold text-secondary">Publish Settle Prices</span>
+        <span className="text-xs text-faint">Enter ZC close prices ($/bu)</span>
       </div>
       <div className="flex flex-wrap gap-3 mb-4">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-zinc-500">Settle Date</label>
+          <label className="text-xs text-faint">Settle Date</label>
           <input type="date" value={settleDate} onChange={(e) => setSettleDate(e.target.value)} className={inputCls} />
         </div>
         {futuresMonths.map((fm) => (
           <div key={fm} className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-500">{fm} ($/bu)</label>
+            <label className="text-xs text-faint">{fm} ($/bu)</label>
             <input
               type="number"
               step="0.25"
@@ -305,12 +305,12 @@ function BookHedgeForm({
   // ─── Create form (multi-line) ─────────────────────────────────────────────
   if (!editing) {
     return (
-      <form onSubmit={handleBulkSubmit} className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 space-y-5">
+      <form onSubmit={handleBulkSubmit} className="bg-surface border border-b-default rounded-lg p-6 space-y-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-200">
-            Book Hedge Trade{rows.length > 1 ? "s" : ""} — <span className="text-blue-400">{book} Book</span>
+          <h2 className="text-sm font-semibold text-secondary">
+            Book Hedge Trade{rows.length > 1 ? "s" : ""} — <span className="text-action">{book} Book</span>
           </h2>
-          <button type="button" onClick={onCancel} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+          <button type="button" onClick={onCancel} className="text-faint hover:text-secondary transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -318,17 +318,17 @@ function BookHedgeForm({
         {/* Shared fields */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-xs text-zinc-400">Broker Account</label>
+            <label className="text-xs text-muted">Broker Account</label>
             <input type="text"
-              className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-500"
+              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
               value={shared.brokerAccount}
               onChange={(e) => setShared((s) => ({ ...s, brokerAccount: e.target.value }))}
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-zinc-400">Trade Date</label>
+            <label className="text-xs text-muted">Trade Date</label>
             <input type="date"
-              className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
               value={shared.tradeDate}
               onChange={(e) => setShared((s) => ({ ...s, tradeDate: e.target.value }))}
               required
@@ -337,36 +337,36 @@ function BookHedgeForm({
         </div>
 
         {/* Multi-line grid */}
-        <div className="rounded-lg border border-zinc-700 overflow-hidden">
+        <div className="rounded-lg border border-b-input overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-zinc-800/60 border-b border-zinc-700">
-                <th className="px-3 py-2 text-left text-xs text-zinc-400 font-medium">Futures Month</th>
-                <th className="px-3 py-2 text-right text-xs text-zinc-400 font-medium w-28">
+              <tr className="bg-input-bg border-b border-b-input">
+                <th className="px-3 py-2 text-left text-xs text-muted font-medium">Futures Month</th>
+                <th className="px-3 py-2 text-right text-xs text-muted font-medium w-28">
                   <span>Lots</span>
                   {rows.length > 1 && rows[0]?.lots && (
                     <button type="button" onClick={applyLotsToAll}
-                      className="ml-2 text-blue-400 hover:text-blue-300 transition-colors font-normal normal-case tracking-normal">
+                      className="ml-2 text-action hover:text-action transition-colors font-normal normal-case tracking-normal">
                       apply all
                     </button>
                   )}
                 </th>
-                <th className="px-3 py-2 text-right text-xs text-zinc-400 font-medium w-32">Bushels</th>
-                <th className="px-3 py-2 text-right text-xs text-zinc-400 font-medium w-32">
+                <th className="px-3 py-2 text-right text-xs text-muted font-medium w-32">Bushels</th>
+                <th className="px-3 py-2 text-right text-xs text-muted font-medium w-32">
                   <span>Price ($/bu)</span>
                   {rows.length > 1 && rows[0]?.pricePerBushel && (
                     <button type="button" onClick={applyPriceToAll}
-                      className="ml-2 text-blue-400 hover:text-blue-300 transition-colors font-normal normal-case tracking-normal">
+                      className="ml-2 text-action hover:text-action transition-colors font-normal normal-case tracking-normal">
                       apply all
                     </button>
                   )}
                 </th>
-                <th className="px-3 py-2 text-right text-xs text-zinc-400 font-medium w-32">Notional</th>
-                <th className="px-3 py-2 text-left text-xs text-zinc-400 font-medium">Notes</th>
+                <th className="px-3 py-2 text-right text-xs text-muted font-medium w-32">Notional</th>
+                <th className="px-3 py-2 text-left text-xs text-muted font-medium">Notes</th>
                 <th className="w-8" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800">
+            <tbody className="divide-y divide-b-default">
               {rows.map((r) => {
                 const lots = parseInt(r.lots) || 0;
                 const bu = lots * BUSHELS_PER_LOT;
@@ -374,40 +374,40 @@ function BookHedgeForm({
                 const notional = bu * price;
                 const incomplete = lots > 0 && price === 0;
                 return (
-                  <tr key={r.key} className={cn("hover:bg-zinc-800/30", incomplete && "bg-red-500/5")}>
+                  <tr key={r.key} className={cn("hover:bg-row-hover", incomplete && "bg-destructive-5")}>
                     <td className="px-3 py-1.5">
                       <select value={r.futuresMonth} onChange={(e) => updateRow(r.key, "futuresMonth", e.target.value)}
-                        className="w-full bg-transparent text-zinc-200 focus:outline-none text-sm">
-                        {ZC_MONTHS.map((m) => <option key={m} className="bg-zinc-800">{m}</option>)}
+                        className="w-full bg-transparent text-secondary focus:outline-none text-sm">
+                        {ZC_MONTHS.map((m) => <option key={m} className="bg-input-bg">{m}</option>)}
                       </select>
                     </td>
                     <td className="px-3 py-1.5">
                       <input type="number" min="1" placeholder="e.g. 40" value={r.lots}
                         onChange={(e) => updateRow(r.key, "lots", e.target.value)}
-                        className="w-full bg-transparent text-zinc-200 text-right tabular-nums placeholder:text-zinc-700 focus:outline-none" />
+                        className="w-full bg-transparent text-secondary text-right tabular-nums placeholder:text-ph focus:outline-none" />
                     </td>
-                    <td className="px-3 py-1.5 text-right tabular-nums text-zinc-500 text-xs">
+                    <td className="px-3 py-1.5 text-right tabular-nums text-faint text-xs">
                       {bu > 0 ? formatNumber(bu) : "\u2014"}
                     </td>
                     <td className="px-3 py-1.5">
                       <input type="number" step="0.0025" placeholder="e.g. 4.39" value={r.pricePerBushel}
                         onChange={(e) => updateRow(r.key, "pricePerBushel", e.target.value)}
-                        className="w-full bg-transparent text-zinc-200 text-right tabular-nums placeholder:text-zinc-700 focus:outline-none" />
+                        className="w-full bg-transparent text-secondary text-right tabular-nums placeholder:text-ph focus:outline-none" />
                     </td>
                     <td className="px-3 py-1.5 text-right tabular-nums text-xs">
                       {notional > 0
-                        ? <span className="text-emerald-400">${formatNumber(Math.round(notional))}</span>
-                        : <span className="text-zinc-700">&mdash;</span>}
+                        ? <span className="text-profit">${formatNumber(Math.round(notional))}</span>
+                        : <span className="text-ph">&mdash;</span>}
                     </td>
                     <td className="px-3 py-1.5">
                       <input type="text" placeholder="Optional" value={r.notes}
                         onChange={(e) => updateRow(r.key, "notes", e.target.value)}
-                        className="w-full bg-transparent text-zinc-500 placeholder:text-zinc-700 focus:outline-none text-xs" />
+                        className="w-full bg-transparent text-faint placeholder:text-ph focus:outline-none text-xs" />
                     </td>
                     <td className="px-3 py-1.5 text-center">
                       {rows.length > 1 && (
                         <button type="button" onClick={() => removeRow(r.key)}
-                          className="text-zinc-600 hover:text-red-400 transition-colors">
+                          className="text-ph hover:text-destructive transition-colors">
                           <X className="h-3.5 w-3.5" />
                         </button>
                       )}
@@ -419,18 +419,18 @@ function BookHedgeForm({
             {/* Totals footer */}
             {rows.length > 1 && totals.totalLots > 0 && (
               <tfoot>
-                <tr className="bg-zinc-800/50 border-t border-zinc-700">
-                  <td className="px-3 py-2 text-xs text-zinc-500 font-medium">
+                <tr className="bg-input-bg border-t border-b-input">
+                  <td className="px-3 py-2 text-xs text-faint font-medium">
                     {filledRows.length} trade{filledRows.length !== 1 ? "s" : ""}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums font-bold text-zinc-200 text-sm">
+                  <td className="px-3 py-2 text-right tabular-nums font-bold text-secondary text-sm">
                     {formatNumber(totals.totalLots)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-zinc-400 text-xs">
+                  <td className="px-3 py-2 text-right tabular-nums text-muted text-xs">
                     {formatNumber(totals.totalBu)}
                   </td>
                   <td />
-                  <td className="px-3 py-2 text-right tabular-nums text-emerald-400 text-xs font-medium">
+                  <td className="px-3 py-2 text-right tabular-nums text-profit text-xs font-medium">
                     {totals.totalNotional > 0 ? `$${formatNumber(Math.round(totals.totalNotional))}` : ""}
                   </td>
                   <td colSpan={2} />
@@ -442,20 +442,20 @@ function BookHedgeForm({
 
         {/* Add row button */}
         <button type="button" onClick={addRow}
-          className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+          className="flex items-center gap-1.5 text-xs text-faint hover:text-secondary transition-colors">
           <Plus className="h-3.5 w-3.5" /> Add another month
         </button>
 
         {/* Single-row summary */}
         {rows.length === 1 && totals.totalLots > 0 && (
-          <div className="grid grid-cols-2 gap-3 p-4 bg-zinc-800/50 rounded-lg">
+          <div className="grid grid-cols-2 gap-3 p-4 bg-input-bg rounded-lg">
             <div>
-              <p className="text-xs text-zinc-500">Bushels</p>
-              <p className="text-sm font-semibold text-zinc-200 tabular-nums">{formatNumber(totals.totalBu)}</p>
+              <p className="text-xs text-faint">Bushels</p>
+              <p className="text-sm font-semibold text-secondary tabular-nums">{formatNumber(totals.totalBu)}</p>
             </div>
             <div>
-              <p className="text-xs text-zinc-500">Notional (USD)</p>
-              <p className="text-sm font-semibold text-zinc-200 tabular-nums">
+              <p className="text-xs text-faint">Notional (USD)</p>
+              <p className="text-sm font-semibold text-secondary tabular-nums">
                 {totals.totalNotional > 0 ? `$${formatNumber(Math.round(totals.totalNotional))}` : "\u2014"}
               </p>
             </div>
@@ -464,11 +464,11 @@ function BookHedgeForm({
 
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onCancel}
-            className="px-4 py-2 text-zinc-400 hover:text-zinc-200 text-sm transition-colors">
+            className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">
             Cancel
           </button>
           <button type="submit" disabled={submitting || filledRows.length === 0}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+            className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
             {submitting ? "Saving\u2026" : `Book ${filledRows.length} Hedge${filledRows.length !== 1 ? "s" : ""}`}
           </button>
         </div>
@@ -478,20 +478,20 @@ function BookHedgeForm({
 
   // ─── Edit form (single trade) ─────────────────────────────────────────────
   return (
-    <form onSubmit={handleEditSubmit} className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 space-y-4">
+    <form onSubmit={handleEditSubmit} className="bg-surface border border-b-default rounded-lg p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-zinc-200">
-          Edit <span className="text-blue-400">{editing.tradeRef}</span>
+        <h2 className="text-sm font-semibold text-secondary">
+          Edit <span className="text-action">{editing.tradeRef}</span>
         </h2>
-        <button type="button" onClick={onCancel} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+        <button type="button" onClick={onCancel} className="text-faint hover:text-secondary transition-colors">
           <X className="h-4 w-4" />
         </button>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <div className="space-y-1">
-          <label className="text-xs text-zinc-400">Futures Month</label>
+          <label className="text-xs text-muted">Futures Month</label>
           <select
-            className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
             value={editForm.futuresMonth}
             onChange={(e) => setEditForm((f) => ({ ...f, futuresMonth: e.target.value }))}
             required
@@ -500,10 +500,10 @@ function BookHedgeForm({
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-zinc-400">Lots (5,000 bu each)</label>
+          <label className="text-xs text-muted">Lots (5,000 bu each)</label>
           <input
             type="number" min="1"
-            className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-500"
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
             placeholder="e.g. 40"
             value={editForm.lots}
             onChange={(e) => setEditForm((f) => ({ ...f, lots: e.target.value }))}
@@ -511,10 +511,10 @@ function BookHedgeForm({
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-zinc-400">Price ($/bu)</label>
+          <label className="text-xs text-muted">Price ($/bu)</label>
           <input
             type="number" step="0.0025"
-            className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-500"
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
             placeholder="e.g. 4.39"
             value={editForm.pricePerBushel}
             onChange={(e) => setEditForm((f) => ({ ...f, pricePerBushel: e.target.value }))}
@@ -522,29 +522,29 @@ function BookHedgeForm({
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-zinc-400">Broker Account</label>
+          <label className="text-xs text-muted">Broker Account</label>
           <input
             type="text"
-            className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-500"
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
             value={editForm.brokerAccount}
             onChange={(e) => setEditForm((f) => ({ ...f, brokerAccount: e.target.value }))}
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-zinc-400">Trade Date</label>
+          <label className="text-xs text-muted">Trade Date</label>
           <input
             type="date"
-            className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
             value={editForm.tradeDate}
             onChange={(e) => setEditForm((f) => ({ ...f, tradeDate: e.target.value }))}
             required
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-zinc-400">Notes</label>
+          <label className="text-xs text-muted">Notes</label>
           <input
             type="text"
-            className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-500"
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
             placeholder="Optional"
             value={editForm.notes}
             onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
@@ -553,14 +553,14 @@ function BookHedgeForm({
       </div>
 
       {editLots > 0 && (
-        <div className="grid grid-cols-2 gap-3 p-4 bg-zinc-800/50 rounded-lg">
+        <div className="grid grid-cols-2 gap-3 p-4 bg-input-bg rounded-lg">
           <div>
-            <p className="text-xs text-zinc-500">Bushels</p>
-            <p className="text-sm font-semibold text-zinc-200 tabular-nums">{formatNumber(editBu)}</p>
+            <p className="text-xs text-faint">Bushels</p>
+            <p className="text-sm font-semibold text-secondary tabular-nums">{formatNumber(editBu)}</p>
           </div>
           <div>
-            <p className="text-xs text-zinc-500">Notional (USD)</p>
-            <p className="text-sm font-semibold text-zinc-200 tabular-nums">
+            <p className="text-xs text-faint">Notional (USD)</p>
+            <p className="text-sm font-semibold text-secondary tabular-nums">
               {editNotional > 0 ? `$${formatNumber(Math.round(editNotional))}` : "\u2014"}
             </p>
           </div>
@@ -569,11 +569,11 @@ function BookHedgeForm({
 
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancel}
-          className="px-4 py-2 text-zinc-400 hover:text-zinc-200 text-sm transition-colors">
+          className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">
           Cancel
         </button>
         <button type="submit" disabled={submitting}
-          className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+          className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
           {submitting ? "Saving\u2026" : "Update Hedge"}
         </button>
       </div>
@@ -655,20 +655,20 @@ function AllocateForm({
   }
 
   return (
-    <div className="bg-zinc-800/70 border border-emerald-500/30 rounded-lg p-4 mt-2">
+    <div className="bg-input-bg border border-profit-30 rounded-lg p-4 mt-2">
       <div className="flex items-center gap-2 mb-3">
-        <ArrowRightLeft className="h-4 w-4 text-emerald-400" />
-        <span className="text-sm font-semibold text-emerald-300">
+        <ArrowRightLeft className="h-4 w-4 text-profit" />
+        <span className="text-sm font-semibold text-profit">
           Allocate &middot; {hedge.tradeRef} ({hedge.futuresMonth})
         </span>
-        <span className="ml-auto text-xs text-zinc-500">{fmtBu(availBu)} bu available</span>
+        <span className="ml-auto text-xs text-faint">{fmtBu(availBu)} bu available</span>
       </div>
 
       <div className="space-y-2 mb-3">
         {rows.map((row, idx) => (
           <div key={idx} className="flex items-end gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500">Budget Month</label>
+              <label className="text-xs text-faint">Budget Month</label>
               <select value={row.budgetMonth} onChange={(e) => updateRow(idx, "budgetMonth", e.target.value)} className={inputCls}>
                 {validMonths.map((m) => (
                   <option key={m} value={m}>{m}</option>
@@ -676,7 +676,7 @@ function AllocateForm({
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500">Site <span className="text-zinc-600">(optional)</span></label>
+              <label className="text-xs text-faint">Site <span className="text-ph">(optional)</span></label>
               <select value={row.siteCode} onChange={(e) => updateRow(idx, "siteCode", e.target.value)} className={inputCls}>
                 <option value="">&middot;</option>
                 {sites.map((s) => (
@@ -685,7 +685,7 @@ function AllocateForm({
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-zinc-500">Bushels</label>
+              <label className="text-xs text-faint">Bushels</label>
               <input
                 type="number"
                 step={5000}
@@ -696,11 +696,11 @@ function AllocateForm({
                 className={cn(inputCls, "w-36")}
               />
             </div>
-            <div className="text-xs text-zinc-500 pb-1.5">
+            <div className="text-xs text-faint pb-1.5">
               {row.bushels ? `${Math.round(parseInt(row.bushels) / 5000)} lots` : ""}
             </div>
             {rows.length > 1 && (
-              <button onClick={() => removeRow(idx)} className="pb-1.5 text-zinc-500 hover:text-red-400">
+              <button onClick={() => removeRow(idx)} className="pb-1.5 text-faint hover:text-destructive">
                 <X className="h-4 w-4" />
               </button>
             )}
@@ -709,10 +709,10 @@ function AllocateForm({
       </div>
 
       <div className="flex items-center gap-3 mb-3">
-        <button onClick={addRow} className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300">
+        <button onClick={addRow} className="flex items-center gap-1 text-xs text-profit hover:text-profit">
           <Plus className="h-3 w-3" /> Add Row
         </button>
-        <span className={cn("text-xs font-medium", totalBu > availBu ? "text-red-400" : "text-zinc-400")}>
+        <span className={cn("text-xs font-medium", totalBu > availBu ? "text-loss" : "text-muted")}>
           Total: {fmtBu(totalBu)} / {fmtBu(availBu)} bu
         </span>
       </div>
@@ -732,8 +732,8 @@ function AllocateForm({
 function AllocationBreakdown({ tradeId }: { tradeId: number }) {
   const { allocations, isLoading } = useHedgeAllocations(tradeId);
 
-  if (isLoading) return <div className="px-4 py-2 text-xs text-zinc-500">Loading allocations&hellip;</div>;
-  if (allocations.length === 0) return <div className="px-4 py-2 text-xs text-zinc-500">No allocations yet</div>;
+  if (isLoading) return <div className="px-4 py-2 text-xs text-faint">Loading allocations&hellip;</div>;
+  if (allocations.length === 0) return <div className="px-4 py-2 text-xs text-faint">No allocations yet</div>;
 
   const byMonth = new Map<string, typeof allocations>();
   for (const a of allocations) {
@@ -750,18 +750,18 @@ function AllocationBreakdown({ tradeId }: { tradeId: number }) {
         const totalLots = allocs.reduce((s, a) => s + a.allocatedLots, 0);
         return (
           <div key={month} className="text-xs">
-            <div className="flex items-center gap-2 text-zinc-300">
-              <span className="text-zinc-500">&boxur;</span>
+            <div className="flex items-center gap-2 text-secondary">
+              <span className="text-faint">&boxur;</span>
               <span className="font-mono font-medium">{month}</span>
-              <span className="text-zinc-500">{totalLots} lots ({fmtBu(totalLots * 5000)} bu)</span>
+              <span className="text-faint">{totalLots} lots ({fmtBu(totalLots * 5000)} bu)</span>
             </div>
             {allocs.map((a) => (
-              <div key={a.id} className="flex items-center gap-2 ml-6 text-zinc-500">
+              <div key={a.id} className="flex items-center gap-2 ml-6 text-faint">
                 <span>&boxur;</span>
                 {a.siteCode ? (
-                  <span className="bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded text-xs font-mono">{a.siteCode}</span>
+                  <span className="bg-input-bg text-secondary px-1.5 py-0.5 rounded text-xs font-mono">{a.siteCode}</span>
                 ) : (
-                  <span className="italic text-zinc-600">unassigned</span>
+                  <span className="italic text-ph">unassigned</span>
                 )}
                 <span>{a.allocatedLots} lots</span>
               </div>
@@ -830,18 +830,18 @@ function HedgeBookTable({
 
   function statusBadge(h: HedgeBookItem) {
     if (h.unallocatedLots === 0) {
-      return <span className="ml-2 bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/25 px-2 py-0.5 rounded text-xs font-medium">ALLOCATED</span>;
+      return <span className="ml-2 bg-profit-15 text-profit ring-1 ring-profit-25 px-2 py-0.5 rounded text-xs font-medium">ALLOCATED</span>;
     }
     if (h.allocatedLots > 0 && h.unallocatedLots > 0) {
-      return <span className="ml-2 bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/25 px-2 py-0.5 rounded text-xs font-medium">PARTIAL</span>;
+      return <span className="ml-2 bg-warning-15 text-warning ring-1 ring-warning-25 px-2 py-0.5 rounded text-xs font-medium">PARTIAL</span>;
     }
     return null;
   }
 
   return (
-    <div className="divide-y divide-zinc-800">
+    <div className="divide-y divide-b-default">
       {groups.length === 0 && (
-        <div className="px-4 py-8 text-center text-zinc-500 text-sm">No hedge positions</div>
+        <div className="px-4 py-8 text-center text-faint text-sm">No hedge positions</div>
       )}
       {groups.map((g) => {
         const isExpanded = expandedMonth === g.futuresMonth;
@@ -849,29 +849,29 @@ function HedgeBookTable({
           <Fragment key={g.futuresMonth}>
             <button
               onClick={() => setExpandedMonth(isExpanded ? null : g.futuresMonth)}
-              className="w-full flex items-center gap-4 px-5 py-3 hover:bg-zinc-800/30 transition-colors text-left"
+              className="w-full flex items-center gap-4 px-5 py-3 hover:bg-row-hover transition-colors text-left"
             >
-              {isExpanded ? <ChevronDown className="h-4 w-4 text-zinc-500" /> : <ChevronRight className="h-4 w-4 text-zinc-500" />}
-              <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">
+              {isExpanded ? <ChevronDown className="h-4 w-4 text-faint" /> : <ChevronRight className="h-4 w-4 text-faint" />}
+              <span className="bg-action-10 text-action ring-1 ring-action-20 px-2 py-0.5 rounded text-xs font-mono font-semibold">
                 {g.futuresMonth}
               </span>
-              <span className="text-sm text-zinc-300">{fmtVol(g.totalBu)} bu</span>
-              <span className="text-sm text-zinc-500">{fmtVol(g.unallocBu)} unalloc</span>
-              <span className="text-sm text-zinc-400 font-mono">Avg {fmtPerBu(g.wtdAvgEntry)}</span>
+              <span className="text-sm text-secondary">{fmtVol(g.totalBu)} bu</span>
+              <span className="text-sm text-faint">{fmtVol(g.unallocBu)} unalloc</span>
+              <span className="text-sm text-muted font-mono">Avg {fmtPerBu(g.wtdAvgEntry)}</span>
               <span className={cn("text-sm font-semibold", pnlColor(g.totalMtm))}>
                 {fmtPnl(g.totalMtm)}
               </span>
-              <span className="text-xs text-zinc-600 ml-auto">{g.totalLots} lots</span>
+              <span className="text-xs text-ph ml-auto">{g.totalLots} lots</span>
             </button>
 
             {isExpanded && (
-              <div className="bg-zinc-800/20 animate-slide-down">
+              <div className="bg-input-bg/20 animate-slide-down">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-zinc-800/40">
+                    <tr className="bg-input-bg/40">
                       {["Trade Ref", "Total bu", "Alloc bu", "Unalloc bu", "Entry $/bu", "Settle $/bu", "MTM", "Broker", ""].map(
                         (h) => (
-                          <th key={h} className="px-4 py-2 text-left text-xs font-semibold text-zinc-600 uppercase tracking-wider whitespace-nowrap">
+                          <th key={h} className="px-4 py-2 text-left text-xs font-semibold text-ph uppercase tracking-wider whitespace-nowrap">
                             {h}
                           </th>
                         )
@@ -885,22 +885,22 @@ function HedgeBookTable({
                       const fullyAllocated = h.unallocatedLots === 0;
                       return (
                         <Fragment key={h.hedgeTradeId}>
-                          <tr className="border-t border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
-                            <td className="px-4 py-2 font-mono text-zinc-200 text-xs">
+                          <tr className="border-t border-b-default hover:bg-row-hover transition-colors">
+                            <td className="px-4 py-2 font-mono text-secondary text-xs">
                               <span className="inline-flex items-center">
                                 {h.tradeRef}
                                 {statusBadge(h)}
                               </span>
                             </td>
-                            <td className="px-4 py-2 text-zinc-300">{fmtVol(h.bushels)}</td>
-                            <td className="px-4 py-2 text-zinc-500">{fmtVol(h.allocatedBushels)}</td>
-                            <td className={cn("px-4 py-2 font-semibold", fullyAllocated ? "text-zinc-500" : "text-emerald-400")}>{fmtVol(h.unallocatedBushels)}</td>
-                            <td className="px-4 py-2 text-zinc-300 font-mono">{fmtPerBu(h.entryPrice)}</td>
+                            <td className="px-4 py-2 text-secondary">{fmtVol(h.bushels)}</td>
+                            <td className="px-4 py-2 text-faint">{fmtVol(h.allocatedBushels)}</td>
+                            <td className={cn("px-4 py-2 font-semibold", fullyAllocated ? "text-faint" : "text-profit")}>{fmtVol(h.unallocatedBushels)}</td>
+                            <td className="px-4 py-2 text-secondary font-mono">{fmtPerBu(h.entryPrice)}</td>
                             <td className="px-4 py-2 font-mono">
                               {h.settlePrice != null ? (
-                                <span className="text-zinc-200">{fmtPerBu(h.settlePrice)}</span>
+                                <span className="text-secondary">{fmtPerBu(h.settlePrice)}</span>
                               ) : (
-                                <span className="text-zinc-600 italic text-xs">no settle</span>
+                                <span className="text-ph italic text-xs">no settle</span>
                               )}
                             </td>
                             <td className="px-4 py-2">
@@ -910,15 +910,15 @@ function HedgeBookTable({
                                   {h.mtmPnlUsd > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : h.mtmPnlUsd < 0 ? <TrendingDown className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
                                   {fmtPnl(h.mtmPnlUsd)}
                                 </span>
-                              ) : <span className="text-zinc-600 italic text-xs">&ndash;</span>}
+                              ) : <span className="text-ph italic text-xs">&ndash;</span>}
                             </td>
-                            <td className="px-4 py-2 text-zinc-500 text-xs">{h.brokerAccount}</td>
+                            <td className="px-4 py-2 text-faint text-xs">{h.brokerAccount}</td>
                             <td className="px-4 py-2">
                               <div className="flex gap-1">
                                 {h.allocatedLots > 0 && (
                                   <button
                                     onClick={() => { setBreakdownTradeId(isBreakdown ? null : h.hedgeTradeId); }}
-                                    className="flex items-center gap-1 px-2.5 py-1 bg-zinc-700/50 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-medium transition-colors"
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-hover/50 hover:bg-hover text-secondary rounded-lg text-xs font-medium transition-colors"
                                     title="View allocation breakdown"
                                   >
                                     {isBreakdown ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -927,21 +927,21 @@ function HedgeBookTable({
                                 {!fullyAllocated && (
                                   <button
                                     onClick={() => { setAllocTradeId(isAlloc ? null : h.hedgeTradeId); }}
-                                    className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 rounded-lg text-xs font-medium transition-colors"
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-profit-20 hover:bg-profit-40 text-profit rounded-lg text-xs font-medium transition-colors"
                                   >
                                     <ArrowRightLeft className="h-3 w-3" /> Alloc
                                   </button>
                                 )}
                                 <button
                                   onClick={() => onEdit(h.hedgeTradeId)}
-                                  className="flex items-center gap-1 px-2.5 py-1 bg-zinc-700/50 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-medium transition-colors"
+                                  className="flex items-center gap-1 px-2.5 py-1 bg-hover/50 hover:bg-hover text-secondary rounded-lg text-xs font-medium transition-colors"
                                   title="Edit trade"
                                 >
                                   <Edit2 className="h-3 w-3" />
                                 </button>
                                 <button
                                   onClick={() => onDelete(h.hedgeTradeId)}
-                                  className="flex items-center gap-1 px-2.5 py-1 bg-zinc-700/50 hover:bg-red-600/30 text-zinc-300 hover:text-red-300 rounded-lg text-xs font-medium transition-colors"
+                                  className="flex items-center gap-1 px-2.5 py-1 bg-hover/50 hover:bg-destructive/30 text-secondary hover:text-destructive rounded-lg text-xs font-medium transition-colors"
                                   title="Delete trade"
                                 >
                                   <Trash2 className="h-3 w-3" />
@@ -950,14 +950,14 @@ function HedgeBookTable({
                             </td>
                           </tr>
                           {isBreakdown && (
-                            <tr className="border-t border-zinc-800/50 bg-zinc-800/10 animate-slide-down">
+                            <tr className="border-t border-b-default bg-input-bg/10 animate-slide-down">
                               <td colSpan={9}>
                                 <AllocationBreakdown tradeId={h.hedgeTradeId} />
                               </td>
                             </tr>
                           )}
                           {isAlloc && (
-                            <tr className="border-t border-zinc-800/50 animate-slide-down">
+                            <tr className="border-t border-b-default animate-slide-down">
                               <td colSpan={9} className="px-4 py-2">
                                 <AllocateForm hedge={h} sites={sites} onDone={handleDone} onCancel={() => setAllocTradeId(null)} />
                               </td>
@@ -1051,9 +1051,9 @@ function MonthAllocationsTable({
   }
 
   return (
-    <div className="divide-y divide-zinc-800">
+    <div className="divide-y divide-b-default">
       {groups.length === 0 && (
-        <div className="px-4 py-8 text-center text-zinc-500 text-sm">No allocations yet</div>
+        <div className="px-4 py-8 text-center text-faint text-sm">No allocations yet</div>
       )}
       {groups.map((g) => {
         const isExpanded = expandedMonth === g.budgetMonth;
@@ -1062,31 +1062,31 @@ function MonthAllocationsTable({
           <Fragment key={g.budgetMonth}>
             <button
               onClick={() => setExpandedMonth(isExpanded ? null : g.budgetMonth)}
-              className="w-full flex items-center gap-4 px-5 py-3 hover:bg-zinc-800/30 transition-colors text-left"
+              className="w-full flex items-center gap-4 px-5 py-3 hover:bg-row-hover transition-colors text-left"
             >
-              {isExpanded ? <ChevronDown className="h-4 w-4 text-zinc-500" /> : <ChevronRight className="h-4 w-4 text-zinc-500" />}
-              <span className="bg-purple-500/10 text-purple-300 ring-1 ring-purple-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">
+              {isExpanded ? <ChevronDown className="h-4 w-4 text-faint" /> : <ChevronRight className="h-4 w-4 text-faint" />}
+              <span className="bg-accent-10 text-accent ring-1 ring-accent-20 px-2 py-0.5 rounded text-xs font-mono font-semibold">
                 {g.budgetMonth}
               </span>
-              <span className="text-sm text-zinc-300">{g.totalLots} lots</span>
-              <span className="text-sm text-zinc-500">{fmtVol(g.totalBu)} bu</span>
+              <span className="text-sm text-secondary">{g.totalLots} lots</span>
+              <span className="text-sm text-faint">{fmtVol(g.totalBu)} bu</span>
               {unassignedCount > 0 && (
-                <span className="bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/25 px-2 py-0.5 rounded text-xs font-medium">
+                <span className="bg-warning-15 text-warning ring-1 ring-warning-25 px-2 py-0.5 rounded text-xs font-medium">
                   {unassignedCount} unassigned
                 </span>
               )}
-              <span className="text-xs text-zinc-600 ml-auto">
+              <span className="text-xs text-ph ml-auto">
                 {g.siteAssigned.length} site-assigned
               </span>
             </button>
 
             {isExpanded && (
-              <div className="bg-zinc-800/20 animate-slide-down">
+              <div className="bg-input-bg/20 animate-slide-down">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-zinc-800/40">
+                    <tr className="bg-input-bg/40">
                       {["Trade", "Dir", "Date", "ZC", "Lots", "Bushels", "Entry $/bu", "Site", ""].map((h) => (
-                        <th key={h} className="px-4 py-2 text-left text-xs font-semibold text-zinc-600 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                        <th key={h} className="px-4 py-2 text-left text-xs font-semibold text-ph uppercase tracking-wider whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -1096,36 +1096,36 @@ function MonthAllocationsTable({
                       const isAssigning = assigningId === a.allocationId;
                       return (
                         <Fragment key={`mo-${a.allocationId}`}>
-                          <tr className="border-t border-zinc-800/50 hover:bg-zinc-800/30 transition-colors bg-amber-500/5">
-                            <td className="px-4 py-2 font-mono text-zinc-200 text-xs">{a.tradeRef}</td>
+                          <tr className="border-t border-b-default hover:bg-row-hover transition-colors bg-warning-5">
+                            <td className="px-4 py-2 font-mono text-secondary text-xs">{a.tradeRef}</td>
                             <td className="px-4 py-2">
                               <SideBadge side={a.side || "LONG"} />
                             </td>
-                            <td className="px-4 py-2 text-zinc-500 text-xs font-mono">{a.tradeDate}</td>
+                            <td className="px-4 py-2 text-faint text-xs font-mono">{a.tradeDate}</td>
                             <td className="px-4 py-2">
-                              <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
+                              <span className="bg-action-10 text-action ring-1 ring-action-20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
                             </td>
-                            <td className="px-4 py-2 text-zinc-300">{a.allocatedLots}</td>
-                            <td className="px-4 py-2 text-zinc-300">{fmtVol(a.allocatedBushels)}</td>
-                            <td className="px-4 py-2 text-zinc-300 font-mono">{fmtPerBu(a.entryPrice)}</td>
+                            <td className="px-4 py-2 text-secondary">{a.allocatedLots}</td>
+                            <td className="px-4 py-2 text-secondary">{fmtVol(a.allocatedBushels)}</td>
+                            <td className="px-4 py-2 text-secondary font-mono">{fmtPerBu(a.entryPrice)}</td>
                             <td className="px-4 py-2">
-                              <span className="italic text-amber-400 text-xs">Unassigned</span>
+                              <span className="italic text-warning text-xs">Unassigned</span>
                             </td>
                             <td className="px-4 py-2">
                               <button
                                 onClick={() => { setAssigningId(isAssigning ? null : a.allocationId); setAssignSite(""); }}
-                                className="flex items-center gap-1 px-2.5 py-1 bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 rounded-lg text-xs font-medium transition-colors"
+                                className="flex items-center gap-1 px-2.5 py-1 bg-accent-20 hover:bg-accent-40 text-accent rounded-lg text-xs font-medium transition-colors"
                               >
                                 <MapPinPlus className="h-3 w-3" /> Assign Site
                               </button>
                             </td>
                           </tr>
                           {isAssigning && (
-                            <tr className="border-t border-zinc-800/50">
+                            <tr className="border-t border-b-default">
                               <td colSpan={9} className="px-4 py-3">
                                 <div className="flex items-end gap-3">
                                   <div className="flex flex-col gap-1">
-                                    <label className="text-xs text-zinc-500">Site</label>
+                                    <label className="text-xs text-faint">Site</label>
                                     <select value={assignSite} onChange={(e) => setAssignSite(e.target.value)} className={inputCls}>
                                       <option value="">Select site&hellip;</option>
                                       {sites.map((s) => (
@@ -1147,22 +1147,22 @@ function MonthAllocationsTable({
 
                     {/* Site-assigned allocations */}
                     {g.siteAssigned.map((a) => (
-                      <tr key={`sa-${a.allocationId}`} className="border-t border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
-                        <td className="px-4 py-2 font-mono text-zinc-200 text-xs">{a.tradeRef}</td>
+                      <tr key={`sa-${a.allocationId}`} className="border-t border-b-default hover:bg-row-hover transition-colors">
+                        <td className="px-4 py-2 font-mono text-secondary text-xs">{a.tradeRef}</td>
                         <td className="px-4 py-2">
                           <span className={cn("px-2 py-0.5 rounded text-xs font-semibold",
-                            a.side === "SHORT" ? "bg-red-500/15 text-red-300" : "bg-emerald-500/15 text-emerald-300"
+                            a.side === "SHORT" ? "bg-destructive-15 text-destructive" : "bg-profit-15 text-profit"
                           )}>{a.side || "LONG"}</span>
                         </td>
-                        <td className="px-4 py-2 text-zinc-500 text-xs font-mono">{a.tradeDate}</td>
+                        <td className="px-4 py-2 text-faint text-xs font-mono">{a.tradeDate}</td>
                         <td className="px-4 py-2">
-                          <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
+                          <span className="bg-action-10 text-action ring-1 ring-action-20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
                         </td>
-                        <td className="px-4 py-2 text-zinc-300">{a.allocatedLots}</td>
-                        <td className="px-4 py-2 text-zinc-300">{fmtVol(a.allocatedBushels)}</td>
-                        <td className="px-4 py-2 text-zinc-300 font-mono">{fmtPerBu(a.entryPrice)}</td>
+                        <td className="px-4 py-2 text-secondary">{a.allocatedLots}</td>
+                        <td className="px-4 py-2 text-secondary">{fmtVol(a.allocatedBushels)}</td>
+                        <td className="px-4 py-2 text-secondary font-mono">{fmtPerBu(a.entryPrice)}</td>
                         <td className="px-4 py-2">
-                          <span className="bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded text-xs font-mono">{a.siteCode}</span>
+                          <span className="bg-input-bg text-secondary px-2 py-0.5 rounded text-xs font-mono">{a.siteCode}</span>
                         </td>
                         <td className="px-4 py-2" />
                       </tr>
@@ -1255,7 +1255,7 @@ export default function PositionsPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Position Manager</h1>
+        <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Position Manager</h1>
         <SkeletonTable rows={3} cols={8} />
         <SkeletonTable rows={4} cols={8} />
       </div>
@@ -1271,8 +1271,8 @@ export default function PositionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Activity className="h-5 w-5 text-blue-400" />
-          <h1 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Position Manager</h1>
+          <Activity className="h-5 w-5 text-action" />
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Position Manager</h1>
         </div>
         <div className="flex items-center gap-2">
           <ExportButton
@@ -1293,16 +1293,16 @@ export default function PositionsPage() {
               setEditing(null);
               setHedgeFormOpen((o) => !o);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white text-sm rounded-lg font-medium transition-colors"
           >
             {hedgeFormOpen && !editing ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {hedgeFormOpen && !editing ? "Cancel" : "Book Hedge"}
           </button>
           <button
             onClick={() => setSettleOpen((o) => !o)}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm rounded-lg font-medium border border-zinc-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-input-bg hover:bg-hover text-secondary text-sm rounded-lg font-medium border border-b-input transition-colors"
           >
-            <TrendingUp className="h-4 w-4 text-blue-400" />
+            <TrendingUp className="h-4 w-4 text-action" />
             Publish Settle Prices
             {settleOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
@@ -1331,14 +1331,14 @@ export default function PositionsPage() {
       {/* Controls: [Book toggle] [View tabs] [Unit toggle] */}
       <div className="flex items-center gap-4">
         {/* Book toggle */}
-        <div className="flex gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg">
+        <div className="flex gap-1 p-1 bg-surface border border-b-default rounded-lg">
           {(["CANADA", "US"] as Book[]).map((b) => (
             <button
               key={b}
               onClick={() => setBook(b)}
               className={cn(
                 "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
-                book === b ? "bg-blue-600 text-white shadow" : "text-zinc-400 hover:text-zinc-200"
+                book === b ? "bg-action text-white shadow" : "text-muted hover:text-secondary"
               )}
             >
               {b === "CANADA" ? "\ud83c\udde8\ud83c\udde6 Canada" : "\ud83c\uddfa\ud83c\uddf8 United States"}
@@ -1347,7 +1347,7 @@ export default function PositionsPage() {
         </div>
 
         {/* View tabs */}
-        <div className="flex gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg">
+        <div className="flex gap-1 p-1 bg-surface border border-b-default rounded-lg">
           {([
             { key: "hedge-book" as View, label: "Hedge Book" },
             { key: "allocations" as View, label: "Allocations" },
@@ -1357,7 +1357,7 @@ export default function PositionsPage() {
               onClick={() => setView(tab.key)}
               className={cn(
                 "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
-                view === tab.key ? "bg-blue-600 text-white shadow" : "text-zinc-400 hover:text-zinc-200"
+                view === tab.key ? "bg-action text-white shadow" : "text-muted hover:text-secondary"
               )}
             >
               {tab.label}
@@ -1368,10 +1368,10 @@ export default function PositionsPage() {
       </div>
 
       {/* Portfolio MTM Summary — always visible */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg px-5 py-4">
+      <div className="bg-surface border border-b-default rounded-lg px-5 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Portfolio MTM &middot; {bookLabel}</p>
+            <p className="text-xs text-faint uppercase tracking-wider mb-1">Portfolio MTM &middot; {bookLabel}</p>
             <p className={cn("text-2xl font-bold tabular-nums",
               pnlColor(portfolioMtm)
             )}>
@@ -1379,8 +1379,8 @@ export default function PositionsPage() {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-zinc-500">{hedgeBook.length} trades &middot; {fmtVol(hedgeBook.reduce((s, h) => s + h.bushels, 0))} bu total</p>
-            <p className="text-xs text-zinc-500">{fmtVol(hedgeBook.reduce((s, h) => s + h.unallocatedBushels, 0))} bu unallocated</p>
+            <p className="text-xs text-faint">{hedgeBook.length} trades &middot; {fmtVol(hedgeBook.reduce((s, h) => s + h.bushels, 0))} bu total</p>
+            <p className="text-xs text-faint">{fmtVol(hedgeBook.reduce((s, h) => s + h.unallocatedBushels, 0))} bu unallocated</p>
           </div>
         </div>
       </div>
@@ -1391,17 +1391,17 @@ export default function PositionsPage() {
           {/* MTM P&L Chart */}
           <MtmPnlChart hedgeBook={hedgeBook} />
 
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
-            <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between">
+          <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
+            <div className="px-5 py-4 border-b border-b-default flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-zinc-200">
+                <h2 className="text-sm font-semibold text-secondary">
                   Hedge Book &middot; {bookLabel}
                 </h2>
-                <p className="text-xs text-zinc-500 mt-0.5">
+                <p className="text-xs text-faint mt-0.5">
                   {hedgeBook.length} trade{hedgeBook.length !== 1 ? "s" : ""} &middot; grouped by futures month
                 </p>
               </div>
-              <span className="text-xs text-zinc-600">Click to expand. Includes fully allocated trades.</span>
+              <span className="text-xs text-ph">Click to expand. Includes fully allocated trades.</span>
             </div>
             <HedgeBookTable
               hedgeBook={hedgeBook}
@@ -1416,12 +1416,12 @@ export default function PositionsPage() {
 
       {/* ═══════════════════ ALLOCATIONS TAB ═══════════════════ */}
       {view === "allocations" && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
-          <div className="px-5 py-4 border-b border-zinc-800">
-            <h2 className="text-sm font-semibold text-zinc-200">
+        <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
+          <div className="px-5 py-4 border-b border-b-default">
+            <h2 className="text-sm font-semibold text-secondary">
               Allocations &middot; {bookLabel}
             </h2>
-            <p className="text-xs text-zinc-500 mt-0.5">
+            <p className="text-xs text-faint mt-0.5">
               Hedge allocations grouped by budget month
             </p>
           </div>

@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { CornBudgetLineResponse, CoverageResponse } from "@/hooks/useCorn";
 import { BarChart3 } from "lucide-react";
+import { chartTheme } from "@/lib/chart-theme";
 
 const BUSHELS_PER_MT = 39.3683;
 
@@ -62,38 +63,38 @@ export function BudgetVsCommittedChart({ lines, coverage }: Props) {
 
   if (data.length === 0) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">
+      <div className="bg-surface border border-b-default rounded-lg p-5">
+        <h3 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-4">
           Budget vs Committed (bu)
         </h3>
-        <div className="h-64 flex flex-col items-center justify-center text-slate-600">
+        <div className="h-64 flex flex-col items-center justify-center text-ph">
           <BarChart3 className="h-10 w-10 mb-2" />
           <p className="text-sm">No budget data to chart yet</p>
-          <p className="text-xs text-slate-700 mt-1">Add budget lines to see budget vs committed</p>
+          <p className="text-xs text-ph mt-1">Add budget lines to see budget vs committed</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-      <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">
+    <div className="bg-surface border border-b-default rounded-lg p-5">
+      <h3 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-4">
         Budget vs Committed (bu)
       </h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-            <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-            <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
+            <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: chartTheme.tick }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: chartTheme.tick }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
             <Tooltip
-              contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", color: "#e2e8f0", fontSize: 12 }}
+              contentStyle={{ backgroundColor: chartTheme.tooltipBg, border: `1px solid ${chartTheme.tooltipBorder}`, color: chartTheme.tooltipText, fontSize: 12 }}
               formatter={(value: number, name: string) => [fmtK(value) + " bu", name]}
               labelFormatter={(label: string) => label}
             />
             <Legend wrapperStyle={{ fontSize: 11, color: "#94a3b8" }} />
-            <Bar dataKey="budget" name="Budget" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="committed" name="Committed" fill="#10b981" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="budget" name="Budget" fill={chartTheme.primary} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="committed" name="Committed" fill={chartTheme.hedged} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

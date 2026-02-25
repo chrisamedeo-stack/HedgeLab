@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { CoverageResponse } from "@/hooks/useCorn";
 import { BarChart3 } from "lucide-react";
+import { chartTheme } from "@/lib/chart-theme";
 
 const BUSHELS_PER_MT = 39.3683;
 
@@ -51,11 +52,11 @@ export function CoverageWaterfallChart({ coverage }: Props) {
 
   if (data.length === 0) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">
+      <div className="bg-surface border border-b-default rounded-lg p-5">
+        <h3 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-4">
           Coverage by Month
         </h3>
-        <div className="h-48 flex flex-col items-center justify-center text-slate-600">
+        <div className="h-48 flex flex-col items-center justify-center text-ph">
           <BarChart3 className="h-8 w-8 mb-2" />
           <p className="text-sm">No coverage data yet</p>
         </div>
@@ -64,23 +65,23 @@ export function CoverageWaterfallChart({ coverage }: Props) {
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-      <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4">
+    <div className="bg-surface border border-b-default rounded-lg p-5">
+      <h3 className="text-sm font-semibold text-secondary uppercase tracking-wider mb-4">
         Coverage by Month
       </h3>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-            <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-            <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#64748b" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 9, fill: "#64748b" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
+            <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" />
+            <XAxis dataKey="label" tick={{ fontSize: 9, fill: chartTheme.tick }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 9, fill: chartTheme.tick }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
             <Tooltip
-              contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", color: "#e2e8f0", fontSize: 11 }}
+              contentStyle={{ backgroundColor: chartTheme.tooltipBg, border: `1px solid ${chartTheme.tooltipBorder}`, color: chartTheme.tooltipText, fontSize: 11 }}
               formatter={(value: number, name: string) => [fmtK(value) + " bu", name]}
             />
-            <Legend wrapperStyle={{ fontSize: 10, color: "#94a3b8" }} />
-            <Bar dataKey="hedged" name="Hedged" stackId="cov" fill="#10b981" radius={[0, 0, 0, 0]} />
-            <Bar dataKey="gap" name="Unhedged" stackId="cov" fill="#334155" radius={[2, 2, 0, 0]} />
+            <Legend wrapperStyle={{ fontSize: 10, color: chartTheme.tick }} />
+            <Bar dataKey="hedged" name="Hedged" stackId="cov" fill={chartTheme.hedged} radius={[0, 0, 0, 0]} />
+            <Bar dataKey="gap" name="Unhedged" stackId="cov" fill={chartTheme.unhedged} radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

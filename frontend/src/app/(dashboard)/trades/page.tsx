@@ -73,8 +73,8 @@ export default function TradesPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-100">Trade Blotter</h1>
-        <span className="text-sm text-slate-500">
+        <h1 className="text-xl font-bold text-primary">Trade Blotter</h1>
+        <span className="text-sm text-faint">
           {trades?.totalElements ?? 0} total trades
         </span>
       </div>
@@ -84,7 +84,7 @@ export default function TradesPage() {
         <select
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(0); }}
-          className="bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-action"
         >
           {STATUS_OPTIONS.map((s) => (
             <option key={s} value={s}>{s || "All statuses"}</option>
@@ -96,9 +96,9 @@ export default function TradesPage() {
       {isLoading ? (
         <SkeletonTable rows={6} cols={9} />
       ) : (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-slate-800/50">
+            <thead className="bg-input-bg/50">
               <tr>
                 <SortableHeader label="Reference" sortKey="tradeReference" activeKey={tradeSort.key} activeDir={tradeSort.dir} onToggle={(k) => toggleTradeSort(k as TradeSortKey)} className="px-3" />
                 <SortableHeader label="Type" sortKey="tradeType" activeKey={tradeSort.key} activeDir={tradeSort.dir} onToggle={(k) => toggleTradeSort(k as TradeSortKey)} className="px-3" />
@@ -108,10 +108,10 @@ export default function TradesPage() {
                 <SortableHeader label="Book" sortKey="bookCode" activeKey={tradeSort.key} activeDir={tradeSort.dir} onToggle={(k) => toggleTradeSort(k as TradeSortKey)} className="px-3" />
                 <SortableHeader label="Trade Date" sortKey="tradeDate" activeKey={tradeSort.key} activeDir={tradeSort.dir} onToggle={(k) => toggleTradeSort(k as TradeSortKey)} className="px-3" />
                 <SortableHeader label="Notional USD" sortKey="notionalUsd" activeKey={tradeSort.key} activeDir={tradeSort.dir} onToggle={(k) => toggleTradeSort(k as TradeSortKey)} className="px-3" />
-                <th className="px-3 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider"></th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-b-default">
               {sortedTrades.length ? (
                 sortedTrades.map((t) => (
                   <TradeRow
@@ -147,17 +147,17 @@ export default function TradesPage() {
           <button
             disabled={page === 0}
             onClick={() => setPage((p) => p - 1)}
-            className="px-3 py-1.5 text-sm border border-slate-700 bg-slate-800 text-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-700 transition-colors"
+            className="px-3 py-1.5 text-sm border border-b-input bg-input-bg text-secondary rounded-lg disabled:opacity-40 hover:bg-hover transition-colors"
           >
             Previous
           </button>
-          <span className="px-3 py-1.5 text-sm text-slate-500">
+          <span className="px-3 py-1.5 text-sm text-faint">
             {page + 1} / {trades.totalPages}
           </span>
           <button
             disabled={page >= trades.totalPages - 1}
             onClick={() => setPage((p) => p + 1)}
-            className="px-3 py-1.5 text-sm border border-slate-700 bg-slate-800 text-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-700 transition-colors"
+            className="px-3 py-1.5 text-sm border border-b-input bg-input-bg text-secondary rounded-lg disabled:opacity-40 hover:bg-hover transition-colors"
           >
             Next
           </button>
@@ -193,26 +193,26 @@ function TradeRow({
   ];
 
   return (
-    <tr className="hover:bg-slate-800/40 transition-colors">
+    <tr className="hover:bg-row-hover transition-colors">
       <td className="px-3 py-2.5">
         <Link
           href={`/trades/${trade.id}`}
-          className="text-blue-400 hover:text-blue-300 font-mono text-xs transition-colors"
+          className="text-action hover:text-action-hover font-mono text-xs transition-colors"
         >
           {trade.tradeReference}
         </Link>
       </td>
-      <td className="px-3 py-2.5 text-xs text-slate-400">
+      <td className="px-3 py-2.5 text-xs text-muted">
         {trade.tradeType.replace(/_/g, " ")}
       </td>
       <td className="px-3 py-2.5">
         <StatusBadge status={trade.status} />
       </td>
-      <td className="px-3 py-2.5 text-xs text-slate-300">{trade.counterpartyName}</td>
-      <td className="px-3 py-2.5 text-xs text-slate-300">{trade.commodityCode}</td>
-      <td className="px-3 py-2.5 text-xs text-slate-400">{trade.bookCode}</td>
-      <td className="px-3 py-2.5 text-xs text-slate-400 font-mono">{trade.tradeDate}</td>
-      <td className="px-3 py-2.5 text-right font-mono text-xs text-slate-300">
+      <td className="px-3 py-2.5 text-xs text-secondary">{trade.counterpartyName}</td>
+      <td className="px-3 py-2.5 text-xs text-secondary">{trade.commodityCode}</td>
+      <td className="px-3 py-2.5 text-xs text-muted">{trade.bookCode}</td>
+      <td className="px-3 py-2.5 text-xs text-muted font-mono tabular-nums">{trade.tradeDate}</td>
+      <td className="px-3 py-2.5 text-right font-mono tabular-nums text-xs text-secondary">
         {formatUsd(trade.notionalUsd)}
       </td>
       <td className="px-3 py-2.5">

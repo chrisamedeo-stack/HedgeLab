@@ -62,8 +62,8 @@ export default function BudgetPage() {
       {/* Header + Action Buttons */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Budgets &amp; Forecasts</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Fiscal year starting {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][fyStartMonth - 1]} &middot; volume targets by site and month</p>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Budgets &amp; Forecasts</h1>
+          <p className="text-sm text-muted mt-0.5">Fiscal year starting {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][fyStartMonth - 1]} &middot; volume targets by site and month</p>
         </div>
         <div className="flex gap-2">
           <ExportButton
@@ -81,17 +81,17 @@ export default function BudgetPage() {
           {activeTab === "budget" ? (
             <>
               <button onClick={() => { setFormMode("fiscal-year"); setEditing(undefined); }}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-input-bg hover:bg-hover border border-b-input text-secondary text-sm font-medium rounded-lg transition-colors">
                 <CalendarDays className="h-4 w-4" /> Full Year
               </button>
               <button onClick={() => { setFormMode("single"); setEditing(undefined); }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
+                className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white text-sm font-medium rounded-lg transition-colors">
                 <Plus className="h-4 w-4" /> Add Month
               </button>
             </>
           ) : (
             <button onClick={() => { setFormMode("forecast-grid"); setEditing(undefined); }}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-medium rounded-lg transition-colors">
+              className="flex items-center gap-2 px-4 py-2 bg-input-bg hover:bg-hover border border-b-input text-secondary text-sm font-medium rounded-lg transition-colors">
               <RefreshCw className="h-4 w-4" /> Update Forecasts
             </button>
           )}
@@ -100,7 +100,7 @@ export default function BudgetPage() {
 
       {/* Book Toggle */}
       <div className="flex items-center gap-4">
-        <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl w-fit">
+        <div className="flex gap-1 p-1 bg-surface border border-b-default rounded-lg w-fit">
           {(["CANADA", "US"] as Book[]).map((b) => (
             <button
               key={b}
@@ -108,8 +108,8 @@ export default function BudgetPage() {
               className={cn(
                 "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
                 book === b
-                  ? "bg-blue-600 text-white shadow"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-action text-white shadow"
+                  : "text-muted hover:text-secondary"
               )}
             >
               {b === "CANADA" ? "\ud83c\udde8\ud83c\udde6 Canada" : "\ud83c\uddfa\ud83c\uddf8 United States"}
@@ -119,7 +119,7 @@ export default function BudgetPage() {
       </div>
 
       {/* Tab Toggle */}
-      <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl w-fit">
+      <div className="flex gap-1 p-1 bg-surface border border-b-default rounded-lg w-fit">
         {([["budget", "Budgets"], ["forecast", "Forecasts"]] as [ActiveTab, string][]).map(([tab, label]) => (
           <button
             key={tab}
@@ -127,8 +127,8 @@ export default function BudgetPage() {
             className={cn(
               "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
               activeTab === tab
-                ? "bg-slate-700 text-white shadow"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-hover text-white shadow"
+                : "text-muted hover:text-secondary"
             )}
           >
             {label}
@@ -139,12 +139,12 @@ export default function BudgetPage() {
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
         <select value={filterSite} onChange={(e) => setFilterSite(e.target.value)}
-          className="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+          className="bg-surface border border-b-default text-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
           <option value="">All</option>
           {countrySites.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
         </select>
         <select value={filterFY} onChange={(e) => setFilterFY(e.target.value)}
-          className="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+          className="bg-surface border border-b-default text-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
           <option value="">All Fiscal Years</option>
           {availableFiscalYears(fyStartMonth).map((fy) => <option key={fy}>{fy}</option>)}
         </select>

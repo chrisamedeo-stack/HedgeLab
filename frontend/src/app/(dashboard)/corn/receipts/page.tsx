@@ -145,8 +145,8 @@ export default function ReceiptsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Receipt Ledger</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Physical corn deliveries received at plant</p>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Receipt Ledger</h1>
+          <p className="text-sm text-muted mt-0.5">Physical corn deliveries received at plant</p>
         </div>
         <div className="flex items-center gap-2">
           <ExportButton
@@ -163,7 +163,7 @@ export default function ReceiptsPage() {
           />
           <button
             onClick={() => showForm ? cancelForm() : setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white text-sm font-medium rounded-lg transition-colors"
           >
             {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {showForm ? "Cancel" : "Log Receipt"}
@@ -179,9 +179,9 @@ export default function ReceiptsPage() {
             { label: "Net Received",   value: `${formatNumber(Math.round(totalNet * BUSHELS_PER_MT))} bu` },
             { label: "Total Cost",     value: `$${formatNumber(Math.round(totalCostSum))}` },
           ].map(({ label, value }) => (
-            <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{label}</p>
-              <p className="text-2xl font-bold tabular-nums text-slate-100">{value}</p>
+            <div key={label} className="bg-surface border border-b-default rounded-lg p-4">
+              <p className="text-xs text-faint uppercase tracking-wider mb-1">{label}</p>
+              <p className="text-2xl font-bold tabular-nums text-primary">{value}</p>
             </div>
           ))}
         </div>
@@ -191,16 +191,16 @@ export default function ReceiptsPage() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4"
+          className="bg-surface border border-b-default rounded-lg p-6 space-y-4"
         >
-          <h2 className="text-sm font-semibold text-slate-200">
+          <h2 className="text-sm font-semibold text-secondary">
             {editing ? `Edit ${editing.ticketRef}` : "Log Delivery Receipt"}
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Physical Contract</label>
+              <label className="text-xs text-muted">Physical Contract</label>
               <select
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
                 value={form.physicalContractId}
                 onChange={(e) => field("physicalContractId", e.target.value)}
                 required
@@ -214,9 +214,9 @@ export default function ReceiptsPage() {
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Site</label>
+              <label className="text-xs text-muted">Site</label>
               <select
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
                 value={form.siteCode}
                 onChange={(e) => field("siteCode", e.target.value)}
                 required
@@ -226,21 +226,21 @@ export default function ReceiptsPage() {
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Receipt Date</label>
+              <label className="text-xs text-muted">Receipt Date</label>
               <input
                 type="date"
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
                 value={form.receiptDate}
                 onChange={(e) => field("receiptDate", e.target.value)}
                 required
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Gross Weight (MT)</label>
+              <label className="text-xs text-muted">Gross Weight (MT)</label>
               <input
                 type="number"
                 step="0.001"
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
                 placeholder="e.g. 25.450"
                 value={form.grossMt}
                 onChange={(e) => field("grossMt", e.target.value)}
@@ -248,13 +248,13 @@ export default function ReceiptsPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Moisture %</label>
+              <label className="text-xs text-muted">Moisture %</label>
               <input
                 type="number"
                 step="0.1"
                 min="0"
                 max="30"
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
                 placeholder="15.5"
                 value={form.moisturePct}
                 onChange={(e) => field("moisturePct", e.target.value)}
@@ -262,31 +262,31 @@ export default function ReceiptsPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Delivered Cost ($/MT)</label>
+              <label className="text-xs text-muted">Delivered Cost ($/MT)</label>
               <input
                 type="number"
                 step="0.01"
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
                 placeholder="e.g. 244.87"
                 value={form.deliveredCostPerMt}
                 onChange={(e) => field("deliveredCostPerMt", e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Vehicle / Truck Ref</label>
+              <label className="text-xs text-muted">Vehicle / Truck Ref</label>
               <input
                 type="text"
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
                 placeholder="e.g. ON-123456"
                 value={form.vehicleRef}
                 onChange={(e) => field("vehicleRef", e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Notes</label>
+              <label className="text-xs text-muted">Notes</label>
               <input
                 type="text"
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
                 placeholder="Optional"
                 value={form.notes}
                 onChange={(e) => field("notes", e.target.value)}
@@ -296,26 +296,26 @@ export default function ReceiptsPage() {
 
           {/* Shrink / net preview */}
           {gross > 0 && (
-            <div className="p-4 bg-slate-800/50 rounded-lg">
-              <p className="text-xs text-slate-500 mb-2">Net Weight Calculation</p>
+            <div className="p-4 bg-input-bg/50 rounded-lg">
+              <p className="text-xs text-faint mb-2">Net Weight Calculation</p>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <p className="text-xs text-slate-500">Gross</p>
-                  <p className="text-sm font-semibold tabular-nums text-slate-200">{formatNumber(Math.round(gross * BUSHELS_PER_MT))} bu</p>
+                  <p className="text-xs text-faint">Gross</p>
+                  <p className="text-sm font-semibold tabular-nums text-secondary">{formatNumber(Math.round(gross * BUSHELS_PER_MT))} bu</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Shrink</p>
-                  <p className="text-sm font-semibold tabular-nums text-amber-400">-{formatNumber(Math.round(shrinkMt * BUSHELS_PER_MT))} bu</p>
+                  <p className="text-xs text-faint">Shrink</p>
+                  <p className="text-sm font-semibold tabular-nums text-warning">-{formatNumber(Math.round(shrinkMt * BUSHELS_PER_MT))} bu</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Net</p>
-                  <p className="text-sm font-semibold tabular-nums text-emerald-400">{formatNumber(Math.round(netBu))} bu</p>
+                  <p className="text-xs text-faint">Net</p>
+                  <p className="text-sm font-semibold tabular-nums text-profit">{formatNumber(Math.round(netBu))} bu</p>
                 </div>
               </div>
               {totalCost > 0 && (
-                <div className="mt-3 pt-3 border-t border-slate-700">
-                  <p className="text-xs text-slate-500">Total Cost</p>
-                  <p className="text-sm font-semibold tabular-nums text-slate-200">${formatNumber(Math.round(totalCost))}</p>
+                <div className="mt-3 pt-3 border-t border-b-input">
+                  <p className="text-xs text-faint">Total Cost</p>
+                  <p className="text-sm font-semibold tabular-nums text-secondary">${formatNumber(Math.round(totalCost))}</p>
                 </div>
               )}
             </div>
@@ -323,14 +323,14 @@ export default function ReceiptsPage() {
 
           <div className="flex justify-end gap-2">
             {editing && (
-              <button type="button" onClick={cancelForm} className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">
+              <button type="button" onClick={cancelForm} className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">
                 Cancel
               </button>
             )}
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
             >
               {submitting ? "Saving…" : editing ? "Update Receipt" : "Log Receipt"}
             </button>
@@ -340,9 +340,9 @@ export default function ReceiptsPage() {
 
       {/* Filter */}
       <div className="flex items-center gap-3">
-        <label className="text-xs text-slate-400">Site:</label>
+        <label className="text-xs text-muted">Site:</label>
         <select
-          className="bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-action"
           value={siteFilter}
           onChange={(e) => setSiteFilter(e.target.value)}
         >
@@ -352,7 +352,7 @@ export default function ReceiptsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
         {isLoading ? (
           <SkeletonTable rows={5} cols={8} />
         ) : receipts.length === 0 ? (
@@ -365,28 +365,28 @@ export default function ReceiptsPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-800/50 border-b border-slate-800">
+              <tr className="bg-input-bg/50 border-b border-b-default">
                 {["Ticket", "Contract", "Site", "Date", "Gross (bu)", "Moisture", "Net (bu)", "Cost/MT", "Total Cost", ""].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                  <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-b-default">
               {receipts.map((r) => (
-                <tr key={r.id} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-blue-400">{r.ticketRef}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-400">{r.contractRef}</td>
-                  <td className="px-4 py-3 text-slate-300">{r.siteCode}</td>
-                  <td className="px-4 py-3 text-slate-400">{r.receiptDate}</td>
-                  <td className="px-4 py-3 tabular-nums text-slate-200">{r.grossMt != null ? formatNumber(Math.round(r.grossMt * BUSHELS_PER_MT)) : "—"}</td>
-                  <td className="px-4 py-3 tabular-nums text-slate-400">{r.moisturePct?.toFixed(1)}%</td>
-                  <td className="px-4 py-3 tabular-nums text-emerald-400">{r.netMt != null ? formatNumber(Math.round(r.netMt * BUSHELS_PER_MT)) : "—"}</td>
-                  <td className="px-4 py-3 tabular-nums text-slate-400">
+                <tr key={r.id} className="hover:bg-row-hover transition-colors">
+                  <td className="px-4 py-3 font-mono text-xs text-action">{r.ticketRef}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted">{r.contractRef}</td>
+                  <td className="px-4 py-3 text-secondary">{r.siteCode}</td>
+                  <td className="px-4 py-3 text-muted">{r.receiptDate}</td>
+                  <td className="px-4 py-3 tabular-nums text-secondary">{r.grossMt != null ? formatNumber(Math.round(r.grossMt * BUSHELS_PER_MT)) : "—"}</td>
+                  <td className="px-4 py-3 tabular-nums text-muted">{r.moisturePct?.toFixed(1)}%</td>
+                  <td className="px-4 py-3 tabular-nums text-profit">{r.netMt != null ? formatNumber(Math.round(r.netMt * BUSHELS_PER_MT)) : "—"}</td>
+                  <td className="px-4 py-3 tabular-nums text-muted">
                     {r.deliveredCostPerMt != null ? `$${r.deliveredCostPerMt.toFixed(2)}` : "—"}
                   </td>
-                  <td className="px-4 py-3 tabular-nums text-slate-200">
+                  <td className="px-4 py-3 tabular-nums text-secondary">
                     {r.totalCostUsd != null && r.totalCostUsd > 0
                       ? `$${formatNumber(Math.round(r.totalCostUsd))}`
                       : "—"}
@@ -395,14 +395,14 @@ export default function ReceiptsPage() {
                     <div className="flex items-center gap-2 justify-end">
                       <button
                         onClick={() => startEdit(r)}
-                        className="text-slate-600 hover:text-blue-400 transition-colors"
+                        className="text-ph hover:text-action transition-colors"
                         title="Edit receipt"
                       >
                         <Edit2 className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => setDeleteTarget({ id: r.id, ref: r.ticketRef })}
-                        className="text-slate-600 hover:text-red-400 transition-colors"
+                        className="text-ph hover:text-destructive transition-colors"
                         title="Delete receipt"
                       >
                         <Trash2 className="h-3.5 w-3.5" />

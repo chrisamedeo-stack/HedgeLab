@@ -110,24 +110,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const initials = mounted ? (user?.username?.slice(0, 2).toUpperCase() ?? "HL") : "HL";
 
   return (
-    <div className="flex h-screen bg-slate-950">
+    <div className="flex h-screen bg-main">
       {/* Sidebar */}
       <aside
         className={cn(
-          "bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 transition-all duration-200 ease-in-out",
+          "bg-surface border-r border-b-default flex flex-col shrink-0 transition-all duration-200 ease-in-out",
           collapsed ? "w-16" : "w-60"
         )}
       >
         {/* Logo */}
         <div className={cn(
-          "flex items-center border-b border-slate-800 h-14 shrink-0",
+          "flex items-center border-b border-b-default h-14 shrink-0",
           collapsed ? "justify-center px-0" : "px-4 gap-3"
         )}>
-          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-blue-600 text-white font-bold text-sm shrink-0">
+          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-action text-white font-bold text-sm shrink-0">
             HL
           </div>
           {!collapsed && (
-            <span className="text-sm font-semibold text-slate-100 tracking-tight">HedgeLab</span>
+            <span className="text-sm font-semibold text-primary tracking-tight">HedgeLab</span>
           )}
         </div>
 
@@ -136,7 +136,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {navSections.map((section) => (
             <div key={section.label}>
               {!collapsed && (
-                <p className="px-3 mb-1 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                <p className="px-3 mb-1 text-xs font-semibold text-ph uppercase tracking-wider">
                   {section.label}
                 </p>
               )}
@@ -152,8 +152,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         "flex items-center rounded-lg text-sm font-medium transition-colors",
                         collapsed ? "justify-center h-10 w-full px-0" : "px-3 py-2 gap-3",
                         active
-                          ? "bg-blue-500/10 text-blue-400 border-l-2 border-blue-500"
-                          : "text-slate-500 hover:bg-slate-800 hover:text-slate-100"
+                          ? "bg-action-10 text-action border-l-2 border-action"
+                          : "text-faint hover:bg-input-bg hover:text-primary"
                       )}
                     >
                       <Icon className={cn("shrink-0", collapsed ? "h-5 w-5" : "h-4 w-4")} />
@@ -171,7 +171,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <button
             onClick={toggleCollapsed}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-500 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+            className="flex items-center justify-center h-8 w-8 rounded-lg text-faint hover:bg-input-bg hover:text-primary transition-colors"
           >
             {collapsed ? (
               <ChevronRight className="h-4 w-4" />
@@ -183,23 +183,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* User section */}
         <div className={cn(
-          "border-t border-slate-800 py-3 shrink-0",
+          "border-t border-b-default py-3 shrink-0",
           collapsed ? "px-2 flex flex-col items-center gap-2" : "px-3"
         )}>
           <div className={cn("flex items-center", collapsed ? "flex-col gap-2" : "gap-3")}>
-            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-600 text-white text-xs font-bold shrink-0">
+            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-action text-white text-xs font-bold shrink-0">
               {initials}
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-slate-200 truncate">{user?.username}</p>
-                <p className="text-xs text-slate-500 truncate">{user?.role}</p>
+                <p className="text-xs font-medium text-secondary truncate">{user?.username}</p>
+                <p className="text-xs text-faint truncate">{user?.role}</p>
               </div>
             )}
             <button
               onClick={handleLogout}
               title="Sign out"
-              className="text-slate-500 hover:text-red-400 transition-colors shrink-0"
+              className="text-faint hover:text-destructive transition-colors shrink-0"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -208,7 +208,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto bg-slate-950">
+      <main className="flex-1 overflow-y-auto bg-main">
         <div className="page-fade p-6">{children}</div>
       </main>
     </div>

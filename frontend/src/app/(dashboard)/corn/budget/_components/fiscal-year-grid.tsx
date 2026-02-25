@@ -79,105 +79,105 @@ export function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSave
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 space-y-5">
+    <form onSubmit={handleSubmit} className="bg-surface border border-b-default rounded-lg p-6 space-y-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-zinc-200">New Fiscal Year Budget</h2>
-        <button type="button" onClick={onCancel} className="text-zinc-500 hover:text-zinc-300 transition-colors"><X className="h-4 w-4" /></button>
+        <h2 className="text-sm font-semibold text-secondary">New Fiscal Year Budget</h2>
+        <button type="button" onClick={onCancel} className="text-faint hover:text-secondary transition-colors"><X className="h-4 w-4" /></button>
       </div>
       {/* Config Bar */}
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-1">
-          <label className="text-xs text-zinc-400">Site</label>
+          <label className="text-xs text-muted">Site</label>
           <select value={config.siteCode} onChange={(e) => setConfig((c) => ({ ...c, siteCode: e.target.value }))} required
-            className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
             <option value="">&mdash; Select &mdash;</option>
             {sites.map((s) => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-zinc-400">Commodity</label>
+          <label className="text-xs text-muted">Commodity</label>
           <select value={config.commodityCode} onChange={(e) => setConfig((c) => ({ ...c, commodityCode: e.target.value }))}
-            className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
             {COMMODITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-zinc-400">Fiscal Year</label>
+          <label className="text-xs text-muted">Fiscal Year</label>
           <select value={config.fiscalYear} onChange={(e) => handleFYChange(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
             {availableFiscalYears(fyStartMonth).map((fy) => <option key={fy}>{fy}</option>)}
           </select>
         </div>
       </div>
       {/* Cost Components (shared across all months) */}
       <div className="space-y-2">
-        <label className="text-xs text-zinc-400 block">Cost Components (shared across all months)</label>
+        <label className="text-xs text-muted block">Cost Components (shared across all months)</label>
         <ComponentEditor rows={components} onChange={setComponents} />
         <ComponentTokenBar rows={components} />
       </div>
       {/* Default Volume */}
-      <div className="rounded-lg bg-zinc-800/40 border border-zinc-700/50 px-4 py-3 space-y-1">
+      <div className="rounded-lg bg-input-bg/40 border border-b-input/50 px-4 py-3 space-y-1">
         <div className="flex items-center gap-2">
-          <label className="text-xs text-zinc-400 whitespace-nowrap">Default volume:</label>
+          <label className="text-xs text-muted whitespace-nowrap">Default volume:</label>
           <input type="number" placeholder="bushels" step="1" min="0"
-            className="w-32 bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-600"
+            className="w-32 bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
             onChange={(e) => applyAll(e.target.value)} />
-          <span className="text-xs text-zinc-600">bu/month</span>
+          <span className="text-xs text-ph">bu/month</span>
         </div>
-        <p className="text-xs text-zinc-600">Sets all months &mdash; override individually below</p>
+        <p className="text-xs text-ph">Sets all months &mdash; override individually below</p>
       </div>
       {/* Monthly Grid */}
-      <div className="rounded-lg border border-zinc-700 overflow-hidden">
+      <div className="rounded-lg border border-b-input overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-zinc-800/60 border-b border-zinc-700">
-              <th className="px-3 py-2 text-left text-xs text-zinc-400 font-medium w-20">Month</th>
-              <th className="px-3 py-2 text-right text-xs text-zinc-400 font-medium">Bushels</th>
-              <th className="px-3 py-2 text-right text-xs text-zinc-400 font-medium w-36">All-in $/bu</th>
-              <th className="px-3 py-2 text-left text-xs text-zinc-400 font-medium w-28">Futures Ref</th>
-              <th className="px-3 py-2 text-left text-xs text-zinc-400 font-medium">Notes</th>
+            <tr className="bg-input-bg/60 border-b border-b-input">
+              <th className="px-3 py-2 text-left text-xs text-muted font-medium w-20">Month</th>
+              <th className="px-3 py-2 text-right text-xs text-muted font-medium">Bushels</th>
+              <th className="px-3 py-2 text-right text-xs text-muted font-medium w-36">All-in $/bu</th>
+              <th className="px-3 py-2 text-left text-xs text-muted font-medium w-28">Futures Ref</th>
+              <th className="px-3 py-2 text-left text-xs text-muted font-medium">Notes</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-800">
+          <tbody className="divide-y divide-b-default">
             {months.map((m) => {
               const row = rows[m] ?? { volume: "", futuresMonth: "", notes: "" };
               return (
-                <tr key={m} className={m.endsWith("-07") ? "border-t-2 border-blue-500/30" : ""}>
-                  <td className="px-3 py-2 font-medium text-zinc-300 whitespace-nowrap">{monthLabel(m)}</td>
+                <tr key={m} className={m.endsWith("-07") ? "border-t-2 border-action-30" : ""}>
+                  <td className="px-3 py-2 font-medium text-secondary whitespace-nowrap">{monthLabel(m)}</td>
                   <td className="px-3 py-1.5">
                     <input type="number" step="1" min="0" placeholder="0" value={row.volume}
                       onChange={(e) => updateRow(m, "volume", e.target.value)}
-                      className="w-full bg-transparent text-zinc-200 text-right tabular-nums placeholder:text-zinc-700 focus:outline-none" />
+                      className="w-full bg-transparent text-secondary text-right tabular-nums placeholder:text-ph focus:outline-none" />
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums text-xs">
                     {sharedTotalPerBu > 0 ? (
-                      <span className="text-blue-400">${sharedTotalPerBu.toFixed(4)}/bu</span>
-                    ) : <span className="text-zinc-700">&mdash;</span>}
+                      <span className="text-action">${sharedTotalPerBu.toFixed(4)}/bu</span>
+                    ) : <span className="text-ph">&mdash;</span>}
                   </td>
                   <td className="px-3 py-1.5">
                     <input type="text" placeholder="e.g. ZCN26" value={row.futuresMonth}
                       onChange={(e) => updateRow(m, "futuresMonth", e.target.value)}
-                      className="w-full bg-transparent text-zinc-400 placeholder:text-zinc-700 focus:outline-none text-xs" />
+                      className="w-full bg-transparent text-muted placeholder:text-ph focus:outline-none text-xs" />
                   </td>
                   <td className="px-3 py-1.5">
                     <input type="text" placeholder="Optional" value={row.notes}
                       onChange={(e) => updateRow(m, "notes", e.target.value)}
-                      className="w-full bg-transparent text-zinc-500 placeholder:text-zinc-700 focus:outline-none text-xs" />
+                      className="w-full bg-transparent text-faint placeholder:text-ph focus:outline-none text-xs" />
                   </td>
                 </tr>
               );
             })}
           </tbody>
           <tfoot>
-            <tr className="bg-zinc-800/50 border-t border-zinc-700">
-              <td className="px-3 py-2 text-xs text-zinc-500 font-medium">Total</td>
-              <td className="px-3 py-2 text-right tabular-nums font-bold text-zinc-200 text-sm">
+            <tr className="bg-input-bg/50 border-t border-b-input">
+              <td className="px-3 py-2 text-xs text-faint font-medium">Total</td>
+              <td className="px-3 py-2 text-right tabular-nums font-bold text-secondary text-sm">
                 {totalBu > 0
                   ? totalBu.toLocaleString("en-US", { maximumFractionDigits: 0 })
                   : "\u2014"}
               </td>
               <td className="px-3 py-2 text-right tabular-nums text-xs">
-                {sharedTotalPerBu > 0 ? <span className="text-blue-400 font-medium">${sharedTotalPerBu.toFixed(4)}/bu</span> : ""}
+                {sharedTotalPerBu > 0 ? <span className="text-action font-medium">${sharedTotalPerBu.toFixed(4)}/bu</span> : ""}
               </td>
               <td colSpan={2} />
             </tr>
@@ -185,9 +185,9 @@ export function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSave
         </table>
       </div>
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-zinc-400 hover:text-zinc-200 text-sm transition-colors">Cancel</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">Cancel</button>
         <button type="submit" disabled={submitting}
-          className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+          className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
           {submitting ? "Saving\u2026" : `Save ${filledCount} month${filledCount !== 1 ? "s" : ""}`}
         </button>
       </div>

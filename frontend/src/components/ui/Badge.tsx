@@ -1,69 +1,62 @@
 import { cn } from "@/lib/utils";
 import type { TradeStatus, DeliveryStatus } from "@/types/trade";
 
-type BadgeColor = "emerald" | "slate" | "blue" | "red" | "amber" | "violet";
+type BadgeColor = "profit" | "neutral" | "action" | "destructive" | "warning" | "accent";
 
 interface ColorConfig {
-  dot: string;
   ring: string;
   bg: string;
   text: string;
 }
 
 const colorMap: Record<BadgeColor, ColorConfig> = {
-  emerald: {
-    dot: "bg-emerald-400",
-    ring: "ring-emerald-500/20",
-    bg: "bg-emerald-500/10",
-    text: "text-emerald-400",
+  profit: {
+    ring: "ring-profit-20",
+    bg: "bg-profit-15",
+    text: "text-profit",
   },
-  slate: {
-    dot: "bg-slate-400",
-    ring: "ring-slate-500/20",
-    bg: "bg-slate-500/10",
-    text: "text-slate-400",
+  neutral: {
+    ring: "ring-neutral-20",
+    bg: "bg-neutral-15",
+    text: "text-neutral",
   },
-  blue: {
-    dot: "bg-blue-400",
-    ring: "ring-blue-500/20",
-    bg: "bg-blue-500/10",
-    text: "text-blue-400",
+  action: {
+    ring: "ring-action-20",
+    bg: "bg-action-15",
+    text: "text-action",
   },
-  red: {
-    dot: "bg-red-400",
-    ring: "ring-red-500/20",
-    bg: "bg-red-500/10",
-    text: "text-red-400",
+  destructive: {
+    ring: "ring-destructive-20",
+    bg: "bg-destructive-15",
+    text: "text-destructive",
   },
-  amber: {
-    dot: "bg-amber-400",
-    ring: "ring-amber-500/20",
-    bg: "bg-amber-500/10",
-    text: "text-amber-400",
+  warning: {
+    ring: "ring-warning-20",
+    bg: "bg-warning-15",
+    text: "text-warning",
   },
-  violet: {
-    dot: "bg-violet-400",
-    ring: "ring-violet-500/20",
-    bg: "bg-violet-500/10",
-    text: "text-violet-400",
+  accent: {
+    ring: "ring-accent-20",
+    bg: "bg-accent-15",
+    text: "text-accent",
   },
 };
 
 const tradeStatusColors: Record<TradeStatus, BadgeColor> = {
-  CONFIRMED: "emerald",
-  DRAFT: "slate",
-  AMENDED: "blue",
-  CANCELLED: "red",
-  PARTIALLY_DELIVERED: "amber",
-  FULLY_DELIVERED: "emerald",
-  SETTLED: "slate",
+  CONFIRMED: "profit",
+  DRAFT: "neutral",
+  AMENDED: "action",
+  CANCELLED: "destructive",
+  PARTIALLY_DELIVERED: "warning",
+  FULLY_DELIVERED: "profit",
+  SETTLED: "neutral",
 };
 
 const deliveryStatusColors: Record<DeliveryStatus, BadgeColor> = {
-  PENDING: "slate",
-  PARTIAL: "amber",
-  COMPLETE: "emerald",
-  CANCELLED: "red",
+  PENDING: "neutral",
+  PARTIAL: "warning",
+  COMPLETE: "profit",
+  CANCELLED: "destructive",
 };
 
 function StatusPill({ color, label }: { color: BadgeColor; label: string }) {
@@ -71,37 +64,36 @@ function StatusPill({ color, label }: { color: BadgeColor; label: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1",
+        "inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold ring-1",
         c.ring,
         c.bg,
         c.text
       )}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full", c.dot)} />
       {label.replace(/_/g, " ")}
     </span>
   );
 }
 
 export function StatusBadge({ status }: { status: TradeStatus | string }) {
-  const color = tradeStatusColors[status as TradeStatus] ?? "slate";
+  const color = tradeStatusColors[status as TradeStatus] ?? "neutral";
   return <StatusPill color={color} label={status} />;
 }
 
 export function DeliveryBadge({ status }: { status: DeliveryStatus | string }) {
-  const color = deliveryStatusColors[status as DeliveryStatus] ?? "slate";
+  const color = deliveryStatusColors[status as DeliveryStatus] ?? "neutral";
   return <StatusPill color={color} label={status} />;
 }
 
 // ─── Contract Status ────────────────────────────────────────────────────────
 
 const contractStatusColors: Record<string, BadgeColor> = {
-  OPEN: "slate",
-  BASIS_LOCKED: "blue",
-  EFP_EXECUTED: "emerald",
-  PO_ISSUED: "violet",
-  CLOSED: "slate",
-  CANCELLED: "red",
+  OPEN: "neutral",
+  BASIS_LOCKED: "action",
+  EFP_EXECUTED: "profit",
+  PO_ISSUED: "accent",
+  CLOSED: "neutral",
+  CANCELLED: "destructive",
 };
 
 const contractStatusLabels: Record<string, string> = {
@@ -114,7 +106,7 @@ const contractStatusLabels: Record<string, string> = {
 };
 
 export function ContractStatusBadge({ status }: { status: string }) {
-  const color = contractStatusColors[status] ?? "slate";
+  const color = contractStatusColors[status] ?? "neutral";
   const label = contractStatusLabels[status] ?? status;
   return <StatusPill color={color} label={label} />;
 }
@@ -122,36 +114,36 @@ export function ContractStatusBadge({ status }: { status: string }) {
 // ─── EFP Status ─────────────────────────────────────────────────────────────
 
 const efpStatusColors: Record<string, BadgeColor> = {
-  PENDING: "amber",
-  CONFIRMED: "emerald",
-  CANCELLED: "red",
+  PENDING: "warning",
+  CONFIRMED: "profit",
+  CANCELLED: "destructive",
 };
 
 export function EfpStatusBadge({ status }: { status: string }) {
-  const color = efpStatusColors[status] ?? "slate";
+  const color = efpStatusColors[status] ?? "neutral";
   return <StatusPill color={color} label={status} />;
 }
 
 // ─── Hedge Status ───────────────────────────────────────────────────────────
 
 const hedgeStatusColors: Record<string, BadgeColor> = {
-  OPEN: "emerald",
-  PARTIALLY_EFP: "amber",
-  FULLY_EFP: "blue",
-  CLOSED: "slate",
+  OPEN: "profit",
+  PARTIALLY_EFP: "warning",
+  FULLY_EFP: "action",
+  CLOSED: "neutral",
 };
 
 export function HedgeStatusBadge({ status }: { status: string }) {
-  const color = hedgeStatusColors[status] ?? "slate";
+  const color = hedgeStatusColors[status] ?? "neutral";
   return <StatusPill color={color} label={status} />;
 }
 
 // ─── Trade Type ─────────────────────────────────────────────────────────────
 
 const tradeTypeColors: Record<string, BadgeColor> = {
-  BASIS: "blue",
-  ALL_IN: "emerald",
-  INDEX: "amber",
+  BASIS: "action",
+  ALL_IN: "profit",
+  INDEX: "warning",
 };
 
 const tradeTypeLabels: Record<string, string> = {
@@ -161,7 +153,7 @@ const tradeTypeLabels: Record<string, string> = {
 };
 
 export function TradeTypeBadge({ type }: { type: string }) {
-  const color = tradeTypeColors[type] ?? "slate";
+  const color = tradeTypeColors[type] ?? "neutral";
   const label = tradeTypeLabels[type] ?? type;
   return <StatusPill color={color} label={label} />;
 }
@@ -169,13 +161,13 @@ export function TradeTypeBadge({ type }: { type: string }) {
 // ─── Side (BUY/SELL/LONG/SHORT) ─────────────────────────────────────────────
 
 const sideColors: Record<string, BadgeColor> = {
-  BUY: "emerald",
-  LONG: "emerald",
-  SELL: "red",
-  SHORT: "red",
+  BUY: "profit",
+  LONG: "profit",
+  SELL: "destructive",
+  SHORT: "destructive",
 };
 
 export function SideBadge({ side }: { side: string }) {
-  const color = sideColors[side] ?? "slate";
+  const color = sideColors[side] ?? "neutral";
   return <StatusPill color={color} label={side} />;
 }

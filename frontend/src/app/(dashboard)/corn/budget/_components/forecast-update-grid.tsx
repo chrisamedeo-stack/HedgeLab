@@ -50,40 +50,40 @@ export function ForecastUpdateGrid({ lines, onSaved, onCancel }: {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
+    <form onSubmit={handleSubmit} className="bg-surface border border-b-default rounded-lg p-6 space-y-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-200">Update Forecasts</h2>
-        <button type="button" onClick={onCancel} className="text-slate-500 hover:text-slate-300 transition-colors"><X className="h-4 w-4" /></button>
+        <h2 className="text-sm font-semibold text-secondary">Update Forecasts</h2>
+        <button type="button" onClick={onCancel} className="text-faint hover:text-secondary transition-colors"><X className="h-4 w-4" /></button>
       </div>
       <div className="space-y-1">
-        <label className="text-xs text-slate-400">Update Note</label>
+        <label className="text-xs text-muted">Update Note</label>
         <input type="text" placeholder="e.g. March review" value={note} onChange={(e) => setNote(e.target.value)}
-          className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
+          className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
       </div>
-      <div className="rounded-lg border border-slate-700 overflow-hidden">
+      <div className="rounded-lg border border-b-input overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-800/60 border-b border-slate-700">
-              <th className="px-3 py-2 text-left text-xs text-slate-400 font-medium">Month</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">Budget Bu</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">Current Fcst Bu</th>
-              <th className="px-3 py-2 text-right text-xs text-slate-400 font-medium">New Forecast Bu</th>
+            <tr className="bg-input-bg/60 border-b border-b-input">
+              <th className="px-3 py-2 text-left text-xs text-muted font-medium">Month</th>
+              <th className="px-3 py-2 text-right text-xs text-muted font-medium">Budget Bu</th>
+              <th className="px-3 py-2 text-right text-xs text-muted font-medium">Current Fcst Bu</th>
+              <th className="px-3 py-2 text-right text-xs text-muted font-medium">New Forecast Bu</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
+          <tbody className="divide-y divide-b-default">
             {lines.map((l) => {
               const newBu = parseFloat(forecasts[l.id]) || 0;
               const oldBu = Math.round((l.forecastVolumeMt ?? l.budgetVolumeMt ?? 0) * BUSHELS_PER_MT);
               const changed = Math.abs(newBu - oldBu) > 0.5;
               return (
-                <tr key={l.id} className={changed ? "bg-blue-500/5" : ""}>
-                  <td className="px-3 py-2 text-slate-300 whitespace-nowrap">{monthLabel(l.budgetMonth)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-slate-500">{fmtVol(Math.round(l.budgetVolumeMt * BUSHELS_PER_MT))}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-slate-400">{l.forecastVolumeMt != null ? fmtVol(Math.round(l.forecastVolumeMt * BUSHELS_PER_MT)) : "\u2014"}</td>
+                <tr key={l.id} className={changed ? "bg-action-5" : ""}>
+                  <td className="px-3 py-2 text-secondary whitespace-nowrap">{monthLabel(l.budgetMonth)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-faint">{fmtVol(Math.round(l.budgetVolumeMt * BUSHELS_PER_MT))}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-muted">{l.forecastVolumeMt != null ? fmtVol(Math.round(l.forecastVolumeMt * BUSHELS_PER_MT)) : "\u2014"}</td>
                   <td className="px-3 py-1.5">
                     <input type="number" step="1" min="0" value={forecasts[l.id]}
                       onChange={(e) => updateForecast(l.id, e.target.value)}
-                      className="w-full bg-transparent text-slate-200 text-right tabular-nums focus:outline-none" />
+                      className="w-full bg-transparent text-secondary text-right tabular-nums focus:outline-none" />
                   </td>
                 </tr>
               );
@@ -92,11 +92,11 @@ export function ForecastUpdateGrid({ lines, onSaved, onCancel }: {
         </table>
       </div>
       <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-500">{changedLines.length} month{changedLines.length !== 1 ? "s" : ""} changed</p>
+        <p className="text-xs text-faint">{changedLines.length} month{changedLines.length !== 1 ? "s" : ""} changed</p>
         <div className="flex gap-2">
-          <button type="button" onClick={onCancel} className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">Cancel</button>
+          <button type="button" onClick={onCancel} className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">Cancel</button>
           <button type="submit" disabled={submitting || changedLines.length === 0}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+            className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
             {submitting ? "Saving\u2026" : `Update ${changedLines.length} forecast${changedLines.length !== 1 ? "s" : ""}`}
           </button>
         </div>
