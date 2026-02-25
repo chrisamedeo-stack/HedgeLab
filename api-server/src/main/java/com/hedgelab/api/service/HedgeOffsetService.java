@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 public class HedgeOffsetService {
 
     private static final BigDecimal BUSHELS_PER_LOT = new BigDecimal("5000");
-    private static final BigDecimal CENTS_PER_DOLLAR = new BigDecimal("100");
 
     private final HedgeOffsetRepository     offsetRepo;
     private final HedgeTradeRepository      hedgeRepo;
@@ -41,11 +40,11 @@ public class HedgeOffsetService {
         }
 
         BigDecimal entryPrice = hedge.getPricePerBushel();
-        BigDecimal pnlCents = req.getExitPrice().subtract(entryPrice);
-        BigDecimal pnlUsd = pnlCents
+        BigDecimal pnlPerBu = req.getExitPrice().subtract(entryPrice);
+        BigDecimal pnlUsd = pnlPerBu
                 .multiply(BUSHELS_PER_LOT)
                 .multiply(BigDecimal.valueOf(req.getLots()))
-                .divide(CENTS_PER_DOLLAR, 2, RoundingMode.HALF_UP);
+                .setScale(2, RoundingMode.HALF_UP);
 
         HedgeOffset offset = HedgeOffset.builder()
                 .hedgeTrade(hedge)
@@ -80,11 +79,11 @@ public class HedgeOffsetService {
 
         HedgeTrade hedge = allocation.getHedgeTrade();
         BigDecimal entryPrice = hedge.getPricePerBushel();
-        BigDecimal pnlCents = req.getExitPrice().subtract(entryPrice);
-        BigDecimal pnlUsd = pnlCents
+        BigDecimal pnlPerBu = req.getExitPrice().subtract(entryPrice);
+        BigDecimal pnlUsd = pnlPerBu
                 .multiply(BUSHELS_PER_LOT)
                 .multiply(BigDecimal.valueOf(req.getLots()))
-                .divide(CENTS_PER_DOLLAR, 2, RoundingMode.HALF_UP);
+                .setScale(2, RoundingMode.HALF_UP);
 
         HedgeOffset offset = HedgeOffset.builder()
                 .hedgeTrade(hedge)
@@ -119,14 +118,39 @@ public class HedgeOffsetService {
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
+    @Transactional
+    public void deleteOffset(Long id) {
+        HedgeOffset offset = offsetRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Offset not found: " + id));
+
+        HedgeTrade hedge = offset.getHedgeTrade();
+
+        // Restore hedge trade open lots
+        int newOpenLots = hedge.getOpenLots() + offset.getLots();
+        hedge.setOpenLots(newOpenLots);
+        int totalOffsetLots = offsetRepo.sumOffsetLotsByTradeId(hedge.getId()) - offset.getLots();
+        hedge.setStatus(HedgeService.computeStatus(hedge.getLots(), newOpenLots, totalOffsetLots));
+        hedgeRepo.save(hedge);
+
+        // If offset came from an allocation, restore those lots
+        if (offset.getAllocation() != null) {
+            HedgeAllocation allocation = offset.getAllocation();
+            allocation.setAllocatedLots(allocation.getAllocatedLots() + offset.getLots());
+            allocationRepo.save(allocation);
+        }
+
+        offsetRepo.delete(offset);
+    }
+
     private HedgeOffsetResponse toResponse(HedgeOffset o) {
         HedgeTrade h = o.getHedgeTrade();
         BigDecimal entryPrice = h.getPricePerBushel();
-        BigDecimal pnlCents = o.getExitPrice().subtract(entryPrice);
-        BigDecimal pnlUsd = pnlCents
+        BigDecimal pnlPerBu = o.getExitPrice().subtract(entryPrice);
+        BigDecimal pnlUsd = pnlPerBu
                 .multiply(BUSHELS_PER_LOT)
                 .multiply(BigDecimal.valueOf(o.getLots()))
-                .divide(CENTS_PER_DOLLAR, 2, RoundingMode.HALF_UP);
+                .setScale(2, RoundingMode.HALF_UP);
 
         return HedgeOffsetResponse.builder()
                 .id(o.getId())
@@ -137,7 +161,7 @@ public class HedgeOffsetService {
                 .lots(o.getLots())
                 .entryPrice(entryPrice)
                 .exitPrice(o.getExitPrice())
-                .pnlCentsBu(pnlCents)
+                .pnlPerBu(pnlPerBu)
                 .pnlUsd(pnlUsd)
                 .offsetDate(o.getOffsetDate())
                 .notes(o.getNotes())

@@ -6,7 +6,7 @@ export const COMMODITY_OPTIONS = [
   { value: "CORN-ZC", label: "Corn (CBOT ZC)" },
   { value: "CORN",    label: "Corn (Generic)" },
 ];
-export const UNIT_OPTIONS = ["$/bu", "¢/bu", "%"];
+export const UNIT_OPTIONS = ["$/bu", "%"];
 export const PRESET_COMPONENTS = [
   { name: "Board Price",     unit: "$/bu" },
   { name: "Basis",           unit: "$/bu" },

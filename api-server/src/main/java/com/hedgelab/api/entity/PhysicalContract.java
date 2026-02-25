@@ -25,16 +25,16 @@ public class PhysicalContract extends AuditableEntity {
     @Column(nullable = false, precision = 12, scale = 4)
     private BigDecimal quantityMt;
     private String deliveryMonth; // YYYY-MM
-    @Column(precision = 10, scale = 4)
-    private BigDecimal basisCentsBu; // ¢/bu (negative = discount under futures)
+    @Column(name = "basis_per_bu", precision = 10, scale = 4)
+    private BigDecimal basisPerBu; // $/bu (negative = discount under futures)
     @Column(precision = 10, scale = 4)
     private BigDecimal freightPerMt; // $/MT
     private String currency; // USD or CAD
     private String futuresRef; // e.g. ZCN26 — the futures month this basis is against
     @Enumerated(EnumType.STRING)
     private PhysicalContractStatus status;
-    @Column(precision = 10, scale = 4)
-    private BigDecimal boardPriceCentsBu; // ¢/bu, locked via EFP or direct pricing
+    @Column(name = "board_price_per_bu", precision = 10, scale = 4)
+    private BigDecimal boardPricePerBu; // $/bu, locked via EFP or direct pricing
     private LocalDate basisLockedDate;
     private LocalDate contractDate;
     private String notes;

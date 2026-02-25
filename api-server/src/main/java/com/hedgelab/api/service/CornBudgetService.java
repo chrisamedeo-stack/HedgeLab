@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 public class CornBudgetService {
 
     private static final BigDecimal BUSHELS_PER_MT   = new BigDecimal("39.3683");
-    private static final BigDecimal CENTS_PER_DOLLAR = new BigDecimal("100");
     private static final BigDecimal BUSHELS_PER_LOT  = new BigDecimal("5000");
 
     private final CornBudgetLineRepository      budgetRepo;
@@ -266,11 +265,6 @@ public class CornBudgetService {
     private BigDecimal toUsdPerMt(BigDecimal value, String unit) {
         if (value == null) return BigDecimal.ZERO;
         String u = unit != null ? unit.trim().toLowerCase() : "$/mt";
-        if (u.equals("¢/bu") || u.equals("cents/bu") || u.equals("c/bu")) {
-            return value.divide(CENTS_PER_DOLLAR, 10, RoundingMode.HALF_UP)
-                        .multiply(BUSHELS_PER_MT)
-                        .setScale(4, RoundingMode.HALF_UP);
-        }
         if (u.equals("$/bu") || u.equals("usd/bu")) {
             return value.multiply(BUSHELS_PER_MT)
                         .setScale(4, RoundingMode.HALF_UP);

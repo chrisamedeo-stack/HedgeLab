@@ -53,7 +53,7 @@ public class EFPService {
         hedge.setStatus(HedgeService.computeStatus(hedge.getLots(), newOpenLots, offsetLots));
         hedgeRepository.save(hedge);
         // Update contract board price and status
-        contract.setBoardPriceCentsBu(req.getBoardPrice());
+        contract.setBoardPricePerBu(req.getBoardPrice());
         contract.setStatus(PhysicalContractStatus.EFP_EXECUTED);
         contractRepository.save(contract);
         return toResponse(efpRepository.save(efp));

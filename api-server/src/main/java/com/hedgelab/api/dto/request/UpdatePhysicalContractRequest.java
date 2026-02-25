@@ -11,12 +11,12 @@ public class UpdatePhysicalContractRequest {
     private BigDecimal quantityBu;
     private BigDecimal quantityMt;
     private String deliveryMonth;
-    private BigDecimal basisCentsBu;
+    private BigDecimal basisPerBu;
     private String futuresRef;
     private BigDecimal freightPerMt;
     private String currency;
     private LocalDate contractDate;
     private String notes;
     private String tradeType;
-    private BigDecimal boardPriceCentsBu;
+    private BigDecimal boardPricePerBu;
 }

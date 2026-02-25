@@ -396,11 +396,11 @@ public class DataInitializer implements ApplicationRunner {
     private void addComponents(CornBudgetLine line, String futuresMonth) {
         List<CornBudgetComponent> comps = new ArrayList<>();
         comps.add(CornBudgetComponent.builder().budgetLine(line)
-            .componentName("Board Price").unit("\u00a2/bu")
-            .targetValue(new BigDecimal("450.00")).displayOrder(1).build());
+            .componentName("Board Price").unit("$/bu")
+            .targetValue(new BigDecimal("4.50")).displayOrder(1).build());
         comps.add(CornBudgetComponent.builder().budgetLine(line)
-            .componentName("Basis").unit("\u00a2/bu")
-            .targetValue(new BigDecimal("-20.00")).displayOrder(2).build());
+            .componentName("Basis").unit("$/bu")
+            .targetValue(new BigDecimal("-0.20")).displayOrder(2).build());
         comps.add(CornBudgetComponent.builder().budgetLine(line)
             .componentName("Freight").unit("$/MT")
             .targetValue(new BigDecimal("15.00")).displayOrder(3).build());
@@ -413,52 +413,52 @@ public class DataInitializer implements ApplicationRunner {
 
         // 10 hedge trades across various futures months
         HedgeTrade ht1 = hedgeTradeRepository.save(HedgeTrade.builder()
-            .tradeRef("HT-2025-001").futuresMonth("ZCN25").lots(5).pricePerBushel(new BigDecimal("44500"))
+            .tradeRef("HT-2025-001").futuresMonth("ZCN25").lots(5).pricePerBushel(new BigDecimal("4.45"))
             .brokerAccount("StoneX").tradeDate(td).status(HedgeTradeStatus.FULLY_ALLOCATED)
             .openLots(3).book("CANADA").side("LONG").build());
 
         HedgeTrade ht2 = hedgeTradeRepository.save(HedgeTrade.builder()
-            .tradeRef("HT-2025-002").futuresMonth("ZCN25").lots(3).pricePerBushel(new BigDecimal("44750"))
+            .tradeRef("HT-2025-002").futuresMonth("ZCN25").lots(3).pricePerBushel(new BigDecimal("4.4750"))
             .brokerAccount("StoneX").tradeDate(td.plusDays(2)).status(HedgeTradeStatus.PARTIALLY_ALLOCATED)
             .openLots(2).book("CANADA").side("LONG").build());
 
         HedgeTrade ht3 = hedgeTradeRepository.save(HedgeTrade.builder()
-            .tradeRef("HT-2025-003").futuresMonth("ZCU25").lots(4).pricePerBushel(new BigDecimal("45200"))
+            .tradeRef("HT-2025-003").futuresMonth("ZCU25").lots(4).pricePerBushel(new BigDecimal("4.52"))
             .brokerAccount("StoneX").tradeDate(td.plusDays(5)).status(HedgeTradeStatus.FULLY_ALLOCATED)
             .openLots(2).book("CANADA").side("LONG").build());
 
         HedgeTrade ht4 = hedgeTradeRepository.save(HedgeTrade.builder()
-            .tradeRef("HT-2025-004").futuresMonth("ZCU25").lots(3).pricePerBushel(new BigDecimal("45000"))
+            .tradeRef("HT-2025-004").futuresMonth("ZCU25").lots(3).pricePerBushel(new BigDecimal("4.50"))
             .brokerAccount("StoneX").tradeDate(td.plusDays(7)).status(HedgeTradeStatus.PARTIALLY_ALLOCATED)
             .openLots(2).book("CANADA").side("LONG").build());
 
         HedgeTrade ht5 = hedgeTradeRepository.save(HedgeTrade.builder()
-            .tradeRef("HT-2025-005").futuresMonth("ZCZ25").lots(5).pricePerBushel(new BigDecimal("46000"))
+            .tradeRef("HT-2025-005").futuresMonth("ZCZ25").lots(5).pricePerBushel(new BigDecimal("4.60"))
             .brokerAccount("StoneX").tradeDate(td.plusDays(10)).status(HedgeTradeStatus.FULLY_ALLOCATED)
             .openLots(3).book("CANADA").side("LONG").build());
 
         HedgeTrade ht6 = hedgeTradeRepository.save(HedgeTrade.builder()
-            .tradeRef("HT-2025-006").futuresMonth("ZCZ25").lots(2).pricePerBushel(new BigDecimal("46200"))
+            .tradeRef("HT-2025-006").futuresMonth("ZCZ25").lots(2).pricePerBushel(new BigDecimal("4.62"))
             .brokerAccount("StoneX").tradeDate(td.plusDays(12)).status(HedgeTradeStatus.OPEN)
             .openLots(2).book("CANADA").side("LONG").build());
 
         HedgeTrade ht7 = hedgeTradeRepository.save(HedgeTrade.builder()
-            .tradeRef("HT-2025-007").futuresMonth("ZCH26").lots(4).pricePerBushel(new BigDecimal("47500"))
+            .tradeRef("HT-2025-007").futuresMonth("ZCH26").lots(4).pricePerBushel(new BigDecimal("4.75"))
             .brokerAccount("StoneX").tradeDate(td.plusDays(15)).status(HedgeTradeStatus.PARTIALLY_ALLOCATED)
             .openLots(2).book("CANADA").side("LONG").build());
 
         HedgeTrade ht8 = hedgeTradeRepository.save(HedgeTrade.builder()
-            .tradeRef("HT-2025-008").futuresMonth("ZCH26").lots(3).pricePerBushel(new BigDecimal("47800"))
+            .tradeRef("HT-2025-008").futuresMonth("ZCH26").lots(3).pricePerBushel(new BigDecimal("4.78"))
             .brokerAccount("StoneX").tradeDate(td.plusDays(18)).status(HedgeTradeStatus.OPEN)
             .openLots(3).book("CANADA").side("LONG").build());
 
         HedgeTrade ht9 = hedgeTradeRepository.save(HedgeTrade.builder()
-            .tradeRef("HT-2025-009").futuresMonth("ZCN26").lots(3).pricePerBushel(new BigDecimal("49000"))
+            .tradeRef("HT-2025-009").futuresMonth("ZCN26").lots(3).pricePerBushel(new BigDecimal("4.90"))
             .brokerAccount("StoneX").tradeDate(td.plusDays(20)).status(HedgeTradeStatus.OPEN)
             .openLots(3).book("CANADA").side("LONG").build());
 
         HedgeTrade ht10 = hedgeTradeRepository.save(HedgeTrade.builder()
-            .tradeRef("HT-2025-010").futuresMonth("ZCN26").lots(2).pricePerBushel(new BigDecimal("48500"))
+            .tradeRef("HT-2025-010").futuresMonth("ZCN26").lots(2).pricePerBushel(new BigDecimal("4.85"))
             .brokerAccount("StoneX").tradeDate(td.plusDays(22)).status(HedgeTradeStatus.OPEN)
             .openLots(2).book("CANADA").side("LONG").build());
 
@@ -501,28 +501,28 @@ public class DataInitializer implements ApplicationRunner {
         PhysicalContract pc1 = physicalContractRepository.save(PhysicalContract.builder()
             .contractRef("PC-GM1-2025-001").site(gm1).supplierName("Scoular")
             .commodityCode("CORN").quantityMt(new BigDecimal("635.000"))
-            .deliveryMonth("2025-07").basisCentsBu(new BigDecimal("-1800"))
+            .deliveryMonth("2025-07").basisPerBu(new BigDecimal("-0.18"))
             .futuresRef("ZCN25").currency("USD").status(PhysicalContractStatus.OPEN)
             .contractDate(LocalDate.of(2025, 5, 20)).tradeType(PhysicalContractTradeType.BASIS).build());
 
         PhysicalContract pc2 = physicalContractRepository.save(PhysicalContract.builder()
             .contractRef("PC-GM1-2025-002").site(gm1).supplierName("BPGrain")
             .commodityCode("CORN").quantityMt(new BigDecimal("508.000"))
-            .deliveryMonth("2025-08").basisCentsBu(new BigDecimal("-2000"))
+            .deliveryMonth("2025-08").basisPerBu(new BigDecimal("-0.20"))
             .futuresRef("ZCN25").currency("USD").status(PhysicalContractStatus.OPEN)
             .contractDate(LocalDate.of(2025, 5, 25)).tradeType(PhysicalContractTradeType.BASIS).build());
 
         PhysicalContract pc3 = physicalContractRepository.save(PhysicalContract.builder()
             .contractRef("PC-VF1-2025-001").site(vf1).supplierName("Scoular")
             .commodityCode("CORN").quantityMt(new BigDecimal("381.000"))
-            .deliveryMonth("2025-09").basisCentsBu(new BigDecimal("-1500"))
+            .deliveryMonth("2025-09").basisPerBu(new BigDecimal("-0.15"))
             .futuresRef("ZCU25").currency("USD").status(PhysicalContractStatus.OPEN)
             .contractDate(LocalDate.of(2025, 6, 1)).tradeType(PhysicalContractTradeType.BASIS).build());
 
         PhysicalContract pc4 = physicalContractRepository.save(PhysicalContract.builder()
             .contractRef("PC-GM1-2025-003").site(gm1).supplierName("Scoular")
             .commodityCode("CORN").quantityMt(new BigDecimal("762.000"))
-            .deliveryMonth("2025-10").basisCentsBu(new BigDecimal("-1700"))
+            .deliveryMonth("2025-10").basisPerBu(new BigDecimal("-0.17"))
             .futuresRef("ZCU25").currency("USD").status(PhysicalContractStatus.BASIS_LOCKED)
             .basisLockedDate(LocalDate.of(2025, 6, 10))
             .contractDate(LocalDate.of(2025, 6, 5)).tradeType(PhysicalContractTradeType.BASIS).build());
@@ -530,22 +530,22 @@ public class DataInitializer implements ApplicationRunner {
         PhysicalContract pc5 = physicalContractRepository.save(PhysicalContract.builder()
             .contractRef("PC-VF1-2025-002").site(vf1).supplierName("BPGrain")
             .commodityCode("CORN").quantityMt(new BigDecimal("400.000"))
-            .deliveryMonth("2025-11").basisCentsBu(new BigDecimal("-2200"))
+            .deliveryMonth("2025-11").basisPerBu(new BigDecimal("-0.22"))
             .futuresRef("ZCU25").currency("USD").status(PhysicalContractStatus.OPEN)
             .contractDate(LocalDate.of(2025, 6, 8)).tradeType(PhysicalContractTradeType.BASIS).build());
 
         PhysicalContract pc6 = physicalContractRepository.save(PhysicalContract.builder()
             .contractRef("PC-GM1-2025-004").site(gm1).supplierName("Scoular")
             .commodityCode("CORN").quantityMt(new BigDecimal("635.000"))
-            .deliveryMonth("2025-12").basisCentsBu(new BigDecimal("-1600"))
+            .deliveryMonth("2025-12").basisPerBu(new BigDecimal("-0.16"))
             .futuresRef("ZCZ25").currency("USD").status(PhysicalContractStatus.CLOSED)
-            .boardPriceCentsBu(new BigDecimal("46000")).basisLockedDate(LocalDate.of(2025, 6, 15))
+            .boardPricePerBu(new BigDecimal("4.60")).basisLockedDate(LocalDate.of(2025, 6, 15))
             .contractDate(LocalDate.of(2025, 6, 10)).tradeType(PhysicalContractTradeType.BASIS).build());
 
         PhysicalContract pc7 = physicalContractRepository.save(PhysicalContract.builder()
             .contractRef("PC-GM1-2025-005").site(gm1).supplierName("BPGrain")
             .commodityCode("CORN").quantityMt(new BigDecimal("254.000"))
-            .deliveryMonth("2026-01").basisCentsBu(new BigDecimal("-1900"))
+            .deliveryMonth("2026-01").basisPerBu(new BigDecimal("-0.19"))
             .futuresRef("ZCZ25").currency("USD").status(PhysicalContractStatus.CANCELLED)
             .contractDate(LocalDate.of(2025, 6, 12)).tradeType(PhysicalContractTradeType.BASIS).build());
 
@@ -555,34 +555,34 @@ public class DataInitializer implements ApplicationRunner {
         efpTicketRepository.save(EFPTicket.builder()
             .ticketRef("EFP-2025-001").hedgeTrade(ht1).physicalContract(pc1)
             .lots(2).futuresMonth("ZCN25")
-            .boardPrice(new BigDecimal("44500")).basisValue(new BigDecimal("-1800"))
+            .boardPrice(new BigDecimal("4.45")).basisValue(new BigDecimal("-0.18"))
             .quantityMt(lotToMt(2)).efpDate(LocalDate.of(2025, 6, 20))
             .confirmationRef("SX-EFP-001").status(EFPTicketStatus.CONFIRMED)
-            .entryPrice(new BigDecimal("44500")).build());
+            .entryPrice(new BigDecimal("4.45")).build());
 
         efpTicketRepository.save(EFPTicket.builder()
             .ticketRef("EFP-2025-002").hedgeTrade(ht3).physicalContract(pc3)
             .lots(2).futuresMonth("ZCU25")
-            .boardPrice(new BigDecimal("45200")).basisValue(new BigDecimal("-1500"))
+            .boardPrice(new BigDecimal("4.52")).basisValue(new BigDecimal("-0.15"))
             .quantityMt(lotToMt(2)).efpDate(LocalDate.of(2025, 6, 25))
             .confirmationRef("SX-EFP-002").status(EFPTicketStatus.CONFIRMED)
-            .entryPrice(new BigDecimal("45200")).build());
+            .entryPrice(new BigDecimal("4.52")).build());
 
         efpTicketRepository.save(EFPTicket.builder()
             .ticketRef("EFP-2025-003").hedgeTrade(ht5).physicalContract(pc6)
             .lots(2).futuresMonth("ZCZ25")
-            .boardPrice(new BigDecimal("46000")).basisValue(new BigDecimal("-1600"))
+            .boardPrice(new BigDecimal("4.60")).basisValue(new BigDecimal("-0.16"))
             .quantityMt(lotToMt(2)).efpDate(LocalDate.of(2025, 7, 1))
             .confirmationRef("SX-EFP-003").status(EFPTicketStatus.CONFIRMED)
-            .entryPrice(new BigDecimal("46000")).build());
+            .entryPrice(new BigDecimal("4.60")).build());
 
         efpTicketRepository.save(EFPTicket.builder()
             .ticketRef("EFP-2025-004").hedgeTrade(ht4).physicalContract(pc5)
             .lots(1).futuresMonth("ZCU25")
-            .boardPrice(new BigDecimal("45000")).basisValue(new BigDecimal("-2200"))
+            .boardPrice(new BigDecimal("4.50")).basisValue(new BigDecimal("-0.22"))
             .quantityMt(lotToMt(1)).efpDate(LocalDate.of(2025, 7, 5))
             .confirmationRef("SX-EFP-004").status(EFPTicketStatus.PENDING)
-            .entryPrice(new BigDecimal("45000")).build());
+            .entryPrice(new BigDecimal("4.50")).build());
 
         log.info("Seeded 4 EFP tickets");
 
@@ -636,12 +636,12 @@ public class DataInitializer implements ApplicationRunner {
     private void seedSettlePrices() {
         LocalDate settleDate = LocalDate.now();
         cornDailySettleRepository.saveAll(List.of(
-            CornDailySettle.builder().futuresMonth("ZCN25").settleDate(settleDate).pricePerBushel(new BigDecimal("44800")).build(),
-            CornDailySettle.builder().futuresMonth("ZCU25").settleDate(settleDate).pricePerBushel(new BigDecimal("45500")).build(),
-            CornDailySettle.builder().futuresMonth("ZCZ25").settleDate(settleDate).pricePerBushel(new BigDecimal("46500")).build(),
-            CornDailySettle.builder().futuresMonth("ZCH26").settleDate(settleDate).pricePerBushel(new BigDecimal("47200")).build(),
-            CornDailySettle.builder().futuresMonth("ZCK26").settleDate(settleDate).pricePerBushel(new BigDecimal("48000")).build(),
-            CornDailySettle.builder().futuresMonth("ZCN26").settleDate(settleDate).pricePerBushel(new BigDecimal("49500")).build()
+            CornDailySettle.builder().futuresMonth("ZCN25").settleDate(settleDate).pricePerBushel(new BigDecimal("4.48")).build(),
+            CornDailySettle.builder().futuresMonth("ZCU25").settleDate(settleDate).pricePerBushel(new BigDecimal("4.55")).build(),
+            CornDailySettle.builder().futuresMonth("ZCZ25").settleDate(settleDate).pricePerBushel(new BigDecimal("4.65")).build(),
+            CornDailySettle.builder().futuresMonth("ZCH26").settleDate(settleDate).pricePerBushel(new BigDecimal("4.72")).build(),
+            CornDailySettle.builder().futuresMonth("ZCK26").settleDate(settleDate).pricePerBushel(new BigDecimal("4.80")).build(),
+            CornDailySettle.builder().futuresMonth("ZCN26").settleDate(settleDate).pricePerBushel(new BigDecimal("4.95")).build()
         ));
         log.info("Seeded 6 corn settle prices");
     }

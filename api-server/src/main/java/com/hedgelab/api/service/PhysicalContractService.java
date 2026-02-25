@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 public class PhysicalContractService {
 
     private static final BigDecimal BUSHELS_PER_MT   = new BigDecimal("39.3683");
-    private static final BigDecimal CENTS_PER_DOLLAR = new BigDecimal("100");
 
     private final PhysicalContractRepository contractRepository;
     private final SiteRepository             siteRepository;
@@ -82,7 +81,7 @@ public class PhysicalContractService {
         BigDecimal boardPrice = null;
         LocalDate basisLockedDate = null;
         if (tt == PhysicalContractTradeType.ALL_IN) {
-            boardPrice = req.getBoardPriceCentsBu();
+            boardPrice = req.getBoardPricePerBu();
             basisLockedDate = req.getContractDate() != null ? req.getContractDate() : LocalDate.now();
             initialStatus = PhysicalContractStatus.BASIS_LOCKED;
         }
@@ -94,12 +93,12 @@ public class PhysicalContractService {
                 .commodityCode(req.getCommodityCode() != null ? req.getCommodityCode() : "CORN-ZC")
                 .quantityMt(mt)
                 .deliveryMonth(req.getDeliveryMonth())
-                .basisCentsBu(req.getBasisCentsBu())
+                .basisPerBu(req.getBasisPerBu())
                 .futuresRef(req.getFuturesRef())
                 .freightPerMt(req.getFreightPerMt())
                 .currency(req.getCurrency() != null ? req.getCurrency() : "USD")
                 .status(initialStatus)
-                .boardPriceCentsBu(boardPrice)
+                .boardPricePerBu(boardPrice)
                 .basisLockedDate(basisLockedDate)
                 .contractDate(req.getContractDate() != null ? req.getContractDate() : LocalDate.now())
                 .notes(req.getNotes())
@@ -107,6 +106,11 @@ public class PhysicalContractService {
                 .build();
 
         return toResponse(contractRepository.save(contract));
+    }
+
+    @Transactional
+    public List<PhysicalContractResponse> createBulk(List<CreatePhysicalContractRequest> requests) {
+        return requests.stream().map(this::create).collect(Collectors.toList());
     }
 
     @Transactional
@@ -119,7 +123,7 @@ public class PhysicalContractService {
             throw new InvalidStateException(
                     "Cannot lock basis: contract is in status " + contract.getStatus());
         }
-        contract.setBasisCentsBu(req.getBasisCentsBu());
+        contract.setBasisPerBu(req.getBasisPerBu());
         if (req.getFuturesRef() != null) contract.setFuturesRef(req.getFuturesRef());
         contract.setBasisLockedDate(req.getLockedDate() != null ? req.getLockedDate() : LocalDate.now());
         contract.setStatus(PhysicalContractStatus.BASIS_LOCKED);
@@ -170,9 +174,9 @@ public class PhysicalContractService {
         if (req.getCurrency() != null) contract.setCurrency(req.getCurrency());
         if (req.getContractDate() != null) contract.setContractDate(req.getContractDate());
         if (req.getNotes() != null) contract.setNotes(req.getNotes());
-        if (req.getBasisCentsBu() != null) contract.setBasisCentsBu(req.getBasisCentsBu());
+        if (req.getBasisPerBu() != null) contract.setBasisPerBu(req.getBasisPerBu());
         if (req.getFreightPerMt() != null) contract.setFreightPerMt(req.getFreightPerMt());
-        if (req.getBoardPriceCentsBu() != null) contract.setBoardPriceCentsBu(req.getBoardPriceCentsBu());
+        if (req.getBoardPricePerBu() != null) contract.setBoardPricePerBu(req.getBoardPricePerBu());
 
         // Update quantity
         BigDecimal mt = req.getQuantityMt();
@@ -233,14 +237,13 @@ public class PhysicalContractService {
                 ? c.getQuantityMt().multiply(BUSHELS_PER_MT).setScale(2, RoundingMode.HALF_UP)
                 : null;
 
-        BigDecimal allInCents = null;
+        BigDecimal allInPerBu = null;
         BigDecimal allInPerMt = null;
-        if (c.getBoardPriceCentsBu() != null) {
-            BigDecimal basis   = c.getBasisCentsBu() != null ? c.getBasisCentsBu() : BigDecimal.ZERO;
+        if (c.getBoardPricePerBu() != null) {
+            BigDecimal basis   = c.getBasisPerBu() != null ? c.getBasisPerBu() : BigDecimal.ZERO;
             BigDecimal freight = c.getFreightPerMt()  != null ? c.getFreightPerMt()  : BigDecimal.ZERO;
-            allInCents = c.getBoardPriceCentsBu().add(basis);
-            allInPerMt = allInCents
-                    .divide(CENTS_PER_DOLLAR, 6, RoundingMode.HALF_UP)
+            allInPerBu = c.getBoardPricePerBu().add(basis);
+            allInPerMt = allInPerBu
                     .multiply(BUSHELS_PER_MT)
                     .add(freight)
                     .setScale(2, RoundingMode.HALF_UP);
@@ -253,12 +256,12 @@ public class PhysicalContractService {
                 .commodityCode(c.getCommodityCode())
                 .quantityMt(c.getQuantityMt()).quantityBu(bu)
                 .deliveryMonth(c.getDeliveryMonth())
-                .basisCentsBu(c.getBasisCentsBu()).futuresRef(c.getFuturesRef())
+                .basisPerBu(c.getBasisPerBu()).futuresRef(c.getFuturesRef())
                 .freightPerMt(c.getFreightPerMt()).currency(c.getCurrency())
                 .status(c.getStatus().name())
-                .boardPriceCentsBu(c.getBoardPriceCentsBu())
+                .boardPricePerBu(c.getBoardPricePerBu())
                 .basisLockedDate(c.getBasisLockedDate())
-                .allInCentsBu(allInCents).allInPerMt(allInPerMt)
+                .allInPerBu(allInPerBu).allInPerMt(allInPerMt)
                 .contractDate(c.getContractDate()).notes(c.getNotes())
                 .tradeType(c.getTradeType() != null ? c.getTradeType().name() : "BASIS")
                 .build();

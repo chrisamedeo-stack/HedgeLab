@@ -37,14 +37,14 @@ export interface PhysicalContractResponse {
   quantityMt: number;
   quantityBu: number;
   deliveryMonth: string;
-  basisCentsBu: number | null;
+  basisPerBu: number | null;
   freightPerMt: number | null;
   futuresRef: string | null;
   currency: string;
   status: string;
-  boardPriceCentsBu: number | null;
+  boardPricePerBu: number | null;
   basisLockedDate: string | null;
-  allInCentsBu: number | null;
+  allInPerBu: number | null;
   allInPerMt: number | null;
   contractDate: string;
   notes: string | null;
@@ -278,7 +278,7 @@ export interface LockedPositionItem {
   entryPrice: number | null;
   futuresBuyPrice: number | null;
   futuresSellPrice: number | null;
-  gainLossCentsBu: number | null;
+  gainLossPerBu: number | null;
   gainLossUsd: number | null;
   gainLossPerMt: number | null;
   effectiveAllInPerMt: number | null;
@@ -294,7 +294,7 @@ export interface OffsetItem {
   bushels: number;
   entryPrice: number;
   exitPrice: number;
-  pnlCentsBu: number;
+  pnlPerBu: number;
   pnlUsd: number;
   offsetDate: string;
   notes: string | null;

@@ -37,4 +37,11 @@ public class HedgeOffsetController {
     public List<HedgeOffsetResponse> getByBook(@RequestParam(required = false) String book) {
         return service.getByBook(book);
     }
+
+    /** Delete an offset and restore hedge trade lots. */
+    @DeleteMapping("/offsets/{offsetId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteOffset(@PathVariable Long offsetId) {
+        service.deleteOffset(offsetId);
+    }
 }

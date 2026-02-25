@@ -33,25 +33,30 @@ export function fmtUsd(n: number | null | undefined): string {
   return `$${fmt2(n)}`;
 }
 
-export function centsToUsd(cents: number | null | undefined): string {
-  if (cents == null) return "\u2013";
-  return (cents / 100).toFixed(4);
+export function fmtPerBu(val: number | null | undefined): string {
+  if (val == null) return "\u2013";
+  return val.toFixed(4);
 }
 
 export function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+export function pnlColor(n: number | null | undefined): string {
+  if (n == null || n === 0) return "text-zinc-400";
+  return n > 0 ? "text-emerald-400" : "text-red-400";
+}
+
 // ─── Shared CSS constants ────────────────────────────────────────────────────
 
 export const inputCls =
-  "bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500";
+  "bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
 export const btnPrimary =
   "px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg font-medium disabled:opacity-50";
 
 export const btnSecondary =
-  "px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm rounded-lg font-medium";
+  "px-4 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-sm rounded-lg font-medium";
 
 export const inputClsError =
-  "bg-slate-900 border border-red-500 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-red-500";
+  "bg-zinc-900 border border-red-500 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-red-500";

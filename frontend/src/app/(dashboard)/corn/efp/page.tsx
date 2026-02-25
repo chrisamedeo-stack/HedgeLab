@@ -68,8 +68,8 @@ export default function EFPPage() {
         hedgeTradeId: parseInt(form.hedgeTradeId),
         physicalContractId: parseInt(form.physicalContractId),
         lots: parseInt(form.lots),
-        boardPrice: parseFloat(form.boardPrice) * 100,
-        basisValue: form.basisValue ? parseFloat(form.basisValue) * 100 : null,
+        boardPrice: parseFloat(form.boardPrice),
+        basisValue: form.basisValue ? parseFloat(form.basisValue) : null,
         efpDate: form.efpDate,
         confirmationRef: form.confirmationRef || null,
         notes: form.notes || null,
@@ -122,8 +122,8 @@ export default function EFPPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">EFP Tickets</h1>
-          <p className="text-sm text-slate-400 mt-0.5">
+          <h1 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">EFP Tickets</h1>
+          <p className="text-sm text-zinc-400 mt-0.5">
             Exchange for Physical — convert futures to fixed-price physical
           </p>
         </div>
@@ -133,7 +133,7 @@ export default function EFPPage() {
               const headers = ["Ticket", "Hedge Ref", "Contract Ref", "Lots", "Board Price ($/bu)", "Date"];
               const rows = efps.map((e) => [
                 e.ticketRef, e.hedgeTradeRef, e.contractRef,
-                e.lots, e.boardPrice != null ? (e.boardPrice / 100).toFixed(4) : "", e.efpDate,
+                e.lots, e.boardPrice != null ? e.boardPrice.toFixed(4) : "", e.efpDate,
               ]);
               downloadCsv("efp-tickets.csv", toCsv(headers, rows));
             }}
@@ -153,13 +153,13 @@ export default function EFPPage() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 animate-fade-in"
+          className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 space-y-4 animate-fade-in"
         >
           <div className="flex items-center gap-2 mb-1">
             <ArrowLeftRight className="h-4 w-4 text-blue-400" />
-            <h2 className="text-sm font-semibold text-slate-200">New EFP Ticket</h2>
+            <h2 className="text-sm font-semibold text-zinc-200">New EFP Ticket</h2>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-zinc-500">
             An EFP exchanges open CBOT lots for physical delivery, locking the board price
             against a physical contract.
           </p>
@@ -167,7 +167,7 @@ export default function EFPPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <FormField label="Hedge Trade" error={errors.hedgeTradeId}>
               <select
-                className={cn("w-full bg-slate-800 border text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.hedgeTradeId ? "border-red-500 focus:ring-red-500" : "border-slate-700 focus:ring-blue-500")}
+                className={cn("w-full bg-zinc-800 border text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.hedgeTradeId ? "border-red-500 focus:ring-red-500" : "border-zinc-700 focus:ring-blue-500")}
                 value={form.hedgeTradeId}
                 onChange={(e) => field("hedgeTradeId", e.target.value)}
                 required
@@ -183,7 +183,7 @@ export default function EFPPage() {
 
             <FormField label="Physical Contract" error={errors.physicalContractId}>
               <select
-                className={cn("w-full bg-slate-800 border text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.physicalContractId ? "border-red-500 focus:ring-red-500" : "border-slate-700 focus:ring-blue-500")}
+                className={cn("w-full bg-zinc-800 border text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.physicalContractId ? "border-red-500 focus:ring-red-500" : "border-zinc-700 focus:ring-blue-500")}
                 value={form.physicalContractId}
                 onChange={(e) => field("physicalContractId", e.target.value)}
                 required
@@ -202,7 +202,7 @@ export default function EFPPage() {
                 type="number"
                 min="1"
                 max={openLotsOnHedge || undefined}
-                className={cn("w-full bg-slate-800 border text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 placeholder:text-slate-500", errors.lots ? "border-red-500 focus:ring-red-500" : "border-slate-700 focus:ring-blue-500")}
+                className={cn("w-full bg-zinc-800 border text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 placeholder:text-zinc-500", errors.lots ? "border-red-500 focus:ring-red-500" : "border-zinc-700 focus:ring-blue-500")}
                 placeholder="e.g. 20"
                 value={form.lots}
                 onChange={(e) => field("lots", e.target.value)}
@@ -214,7 +214,7 @@ export default function EFPPage() {
               <input
                 type="number"
                 step="0.0025"
-                className={cn("w-full bg-slate-800 border text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 placeholder:text-slate-500", errors.boardPrice ? "border-red-500 focus:ring-red-500" : "border-slate-700 focus:ring-blue-500")}
+                className={cn("w-full bg-zinc-800 border text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 placeholder:text-zinc-500", errors.boardPrice ? "border-red-500 focus:ring-red-500" : "border-zinc-700 focus:ring-blue-500")}
                 placeholder="e.g. 4.41"
                 value={form.boardPrice}
                 onChange={(e) => field("boardPrice", e.target.value)}
@@ -223,11 +223,11 @@ export default function EFPPage() {
             </FormField>
 
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Basis Override ($/bu)</label>
+              <label className="text-xs text-zinc-400">Basis Override ($/bu)</label>
               <input
                 type="number"
                 step="0.0025"
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-500"
                 placeholder="Leave blank to use contract basis"
                 value={form.basisValue}
                 onChange={(e) => field("basisValue", e.target.value)}
@@ -235,10 +235,10 @@ export default function EFPPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">EFP Date</label>
+              <label className="text-xs text-zinc-400">EFP Date</label>
               <input
                 type="date"
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                 value={form.efpDate}
                 onChange={(e) => field("efpDate", e.target.value)}
                 required
@@ -246,10 +246,10 @@ export default function EFPPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Confirmation Ref</label>
+              <label className="text-xs text-zinc-400">Confirmation Ref</label>
               <input
                 type="text"
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-500"
                 placeholder="e.g. SX-EFP-2025-001"
                 value={form.confirmationRef}
                 onChange={(e) => field("confirmationRef", e.target.value)}
@@ -257,10 +257,10 @@ export default function EFPPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-slate-400">Notes</label>
+              <label className="text-xs text-zinc-400">Notes</label>
               <input
                 type="text"
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-500"
                 placeholder="Optional"
                 value={form.notes}
                 onChange={(e) => field("notes", e.target.value)}
@@ -270,16 +270,16 @@ export default function EFPPage() {
 
           {/* Preview */}
           {lots > 0 && (
-            <div className="p-4 bg-slate-800/50 rounded-lg">
-              <p className="text-xs text-slate-500 mb-2">EFP Preview</p>
+            <div className="p-4 bg-zinc-800/50 rounded-lg">
+              <p className="text-xs text-zinc-500 mb-2">EFP Preview</p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-slate-500">Lots</p>
-                  <p className="text-sm font-semibold text-slate-200 tabular-nums">{lots}</p>
+                  <p className="text-xs text-zinc-500">Lots</p>
+                  <p className="text-sm font-semibold text-zinc-200 tabular-nums">{lots}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Bushels</p>
-                  <p className="text-sm font-semibold text-slate-200 tabular-nums">{formatNumber(quantityBu)}</p>
+                  <p className="text-xs text-zinc-500">Bushels</p>
+                  <p className="text-sm font-semibold text-zinc-200 tabular-nums">{formatNumber(quantityBu)}</p>
                 </div>
               </div>
             </div>
@@ -298,7 +298,7 @@ export default function EFPPage() {
       )}
 
       {/* Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
         {isLoading ? (
           <SkeletonTable rows={5} cols={8} />
         ) : efps.length === 0 ? (
@@ -311,37 +311,37 @@ export default function EFPPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-800/50 border-b border-slate-800">
+              <tr className="bg-zinc-800/50 border-b border-zinc-800">
                 <SortableHeader label="Ticket" sortKey="ticketRef" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
                 <SortableHeader label="Hedge" sortKey="hedgeTradeRef" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
                 <SortableHeader label="Contract" sortKey="contractRef" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">Site</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wider whitespace-nowrap">Site</th>
                 <SortableHeader label="Lots" sortKey="lots" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
                 <SortableHeader label="Board ($/bu)" sortKey="boardPrice" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">Qty (bu)</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wider whitespace-nowrap">Qty (bu)</th>
                 <SortableHeader label="Date" sortKey="efpDate" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
                 <SortableHeader label="Status" sortKey="status" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap"></th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wider whitespace-nowrap"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-zinc-800">
               {sortedEfps.map((e) => (
-                <tr key={e.id} className="hover:bg-slate-800/40 transition-colors">
+                <tr key={e.id} className="hover:bg-zinc-800/40 transition-colors">
                   <td className="px-4 py-3 font-mono text-xs text-blue-400">{e.ticketRef}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-400">{e.hedgeTradeRef}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-400">{e.contractRef}</td>
-                  <td className="px-4 py-3 text-slate-300">{e.siteName}</td>
-                  <td className="px-4 py-3 tabular-nums text-slate-200">{e.lots}</td>
-                  <td className="px-4 py-3 tabular-nums text-slate-200">{e.boardPrice != null ? (e.boardPrice / 100).toFixed(4) : "—"}</td>
-                  <td className="px-4 py-3 tabular-nums text-slate-400">{formatNumber(e.lots * BUSHELS_PER_LOT)}</td>
-                  <td className="px-4 py-3 text-slate-400">{e.efpDate}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-zinc-400">{e.hedgeTradeRef}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-zinc-400">{e.contractRef}</td>
+                  <td className="px-4 py-3 text-zinc-300">{e.siteName}</td>
+                  <td className="px-4 py-3 tabular-nums text-zinc-200">{e.lots}</td>
+                  <td className="px-4 py-3 tabular-nums text-zinc-200">{e.boardPrice != null ? e.boardPrice.toFixed(4) : "—"}</td>
+                  <td className="px-4 py-3 tabular-nums text-zinc-400">{formatNumber(e.lots * BUSHELS_PER_LOT)}</td>
+                  <td className="px-4 py-3 text-zinc-400">{e.efpDate}</td>
                   <td className="px-4 py-3">
                     <EfpStatusBadge status={e.status} />
                   </td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => setDeleteTarget({ id: e.id, ref: e.ticketRef })}
-                      className="text-slate-600 hover:text-red-400 transition-colors"
+                      className="text-zinc-600 hover:text-red-400 transition-colors"
                       title="Delete EFP"
                     >
                       <Trash2 className="h-3.5 w-3.5" />

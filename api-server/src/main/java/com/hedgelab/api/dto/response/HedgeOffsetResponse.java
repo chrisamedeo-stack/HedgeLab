@@ -14,10 +14,10 @@ public class HedgeOffsetResponse {
     private String siteCode;
     private String siteName;
     private Integer lots;
-    private BigDecimal entryPrice;      // ¢/bu
-    private BigDecimal exitPrice;       // ¢/bu
-    private BigDecimal pnlCentsBu;     // sell − buy
-    private BigDecimal pnlUsd;         // (sell − buy) × lots × 5000 / 100
+    private BigDecimal entryPrice;      // $/bu
+    private BigDecimal exitPrice;       // $/bu
+    private BigDecimal pnlPerBu;       // sell − buy
+    private BigDecimal pnlUsd;         // (sell − buy) × lots × 5000
     private LocalDate offsetDate;
     private String notes;
 }

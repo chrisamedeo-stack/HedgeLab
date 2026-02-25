@@ -22,7 +22,6 @@ public class CornPositionService {
 
     private static final BigDecimal BUSHELS_PER_MT  = new BigDecimal("39.3683");
     private static final BigDecimal BUSHELS_PER_LOT = new BigDecimal("5000");
-    private static final BigDecimal CENTS_PER_DOLLAR = new BigDecimal("100");
     private static final int BUSHELS_PER_LOT_INT = 5000;
 
     private final HedgeTradeRepository         hedgeRepo;
@@ -206,7 +205,7 @@ public class CornPositionService {
             mtmPnl = priceDiff
                     .multiply(BigDecimal.valueOf(unallocatedLots))
                     .multiply(BUSHELS_PER_LOT)
-                    .divide(CENTS_PER_DOLLAR, 2, RoundingMode.HALF_UP);
+                    .setScale(2, RoundingMode.HALF_UP);
         }
 
         BigDecimal unallocMt = BUSHELS_PER_LOT
@@ -256,7 +255,7 @@ public class CornPositionService {
             mtmPnl = priceDiff
                     .multiply(BigDecimal.valueOf(a.getAllocatedLots()))
                     .multiply(BUSHELS_PER_LOT)
-                    .divide(CENTS_PER_DOLLAR, 2, RoundingMode.HALF_UP);
+                    .setScale(2, RoundingMode.HALF_UP);
         }
 
         // Count EFP'd lots for this hedge+site combination
@@ -315,8 +314,8 @@ public class CornPositionService {
 
     private PhysicalPositionItem buildPhysicalItem(PhysicalContract c) {
         boolean basisLocked  = c.getBasisLockedDate() != null;
-        boolean efpExecuted  = c.getBoardPriceCentsBu() != null;
-        BigDecimal allIn     = calcAllIn(c.getBoardPriceCentsBu(), c.getBasisCentsBu(), c.getFreightPerMt());
+        boolean efpExecuted  = c.getBoardPricePerBu() != null;
+        BigDecimal allIn     = calcAllIn(c.getBoardPricePerBu(), c.getBasisPerBu(), c.getFreightPerMt());
         return PhysicalPositionItem.builder()
                 .contractId(c.getId())
                 .contractRef(c.getContractRef())
@@ -325,9 +324,9 @@ public class CornPositionService {
                 .siteName(c.getSite().getName())
                 .supplierName(c.getSupplierName())
                 .committedMt(c.getQuantityMt())
-                .basisValue(c.getBasisCentsBu())
+                .basisValue(c.getBasisPerBu())
                 .basisLocked(basisLocked)
-                .boardPriceLocked(c.getBoardPriceCentsBu())
+                .boardPriceLocked(c.getBoardPricePerBu())
                 .efpExecuted(efpExecuted)
                 .allInPricePerMt(allIn)
                 .status(c.getStatus().name())
@@ -338,7 +337,7 @@ public class CornPositionService {
 
     private LockedPositionItem buildLockedItem(EFPTicket e) {
         PhysicalContract c = e.getPhysicalContract();
-        BigDecimal allIn = calcAllIn(e.getBoardPrice(), c.getBasisCentsBu(), c.getFreightPerMt());
+        BigDecimal allIn = calcAllIn(e.getBoardPrice(), c.getBasisPerBu(), c.getFreightPerMt());
 
         // Gain/loss: entryPrice = snapshot from EFP (fallback to hedge for pre-migration)
         BigDecimal entryPrice = e.getEntryPrice() != null
@@ -347,19 +346,18 @@ public class CornPositionService {
         BigDecimal futuresBuy = entryPrice;
         BigDecimal futuresSell = e.getBoardPrice();
 
-        BigDecimal gainLossCentsBu = null;
+        BigDecimal gainLossPerBu = null;
         BigDecimal gainLossUsd = null;
         BigDecimal gainLossPerMt = null;
         BigDecimal effectiveAllIn = null;
 
         if (futuresBuy != null && futuresSell != null) {
-            gainLossCentsBu = futuresSell.subtract(futuresBuy);
-            gainLossUsd = gainLossCentsBu
+            gainLossPerBu = futuresSell.subtract(futuresBuy);
+            gainLossUsd = gainLossPerBu
                     .multiply(BigDecimal.valueOf(e.getLots()))
                     .multiply(BUSHELS_PER_LOT)
-                    .divide(CENTS_PER_DOLLAR, 2, RoundingMode.HALF_UP);
-            gainLossPerMt = gainLossCentsBu
-                    .divide(CENTS_PER_DOLLAR, 10, RoundingMode.HALF_UP)
+                    .setScale(2, RoundingMode.HALF_UP);
+            gainLossPerMt = gainLossPerBu
                     .multiply(BUSHELS_PER_MT)
                     .setScale(2, RoundingMode.HALF_UP);
             if (allIn != null) {
@@ -377,7 +375,7 @@ public class CornPositionService {
                 .futuresMonth(e.getFuturesMonth())
                 .lots(e.getLots())
                 .boardPrice(e.getBoardPrice())
-                .basisValue(c.getBasisCentsBu())
+                .basisValue(c.getBasisPerBu())
                 .freightValue(c.getFreightPerMt())
                 .allInPricePerMt(allIn)
                 .quantityMt(e.getQuantityMt())
@@ -387,7 +385,7 @@ public class CornPositionService {
                 .entryPrice(entryPrice)
                 .futuresBuyPrice(futuresBuy)
                 .futuresSellPrice(futuresSell)
-                .gainLossCentsBu(gainLossCentsBu)
+                .gainLossPerBu(gainLossPerBu)
                 .gainLossUsd(gainLossUsd)
                 .gainLossPerMt(gainLossPerMt)
                 .effectiveAllInPerMt(effectiveAllIn)
@@ -397,11 +395,11 @@ public class CornPositionService {
     private OffsetItem buildOffsetItem(HedgeOffset o) {
         HedgeTrade h = o.getHedgeTrade();
         BigDecimal entryPrice = h.getPricePerBushel();
-        BigDecimal pnlCents = o.getExitPrice().subtract(entryPrice);
-        BigDecimal pnlUsd = pnlCents
+        BigDecimal pnlPerBu = o.getExitPrice().subtract(entryPrice);
+        BigDecimal pnlUsd = pnlPerBu
                 .multiply(BigDecimal.valueOf(o.getLots()))
                 .multiply(BUSHELS_PER_LOT)
-                .divide(CENTS_PER_DOLLAR, 2, RoundingMode.HALF_UP);
+                .setScale(2, RoundingMode.HALF_UP);
 
         return OffsetItem.builder()
                 .offsetId(o.getId())
@@ -413,7 +411,7 @@ public class CornPositionService {
                 .bushels(o.getLots() * BUSHELS_PER_LOT_INT)
                 .entryPrice(entryPrice)
                 .exitPrice(o.getExitPrice())
-                .pnlCentsBu(pnlCents)
+                .pnlPerBu(pnlPerBu)
                 .pnlUsd(pnlUsd)
                 .offsetDate(o.getOffsetDate())
                 .notes(o.getNotes())
@@ -421,13 +419,12 @@ public class CornPositionService {
     }
 
     /**
-     * all-in $/MT = (board ¢/bu + basis ¢/bu) / 100 × 39.3683 bu/MT + freight $/MT
+     * all-in $/MT = (board $/bu + basis $/bu) × 39.3683 bu/MT + freight $/MT
      * Returns null if any required component is missing.
      */
-    private BigDecimal calcAllIn(BigDecimal boardCents, BigDecimal basisCents, BigDecimal freightPerMt) {
-        if (boardCents == null || basisCents == null || freightPerMt == null) return null;
-        return boardCents.add(basisCents)
-                         .divide(CENTS_PER_DOLLAR, 10, RoundingMode.HALF_UP)
+    private BigDecimal calcAllIn(BigDecimal boardPerBu, BigDecimal basisPerBu, BigDecimal freightPerMt) {
+        if (boardPerBu == null || basisPerBu == null || freightPerMt == null) return null;
+        return boardPerBu.add(basisPerBu)
                          .multiply(BUSHELS_PER_MT)
                          .add(freightPerMt)
                          .setScale(2, RoundingMode.HALF_UP);

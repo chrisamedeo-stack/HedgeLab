@@ -34,7 +34,7 @@ public class CornPositionResponse {
     /** Closed offsets — futures closed without EFP */
     private List<OffsetItem> offsets;
 
-    /** Latest published settle price per futures month (¢/bu) */
+    /** Latest published settle price per futures month ($/bu) */
     private Map<String, BigDecimal> latestSettles;
 
     // -------------------------------------------------------------------------
@@ -52,8 +52,8 @@ public class CornPositionResponse {
         private Integer allocatedBushels;
         private Integer unallocatedLots;
         private Integer unallocatedBushels;
-        private BigDecimal entryPrice;      // ¢/bu
-        private BigDecimal settlePrice;     // ¢/bu — null until settle published
+        private BigDecimal entryPrice;      // $/bu
+        private BigDecimal settlePrice;     // $/bu — null until settle published
         private BigDecimal mtmPnlUsd;       // on unallocated lots only
         private BigDecimal unallocatedMt;
         private List<String> validDeliveryMonths;
@@ -96,7 +96,7 @@ public class CornPositionResponse {
         private Integer allocatedLots;
         private Integer allocatedBushels;
         private BigDecimal allocatedMt;
-        private BigDecimal entryPrice;      // ¢/bu from parent hedge
+        private BigDecimal entryPrice;      // $/bu from parent hedge
         private String side;
         private LocalDate tradeDate;
     }
@@ -111,9 +111,9 @@ public class CornPositionResponse {
         private String siteName;
         private String supplierName;
         private BigDecimal committedMt;
-        private BigDecimal basisValue;      // ¢/bu — null if not yet locked
+        private BigDecimal basisValue;      // $/bu — null if not yet locked
         private boolean basisLocked;
-        private BigDecimal boardPriceLocked; // ¢/bu — null until EFP
+        private BigDecimal boardPriceLocked; // $/bu — null until EFP
         private boolean efpExecuted;
         private BigDecimal allInPricePerMt;  // null until both board and basis are set
         private String status;
@@ -132,8 +132,8 @@ public class CornPositionResponse {
         private String deliveryMonth;
         private String futuresMonth;
         private Integer lots;
-        private BigDecimal boardPrice;      // ¢/bu
-        private BigDecimal basisValue;      // ¢/bu from physical contract
+        private BigDecimal boardPrice;      // $/bu
+        private BigDecimal basisValue;      // $/bu from physical contract
         private BigDecimal freightValue;    // $/MT from physical contract
         private BigDecimal allInPricePerMt;
         private BigDecimal quantityMt;
@@ -141,12 +141,12 @@ public class CornPositionResponse {
         private String confirmationRef;
         private String status;
         // Gain/loss fields
-        private BigDecimal entryPrice;          // ¢/bu — hedge entry at EFP time
+        private BigDecimal entryPrice;          // $/bu — hedge entry at EFP time
         private BigDecimal futuresBuyPrice;     // = entryPrice
         private BigDecimal futuresSellPrice;    // = boardPrice
-        private BigDecimal gainLossCentsBu;     // sell − buy
-        private BigDecimal gainLossUsd;         // (sell − buy) × lots × 5000 / 100
-        private BigDecimal gainLossPerMt;       // (sell − buy) / 100 × 39.3683
+        private BigDecimal gainLossPerBu;       // sell − buy
+        private BigDecimal gainLossUsd;         // (sell − buy) × lots × 5000
+        private BigDecimal gainLossPerMt;       // (sell − buy) × 39.3683
         private BigDecimal effectiveAllInPerMt; // allInPerMt − gainLossPerMt
     }
 
@@ -160,9 +160,9 @@ public class CornPositionResponse {
         private String siteName;
         private Integer lots;
         private Integer bushels;
-        private BigDecimal entryPrice;      // ¢/bu
-        private BigDecimal exitPrice;       // ¢/bu
-        private BigDecimal pnlCentsBu;
+        private BigDecimal entryPrice;      // $/bu
+        private BigDecimal exitPrice;       // $/bu
+        private BigDecimal pnlPerBu;
         private BigDecimal pnlUsd;
         private LocalDate offsetDate;
         private String notes;

@@ -39,7 +39,7 @@ import {
   fmtBu,
   fmtPnl,
   fmtUsd,
-  centsToUsd,
+  fmtPerBu,
   today,
   inputCls,
   btnPrimary,
@@ -84,7 +84,7 @@ function OffsetForm({
   const exit = parseFloat(exitPrice);
   const pnlPreview =
     !isNaN(exit) && bu > 0
-      ? ((exit * 100 - entryPrice) * bu) / 100
+      ? (exit - entryPrice) * bu
       : null;
 
   async function handleSubmit() {
@@ -100,7 +100,7 @@ function OffsetForm({
     try {
       await api.post(endpoint, {
         lots,
-        exitPrice: exit * 100,
+        exitPrice: exit,
         offsetDate,
         notes: notes || null,
       });
@@ -177,7 +177,7 @@ function NewPurchaseForm({
   const [supplier, setSupplier] = useState("");
   const [deliveryMonth, setDeliveryMonth] = useState("");
   const [quantityMt, setQuantityMt] = useState("");
-  const [basisCentsBu, setBasisCentsBu] = useState("");
+  const [basisPerBu, setBasisPerBu] = useState("");
   const [futuresRef, setFuturesRef] = useState("");
   const [freightPerMt, setFreightPerMt] = useState("");
   const [currency, setCurrency] = useState("USD");
@@ -200,8 +200,8 @@ function NewPurchaseForm({
         supplierName: supplier || null,
         deliveryMonth,
         quantityMt: parseFloat(quantityMt),
-        basisCentsBu: (tradeType === "BASIS" || tradeType === "ALL_IN") && basisCentsBu ? parseFloat(basisCentsBu) : null,
-        boardPriceCentsBu: tradeType === "ALL_IN" && !isNaN(boardVal) ? boardVal * 100 : null,
+        basisPerBu: (tradeType === "BASIS" || tradeType === "ALL_IN") && basisPerBu ? parseFloat(basisPerBu) : null,
+        boardPricePerBu: tradeType === "ALL_IN" && !isNaN(boardVal) ? boardVal : null,
         futuresRef: futuresRef || null,
         freightPerMt: freightPerMt ? parseFloat(freightPerMt) : null,
         currency,
@@ -258,8 +258,8 @@ function NewPurchaseForm({
         </FormField>
         {(tradeType === "BASIS" || tradeType === "ALL_IN") && (
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-500">Basis (&cent;/bu)</label>
-            <input type="number" step="1" value={basisCentsBu} onChange={(e) => setBasisCentsBu(e.target.value)}
+            <label className="text-xs text-zinc-500">Basis ($/bu)</label>
+            <input type="number" step="1" value={basisPerBu} onChange={(e) => setBasisPerBu(e.target.value)}
               placeholder="e.g. -20" className={inputCls} />
           </div>
         )}
@@ -331,7 +331,7 @@ function EFPForm({
   const [lots, setLots] = useState("");
   const [contractId, setContractId] = useState("");
   const [boardPrice, setBoardPrice] = useState(
-    settles[allocation.futuresMonth] != null ? String(settles[allocation.futuresMonth] / 100) : ""
+    settles[allocation.futuresMonth] != null ? String(settles[allocation.futuresMonth]) : ""
   );
   const [efpDate, setEfpDate] = useState(today());
   const [confirmRef, setConfirmRef] = useState("");
@@ -361,7 +361,7 @@ function EFPForm({
         hedgeTradeId: allocation.hedgeTradeId,
         physicalContractId: parseInt(contractId, 10),
         lots: lotsN,
-        boardPrice: parseFloat(boardPrice) * 100,
+        boardPrice: parseFloat(boardPrice),
         basisValue: selectedContract?.basisValue ?? null,
         efpDate,
         confirmationRef: confirmRef,
@@ -511,9 +511,9 @@ function SiteAllocationsTable({
                   <td className="px-4 py-3 text-zinc-400 text-xs font-mono tabular-nums">{a.budgetMonth}</td>
                   <td className="px-4 py-3 text-zinc-300">{fmtVol(a.allocatedBushels)}</td>
                   <td className="px-4 py-3 text-zinc-200 font-semibold">{fmtVol(a.openAllocatedLots * 5000)}</td>
-                  <td className="px-4 py-3 text-zinc-300 font-mono tabular-nums">${centsToUsd(a.entryPrice)}</td>
+                  <td className="px-4 py-3 text-zinc-300 font-mono tabular-nums">${fmtPerBu(a.entryPrice)}</td>
                   <td className="px-4 py-3 font-mono">
-                    {a.settlePrice != null ? <span className="text-zinc-200">${centsToUsd(a.settlePrice)}</span>
+                    {a.settlePrice != null ? <span className="text-zinc-200">${fmtPerBu(a.settlePrice)}</span>
                       : <span className="text-zinc-600 italic text-xs">no settle</span>}
                   </td>
                   <td className="px-4 py-3">
@@ -682,8 +682,8 @@ function PhysicalPositionsTable({
       } else {
         const settle = p.futuresRef ? settles[p.futuresRef] : null;
         if (settle != null) {
-          const basisCents = p.basisValue ?? 0;
-          const estPerBu = (settle + basisCents) / 100;
+          const basis = p.basisValue ?? 0;
+          const estPerBu = settle + basis;
           marketCostBu += estPerBu * bu;
           marketBu += bu;
         } else {
@@ -725,10 +725,10 @@ function PhysicalPositionsTable({
                 <td className="px-4 py-3">
                   {p.efpExecuted ? (
                     <span className="flex items-center gap-1 text-zinc-200 font-mono">
-                      <Lock className="h-3 w-3 text-zinc-400" /> {centsToUsd(p.boardPriceLocked)}
+                      <Lock className="h-3 w-3 text-zinc-400" /> {fmtPerBu(p.boardPriceLocked)}
                     </span>
                   ) : vwapBySite[p.siteCode] != null ? (
-                    <span className="text-zinc-300 font-mono text-xs">~{centsToUsd(vwapBySite[p.siteCode])} <span className="text-zinc-500">(VWAP)</span></span>
+                    <span className="text-zinc-300 font-mono text-xs">~{fmtPerBu(vwapBySite[p.siteCode])} <span className="text-zinc-500">(VWAP)</span></span>
                   ) : (
                     <span className="text-zinc-500 italic text-xs">Open</span>
                   )}
@@ -738,7 +738,7 @@ function PhysicalPositionsTable({
                     <span className="text-zinc-600 italic text-xs">N/A</span>
                   ) : p.basisLocked ? (
                     <span className="flex items-center gap-1 text-zinc-300 font-mono">
-                      <Lock className="h-3 w-3 text-zinc-400" /> {p.basisValue != null ? (p.basisValue / 100).toFixed(4) : "\u2013"}
+                      <Lock className="h-3 w-3 text-zinc-400" /> {p.basisValue != null ? p.basisValue.toFixed(4) : "\u2013"}
                     </span>
                   ) : (
                     <span className="text-zinc-500 italic text-xs">Open</span>
@@ -786,7 +786,7 @@ function EFPHedgesTable({ locked }: { locked: LockedPositionItem[] }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-zinc-800/50">
-              {["Ticket", "Dir", "ZC", "Lots", "Bu", "Trade Date", "Price $/bu", "P&L \u00a2/bu", "P&L $"].map((h) => (
+              {["Ticket", "Dir", "ZC", "Lots", "Bu", "Trade Date", "Price $/bu", "P&L $/bu", "P&L $"].map((h) => (
                 <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
               ))}
             </tr>
@@ -797,7 +797,7 @@ function EFPHedgesTable({ locked }: { locked: LockedPositionItem[] }) {
             )}
             {locked.map((l) => {
               const bu = l.lots * 5000;
-              const pnlCls = pnlColor(l.gainLossCentsBu ?? 0);
+              const pnlCls = pnlColor(l.gainLossPerBu ?? 0);
               return (
                 <Fragment key={l.efpTicketId}>
                   {/* Buy row */}
@@ -808,10 +808,10 @@ function EFPHedgesTable({ locked }: { locked: LockedPositionItem[] }) {
                     <td className="px-3 py-2 text-zinc-300">{l.lots}</td>
                     <td className="px-3 py-2 text-zinc-300">{fmtVol(bu)}</td>
                     <td className="px-3 py-2 text-zinc-500 text-xs font-mono tabular-nums">{l.efpDate}</td>
-                    <td className="px-3 py-2 text-zinc-300 font-mono tabular-nums">{centsToUsd(l.futuresBuyPrice)}</td>
+                    <td className="px-3 py-2 text-zinc-300 font-mono tabular-nums">{fmtPerBu(l.futuresBuyPrice)}</td>
                     <td className="px-3 py-2" rowSpan={2}>
                       <span className={cn("font-mono font-semibold", pnlCls)}>
-                        {l.gainLossCentsBu != null ? `${l.gainLossCentsBu > 0 ? "+" : ""}${(l.gainLossCentsBu / 100).toFixed(4)}` : "\u2013"}
+                        {l.gainLossPerBu != null ? `${l.gainLossPerBu > 0 ? "+" : ""}${l.gainLossPerBu.toFixed(4)}` : "\u2013"}
                       </span>
                     </td>
                     <td className="px-3 py-2" rowSpan={2}>
@@ -827,7 +827,7 @@ function EFPHedgesTable({ locked }: { locked: LockedPositionItem[] }) {
                     <td className="px-3 py-2 text-zinc-300">{l.lots}</td>
                     <td className="px-3 py-2 text-zinc-300">{fmtVol(bu)}</td>
                     <td className="px-3 py-2 text-zinc-500 text-xs font-mono tabular-nums">{l.efpDate}</td>
-                    <td className="px-3 py-2 text-emerald-400 font-mono tabular-nums">{centsToUsd(l.futuresSellPrice)}</td>
+                    <td className="px-3 py-2 text-emerald-400 font-mono tabular-nums">{fmtPerBu(l.futuresSellPrice)}</td>
                   </tr>
                 </Fragment>
               );
@@ -860,7 +860,7 @@ function OffsetHedgesTable({ offsets }: { offsets: OffsetItem[] }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-zinc-800/50">
-              {["Trade", "Dir", "ZC", "Lots", "Bu", "Date", "Price $/bu", "P&L \u00a2/bu", "P&L $"].map((h) => (
+              {["Trade", "Dir", "ZC", "Lots", "Bu", "Date", "Price $/bu", "P&L $/bu", "P&L $"].map((h) => (
                 <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
               ))}
             </tr>
@@ -870,7 +870,7 @@ function OffsetHedgesTable({ offsets }: { offsets: OffsetItem[] }) {
               <tr><td colSpan={9} className="px-4 py-8 text-center text-zinc-500 text-sm">No offset hedges yet</td></tr>
             )}
             {offsets.map((o) => {
-              const pnlCls = pnlColor(o.pnlCentsBu);
+              const pnlCls = pnlColor(o.pnlPerBu);
               return (
                 <Fragment key={o.offsetId}>
                   {/* Buy row */}
@@ -881,10 +881,10 @@ function OffsetHedgesTable({ offsets }: { offsets: OffsetItem[] }) {
                     <td className="px-3 py-2 text-zinc-300">{o.lots}</td>
                     <td className="px-3 py-2 text-zinc-300">{fmtVol(o.bushels)}</td>
                     <td className="px-3 py-2 text-zinc-500 text-xs font-mono tabular-nums">{o.offsetDate}</td>
-                    <td className="px-3 py-2 text-zinc-300 font-mono tabular-nums">{centsToUsd(o.entryPrice)}</td>
+                    <td className="px-3 py-2 text-zinc-300 font-mono tabular-nums">{fmtPerBu(o.entryPrice)}</td>
                     <td className="px-3 py-2" rowSpan={2}>
                       <span className={cn("font-mono font-semibold", pnlCls)}>
-                        {`${o.pnlCentsBu > 0 ? "+" : ""}${(o.pnlCentsBu / 100).toFixed(4)}`}
+                        {`${o.pnlPerBu > 0 ? "+" : ""}${o.pnlPerBu.toFixed(4)}`}
                       </span>
                     </td>
                     <td className="px-3 py-2" rowSpan={2}>
@@ -901,7 +901,7 @@ function OffsetHedgesTable({ offsets }: { offsets: OffsetItem[] }) {
                     <td className="px-3 py-2 text-zinc-300">{o.lots}</td>
                     <td className="px-3 py-2 text-zinc-300">{fmtVol(o.bushels)}</td>
                     <td className="px-3 py-2 text-zinc-500 text-xs font-mono tabular-nums">{o.offsetDate}</td>
-                    <td className="px-3 py-2 text-emerald-400 font-mono tabular-nums">{centsToUsd(o.exitPrice)}</td>
+                    <td className="px-3 py-2 text-emerald-400 font-mono tabular-nums">{fmtPerBu(o.exitPrice)}</td>
                   </tr>
                 </Fragment>
               );
@@ -1015,22 +1015,20 @@ function MonthCoverageSummary({
     const targetAllInBu = targetAllIn != null ? targetAllIn / BUSHELS_PER_MT : null;
 
     const futuresMonth = suggestFuturesMonth(budgetMonth);
-    const settleCents = futuresMonth ? settles[futuresMonth] : null;
+    const settle = futuresMonth ? settles[futuresMonth] : null;
     let marketEstBu: number | null = null;
-    if (settleCents != null) {
+    if (settle != null) {
       let totalBasisBu = 0, totalFreightBu = 0, basisCount = 0, freightCount = 0;
       for (const l of lines) {
         for (const c of l.components) {
           const name = c.componentName.toLowerCase();
           if (name.includes("basis")) {
             const perBu = c.unit === "$/bu" ? c.targetValue
-              : c.unit === "\u00a2/bu" ? c.targetValue / 100
               : c.targetValue / BUSHELS_PER_MT;
             totalBasisBu += perBu;
             basisCount++;
           } else if (name.includes("freight")) {
             const perBu = c.unit === "$/bu" ? c.targetValue
-              : c.unit === "\u00a2/bu" ? c.targetValue / 100
               : c.targetValue / BUSHELS_PER_MT;
             totalFreightBu += perBu;
             freightCount++;
@@ -1039,7 +1037,7 @@ function MonthCoverageSummary({
       }
       const avgBasisPerBu = basisCount > 0 ? totalBasisBu / basisCount : 0;
       const avgFreightPerBu = freightCount > 0 ? totalFreightBu / freightCount : 0;
-      const boardPerBu = settleCents / 100;
+      const boardPerBu = settle;
       marketEstBu = boardPerBu + avgBasisPerBu + avgFreightPerBu;
     }
 
