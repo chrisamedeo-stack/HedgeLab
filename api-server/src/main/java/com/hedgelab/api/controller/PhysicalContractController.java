@@ -32,6 +32,11 @@ public class PhysicalContractController {
         return service.create(req);
     }
 
+    @PostMapping("/bulk")
+    public List<PhysicalContractResponse> createBulk(@RequestBody List<CreatePhysicalContractRequest> requests) {
+        return service.createBulk(requests);
+    }
+
     @PutMapping("/{id}")
     public PhysicalContractResponse update(@PathVariable Long id,
                                            @RequestBody UpdatePhysicalContractRequest req) {
