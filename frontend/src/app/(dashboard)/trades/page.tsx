@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeftRight } from "lucide-react";
 import { useTrades } from "@/hooks/useTrades";
@@ -10,6 +10,8 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DropdownMenu, type DropdownItem } from "@/components/ui/DropdownMenu";
+import { SortableHeader } from "@/components/ui/SortableHeader";
+import { useTableSort } from "@/hooks/useTableSort";
 import { formatUsd } from "@/lib/format";
 import type { Trade } from "@/types/trade";
 
@@ -30,6 +32,22 @@ export default function TradesPage() {
   const { toast }           = useToast();
 
   const { trades, isLoading, mutate } = useTrades(page, 20, status || undefined);
+
+  type TradeSortKey = "tradeReference" | "tradeType" | "status" | "counterpartyName" | "commodityCode" | "bookCode" | "tradeDate" | "notionalUsd";
+  const tradeAccessor = useCallback((t: Trade, key: TradeSortKey) => {
+    switch (key) {
+      case "tradeReference": return t.tradeReference;
+      case "tradeType": return t.tradeType;
+      case "status": return t.status;
+      case "counterpartyName": return t.counterpartyName;
+      case "commodityCode": return t.commodityCode;
+      case "bookCode": return t.bookCode;
+      case "tradeDate": return t.tradeDate;
+      case "notionalUsd": return t.notionalUsd;
+      default: return null;
+    }
+  }, []);
+  const { sorted: sortedTrades, sort: tradeSort, toggleSort: toggleTradeSort } = useTableSort<Trade, TradeSortKey>(trades?.content ?? [], "tradeDate", tradeAccessor, "desc");
 
   async function handleConfirm(id: number) {
     try {
@@ -82,22 +100,20 @@ export default function TradesPage() {
           <table className="w-full text-sm">
             <thead className="bg-slate-800/50">
               <tr>
-                {[
-                  "Reference", "Type", "Status", "Counterparty",
-                  "Commodity", "Book", "Trade Date", "Notional USD", "",
-                ].map((h, i) => (
-                  <th
-                    key={i}
-                    className="px-3 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider"
-                  >
-                    {h}
-                  </th>
-                ))}
+                <SortableHeader label="Reference" sortKey="tradeReference" activeKey={tradeSort.key} activeDir={tradeSort.dir} onToggle={(k) => toggleTradeSort(k as TradeSortKey)} className="px-3" />
+                <SortableHeader label="Type" sortKey="tradeType" activeKey={tradeSort.key} activeDir={tradeSort.dir} onToggle={(k) => toggleTradeSort(k as TradeSortKey)} className="px-3" />
+                <SortableHeader label="Status" sortKey="status" activeKey={tradeSort.key} activeDir={tradeSort.dir} onToggle={(k) => toggleTradeSort(k as TradeSortKey)} className="px-3" />
+                <SortableHeader label="Counterparty" sortKey="counterpartyName" activeKey={tradeSort.key} activeDir={tradeSort.dir} onToggle={(k) => toggleTradeSort(k as TradeSortKey)} className="px-3" />
+                <SortableHeader label="Commodity" sortKey="commodityCode" activeKey={tradeSort.key} activeDir={tradeSort.dir} onToggle={(k) => toggleTradeSort(k as TradeSortKey)} className="px-3" />
+                <SortableHeader label="Book" sortKey="bookCode" activeKey={tradeSort.key} activeDir={tradeSort.dir} onToggle={(k) => toggleTradeSort(k as TradeSortKey)} className="px-3" />
+                <SortableHeader label="Trade Date" sortKey="tradeDate" activeKey={tradeSort.key} activeDir={tradeSort.dir} onToggle={(k) => toggleTradeSort(k as TradeSortKey)} className="px-3" />
+                <SortableHeader label="Notional USD" sortKey="notionalUsd" activeKey={tradeSort.key} activeDir={tradeSort.dir} onToggle={(k) => toggleTradeSort(k as TradeSortKey)} className="px-3" />
+                <th className="px-3 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {trades?.content.length ? (
-                trades.content.map((t) => (
+              {sortedTrades.length ? (
+                sortedTrades.map((t) => (
                   <TradeRow
                     key={t.id}
                     trade={t}

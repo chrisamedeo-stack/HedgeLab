@@ -1,23 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { useEFPs, useHedges, useContracts } from "@/hooks/useCorn";
+import { useCallback } from "react";
+import { useEFPs, useHedges, useContracts, EFPTicketResponse } from "@/hooks/useCorn";
 import { api } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatNumber } from "@/lib/format";
 import { ArrowLeftRight, Plus, X, Trash2 } from "lucide-react";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableHeader } from "@/components/ui/SortableHeader";
+import { EfpStatusBadge } from "@/components/ui/Badge";
+import { FormField } from "@/components/ui/FormField";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { toCsv, downloadCsv } from "@/lib/csv-export";
-
-const STATUS_COLORS: Record<string, string> = {
-  PENDING:   "text-amber-400 bg-amber-500/10 ring-1 ring-amber-500/20",
-  CONFIRMED: "text-emerald-400 bg-emerald-500/10 ring-1 ring-emerald-500/20",
-  CANCELLED: "text-red-400 bg-red-500/10 ring-1 ring-red-500/20",
-};
 
 const BUSHELS_PER_LOT = 5000;
 
@@ -31,6 +30,7 @@ export default function EFPPage() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; ref: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     hedgeTradeId: "",
     physicalContractId: "",
@@ -44,6 +44,7 @@ export default function EFPPage() {
 
   function field(k: keyof typeof form, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
+    setErrors((e) => { const { [k]: _, ...rest } = e; return rest; });
   }
 
   const lots = parseInt(form.lots) || 0;
@@ -55,6 +56,12 @@ export default function EFPPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const errs: Record<string, string> = {};
+    if (!form.hedgeTradeId) errs.hedgeTradeId = "Hedge trade is required";
+    if (!form.physicalContractId) errs.physicalContractId = "Contract is required";
+    if (!form.lots || parseInt(form.lots) <= 0) errs.lots = "Lots required";
+    if (!form.boardPrice) errs.boardPrice = "Board price is required";
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSubmitting(true);
     try {
       await api.post("/api/v1/corn/efp", {
@@ -91,6 +98,21 @@ export default function EFPPage() {
       setDeleteTarget(null);
     }
   }
+
+  type EfpSortKey = "ticketRef" | "hedgeTradeRef" | "contractRef" | "lots" | "boardPrice" | "efpDate" | "status";
+  const efpAccessor = useCallback((e: EFPTicketResponse, key: EfpSortKey) => {
+    switch (key) {
+      case "ticketRef": return e.ticketRef;
+      case "hedgeTradeRef": return e.hedgeTradeRef;
+      case "contractRef": return e.contractRef;
+      case "lots": return e.lots;
+      case "boardPrice": return e.boardPrice;
+      case "efpDate": return e.efpDate;
+      case "status": return e.status;
+      default: return null;
+    }
+  }, []);
+  const { sorted: sortedEfps, sort: efpSort, toggleSort: toggleEfpSort } = useTableSort<EFPTicketResponse, EfpSortKey>(efps, "efpDate", efpAccessor, "desc");
 
   const openHedges = hedges.filter((h) => (h.openLots ?? 0) > 0);
   const openContracts = contracts.filter((c) => c.status === "OPEN" || c.status === "PARTIALLY_DELIVERED");
@@ -131,7 +153,7 @@ export default function EFPPage() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4"
+          className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 animate-fade-in"
         >
           <div className="flex items-center gap-2 mb-1">
             <ArrowLeftRight className="h-4 w-4 text-blue-400" />
@@ -143,10 +165,9 @@ export default function EFPPage() {
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs text-slate-400">Hedge Trade</label>
+            <FormField label="Hedge Trade" error={errors.hedgeTradeId}>
               <select
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={cn("w-full bg-slate-800 border text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.hedgeTradeId ? "border-red-500 focus:ring-red-500" : "border-slate-700 focus:ring-blue-500")}
                 value={form.hedgeTradeId}
                 onChange={(e) => field("hedgeTradeId", e.target.value)}
                 required
@@ -158,12 +179,11 @@ export default function EFPPage() {
                   </option>
                 ))}
               </select>
-            </div>
+            </FormField>
 
-            <div className="space-y-1">
-              <label className="text-xs text-slate-400">Physical Contract</label>
+            <FormField label="Physical Contract" error={errors.physicalContractId}>
               <select
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={cn("w-full bg-slate-800 border text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.physicalContractId ? "border-red-500 focus:ring-red-500" : "border-slate-700 focus:ring-blue-500")}
                 value={form.physicalContractId}
                 onChange={(e) => field("physicalContractId", e.target.value)}
                 required
@@ -175,40 +195,32 @@ export default function EFPPage() {
                   </option>
                 ))}
               </select>
-            </div>
+            </FormField>
 
-            <div className="space-y-1">
-              <label className="text-xs text-slate-400">
-                Lots {openLotsOnHedge > 0 && (
-                  <span className="text-slate-500 ml-1">
-                    (max {openLotsOnHedge})
-                  </span>
-                )}
-              </label>
+            <FormField label={`Lots${openLotsOnHedge > 0 ? ` (max ${openLotsOnHedge})` : ""}`} error={errors.lots}>
               <input
                 type="number"
                 min="1"
                 max={openLotsOnHedge || undefined}
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                className={cn("w-full bg-slate-800 border text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 placeholder:text-slate-500", errors.lots ? "border-red-500 focus:ring-red-500" : "border-slate-700 focus:ring-blue-500")}
                 placeholder="e.g. 20"
                 value={form.lots}
                 onChange={(e) => field("lots", e.target.value)}
                 required
               />
-            </div>
+            </FormField>
 
-            <div className="space-y-1">
-              <label className="text-xs text-slate-400">Board Price ($/bu)</label>
+            <FormField label="Board Price ($/bu)" error={errors.boardPrice}>
               <input
                 type="number"
                 step="0.0025"
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+                className={cn("w-full bg-slate-800 border text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 placeholder:text-slate-500", errors.boardPrice ? "border-red-500 focus:ring-red-500" : "border-slate-700 focus:ring-blue-500")}
                 placeholder="e.g. 4.41"
                 value={form.boardPrice}
                 onChange={(e) => field("boardPrice", e.target.value)}
                 required
               />
-            </div>
+            </FormField>
 
             <div className="space-y-1">
               <label className="text-xs text-slate-400">Basis Override ($/bu)</label>
@@ -300,15 +312,20 @@ export default function EFPPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-800/50 border-b border-slate-800">
-                {["Ticket", "Hedge", "Contract", "Site", "Lots", "Board ($/bu)", "Qty (bu)", "Date", "Status", ""].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
+                <SortableHeader label="Ticket" sortKey="ticketRef" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
+                <SortableHeader label="Hedge" sortKey="hedgeTradeRef" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
+                <SortableHeader label="Contract" sortKey="contractRef" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
+                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">Site</th>
+                <SortableHeader label="Lots" sortKey="lots" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
+                <SortableHeader label="Board ($/bu)" sortKey="boardPrice" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
+                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">Qty (bu)</th>
+                <SortableHeader label="Date" sortKey="efpDate" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
+                <SortableHeader label="Status" sortKey="status" activeKey={efpSort.key} activeDir={efpSort.dir} onToggle={(k) => toggleEfpSort(k as EfpSortKey)} />
+                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {efps.map((e) => (
+              {sortedEfps.map((e) => (
                 <tr key={e.id} className="hover:bg-slate-800/40 transition-colors">
                   <td className="px-4 py-3 font-mono text-xs text-blue-400">{e.ticketRef}</td>
                   <td className="px-4 py-3 font-mono text-xs text-slate-400">{e.hedgeTradeRef}</td>
@@ -319,12 +336,7 @@ export default function EFPPage() {
                   <td className="px-4 py-3 tabular-nums text-slate-400">{formatNumber(e.lots * BUSHELS_PER_LOT)}</td>
                   <td className="px-4 py-3 text-slate-400">{e.efpDate}</td>
                   <td className="px-4 py-3">
-                    <span className={cn(
-                      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-                      STATUS_COLORS[e.status] ?? "text-slate-400"
-                    )}>
-                      {e.status}
-                    </span>
+                    <EfpStatusBadge status={e.status} />
                   </td>
                   <td className="px-4 py-3">
                     <button

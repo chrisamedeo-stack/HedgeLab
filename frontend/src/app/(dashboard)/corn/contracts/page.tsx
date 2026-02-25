@@ -7,6 +7,8 @@ import { api } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ContractStatusBadge, TradeTypeBadge } from "@/components/ui/Badge";
+import { FormField } from "@/components/ui/FormField";
 import { formatNumber } from "@/lib/format";
 import { FileText, Plus, ChevronDown, ChevronRight, Lock, X, Edit2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,23 +37,14 @@ function monthLabel(ym: string | null) {
   return new Date(ym + "-01").toLocaleString("en-US", { month: "short", year: "2-digit" });
 }
 
-const STATUS_STYLES: Record<string, { label: string; cls: string }> = {
-  OPEN:         { label: "Open",         cls: "bg-slate-700 text-slate-300" },
-  BASIS_LOCKED: { label: "Basis Locked", cls: "bg-blue-500/20 text-blue-300" },
-  EFP_EXECUTED: { label: "EFP'd",        cls: "bg-emerald-500/20 text-emerald-300" },
-  PO_ISSUED:    { label: "PO Issued",    cls: "bg-violet-500/20 text-violet-300" },
-  CLOSED:       { label: "Closed",       cls: "bg-slate-600 text-slate-400" },
-  CANCELLED:    { label: "Cancelled",    cls: "bg-red-500/20 text-red-400" },
+const CONTRACT_STATUS_LABELS: Record<string, string> = {
+  OPEN: "Open",
+  BASIS_LOCKED: "Basis Locked",
+  EFP_EXECUTED: "EFP'd",
+  PO_ISSUED: "PO Issued",
+  CLOSED: "Closed",
+  CANCELLED: "Cancelled",
 };
-
-function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_STYLES[status] ?? { label: status, cls: "bg-slate-700 text-slate-300" };
-  return (
-    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium", s.cls)}>
-      {s.label}
-    </span>
-  );
-}
 
 // ─── New Contract Form ────────────────────────────────────────────────────────
 
@@ -64,6 +57,7 @@ function ContractForm({ editing, onSaved, onCancel }: {
   const { suppliers } = useSuppliers();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState(() => {
     if (editing) {
       return {
@@ -90,16 +84,21 @@ function ContractForm({ editing, onSaved, onCancel }: {
     };
   });
 
-  function f(k: keyof typeof form, v: string) { setForm((p) => ({ ...p, [k]: v })); }
+  function f(k: keyof typeof form, v: string) {
+    setForm((p) => ({ ...p, [k]: v }));
+    setErrors((e) => { const { [k]: _, ...rest } = e; return rest; });
+  }
 
   const buVal = parseFloat(form.quantityBu) || 0;
   const basis = parseFloat(form.basisCentsBu);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.siteCode) { toast("Select a site", "error"); return; }
-    if (!form.deliveryMonth) { toast("Enter delivery month", "error"); return; }
-    if (!buVal) { toast("Enter quantity in bushels", "error"); return; }
+    const errs: Record<string, string> = {};
+    if (!form.siteCode) errs.siteCode = "Site is required";
+    if (!form.deliveryMonth) errs.deliveryMonth = "Delivery month is required";
+    if (!buVal) errs.quantityBu = "Quantity is required";
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSubmitting(true);
     try {
       const boardBu = parseFloat(form.boardPriceBu);
@@ -168,14 +167,13 @@ function ContractForm({ editing, onSaved, onCancel }: {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <div className="space-y-1">
-          <label className="text-xs text-slate-400">Site</label>
+        <FormField label="Site" error={errors.siteCode}>
           <select value={form.siteCode} onChange={(e) => f("siteCode", e.target.value)} required
-            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+            className={cn("w-full bg-slate-800 border text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.siteCode ? "border-red-500 focus:ring-red-500" : "border-slate-700 focus:ring-blue-500")}>
             <option value="">— Select —</option>
             {sites.map((s) => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}
           </select>
-        </div>
+        </FormField>
         <div className="space-y-1">
           <label className="text-xs text-slate-400">Supplier</label>
           <select value={form.supplierName} onChange={(e) => f("supplierName", e.target.value)}
@@ -184,18 +182,16 @@ function ContractForm({ editing, onSaved, onCancel }: {
             {suppliers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
           </select>
         </div>
-        <div className="space-y-1">
-          <label className="text-xs text-slate-400">Delivery Month</label>
+        <FormField label="Delivery Month" error={errors.deliveryMonth}>
           <input type="month" value={form.deliveryMonth} onChange={(e) => f("deliveryMonth", e.target.value)} required
-            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
-        </div>
+            className={cn("w-full bg-slate-800 border text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.deliveryMonth ? "border-red-500 focus:ring-red-500" : "border-slate-700 focus:ring-blue-500")} />
+        </FormField>
 
-        <div className="space-y-1">
-          <label className="text-xs text-slate-400">Volume (bushels)</label>
+        <FormField label="Volume (bushels)" error={errors.quantityBu}>
           <input type="number" step="1" min="0" placeholder="e.g. 50000" value={form.quantityBu}
             onChange={(e) => f("quantityBu", e.target.value)} required
-            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500" />
-        </div>
+            className={cn("w-full bg-slate-800 border text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 placeholder:text-slate-500", errors.quantityBu ? "border-red-500 focus:ring-red-500" : "border-slate-700 focus:ring-blue-500")} />
+        </FormField>
         <div className="space-y-1">
           <label className="text-xs text-slate-400">Currency</label>
           <select value={form.currency} onChange={(e) => f("currency", e.target.value)}
@@ -378,14 +374,7 @@ function ContractRow({ contract, onRefresh, onEdit, onDelete }: {
           <div className="flex items-center gap-2">
             <p className="text-sm font-mono font-medium text-slate-200 truncate">{contract.contractRef}</p>
             {contract.tradeType && (
-              <span className={cn(
-                "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
-                contract.tradeType === "INDEX"
-                  ? "bg-amber-500/20 text-amber-400"
-                  : contract.tradeType === "ALL_IN"
-                  ? "bg-emerald-500/20 text-emerald-400"
-                  : "bg-blue-500/20 text-blue-400"
-              )}>{contract.tradeType === "ALL_IN" ? "ALL-IN" : contract.tradeType}</span>
+              <TradeTypeBadge type={contract.tradeType} />
             )}
           </div>
           <p className="text-xs text-slate-500 truncate">{contract.supplierName ?? "—"}</p>
@@ -420,7 +409,7 @@ function ContractRow({ contract, onRefresh, onEdit, onDelete }: {
         </div>
 
         <div className="ml-auto flex items-center gap-2 flex-shrink-0">
-          <StatusBadge status={contract.status} />
+          <ContractStatusBadge status={contract.status} />
           {!isCancelled && contract.status === "OPEN" && contract.tradeType !== "ALL_IN" && (
             <button
               onClick={() => { setLockingBasis((v) => !v); setExpanded(true); }}
@@ -456,7 +445,7 @@ function ContractRow({ contract, onRefresh, onEdit, onDelete }: {
       </div>
 
       {expanded && (
-        <div className="border-t border-slate-800">
+        <div className="border-t border-slate-800 animate-slide-down">
           {lockingBasis && contract.status === "OPEN" && (
             <LockBasisPanel
               contract={contract}
@@ -586,14 +575,16 @@ export default function ContractsPage() {
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
           className="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
           <option value="">All Statuses</option>
-          {Object.entries(STATUS_STYLES).map(([k, v]) => (
-            <option key={k} value={k}>{v.label}</option>
+          {Object.entries(CONTRACT_STATUS_LABELS).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
           ))}
         </select>
       </div>
 
       {showForm && (
-        <ContractForm editing={editing} onSaved={handleFormSaved} onCancel={handleFormClose} />
+        <div className="animate-fade-in">
+          <ContractForm editing={editing} onSaved={handleFormSaved} onCancel={handleFormClose} />
+        </div>
       )}
 
       {filtered.length > 0 && (

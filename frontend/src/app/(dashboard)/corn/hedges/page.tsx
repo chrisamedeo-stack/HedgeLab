@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useHedgesByBook, useHedgeAllocations, useSites, HedgeTradeResponse } from "@/hooks/useCorn";
 import { api } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
@@ -8,14 +8,10 @@ import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatNumber } from "@/lib/format";
 import { Layers, Plus, X, ChevronDown, ChevronRight, Trash2, Edit2, GitBranch } from "lucide-react";
+import { HedgeStatusBadge } from "@/components/ui/Badge";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableHeader } from "@/components/ui/SortableHeader";
 import { cn } from "@/lib/utils";
-
-const STATUS_COLORS: Record<string, string> = {
-  OPEN:          "text-emerald-400 bg-emerald-500/10 ring-1 ring-emerald-500/20",
-  PARTIALLY_EFP: "text-amber-400  bg-amber-500/10  ring-1 ring-amber-500/20",
-  FULLY_EFP:     "text-blue-400   bg-blue-500/10   ring-1 ring-blue-500/20",
-  CLOSED:        "text-slate-400  bg-slate-500/10  ring-1 ring-slate-500/20",
-};
 
 const ZC_MONTHS = [
   "ZCH25","ZCK25","ZCN25","ZCU25","ZCZ25",
@@ -244,7 +240,7 @@ function AllocationPanel({
                                 </button>
                                 {/* Inline assign-to-site form */}
                                 {isAssigning && (
-                                  <div className="flex items-end gap-2 mt-1 p-2 bg-slate-900/60 rounded-lg border border-slate-700/50">
+                                  <div className="flex items-end gap-2 mt-1 p-2 bg-slate-900/60 rounded-lg border border-slate-700/50 animate-slide-down">
                                     <div className="space-y-1">
                                       <label className="text-xs text-slate-500">Site</label>
                                       <select
@@ -362,6 +358,22 @@ function HedgeTable({ book, showForm, setShowForm }: { book: "CANADA" | "US"; sh
   const [submitting, setSubmitting]     = useState(false);
   const [expandedId, setExpandedId]     = useState<number | null>(null);
   const [editing, setEditing]           = useState<HedgeTradeResponse | null>(null);
+
+  type HedgeSortKey = "tradeRef" | "futuresMonth" | "lots" | "openLots" | "allocatedLots" | "unallocatedLots" | "pricePerBushel" | "status";
+  const hedgeAccessor = useCallback((h: HedgeTradeResponse, key: HedgeSortKey) => {
+    switch (key) {
+      case "tradeRef": return h.tradeRef;
+      case "futuresMonth": return h.futuresMonth;
+      case "lots": return h.lots;
+      case "openLots": return h.openLots;
+      case "allocatedLots": return h.allocatedLots ?? 0;
+      case "unallocatedLots": return h.unallocatedLots ?? 0;
+      case "pricePerBushel": return h.pricePerBushel;
+      case "status": return h.status;
+      default: return null;
+    }
+  }, []);
+  const { sorted: sortedHedges, sort: hedgeSort, toggleSort: toggleHedgeSort } = useTableSort<HedgeTradeResponse, HedgeSortKey>(hedges, "futuresMonth", hedgeAccessor);
 
   // ─── Shared fields (top of ticket) ────────────────────────────────────────
   const [shared, setShared] = useState({
@@ -554,7 +566,7 @@ function HedgeTable({ book, showForm, setShowForm }: { book: "CANADA" | "US"; sh
 
       {/* ─── Create / Edit form ──────────────────────────────────────────── */}
       {showForm && !editing && (
-        <form onSubmit={handleBulkSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
+        <form onSubmit={handleBulkSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5 animate-fade-in">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-200">
               Book Hedge Trade{rows.length > 1 ? "s" : ""} — <span className="text-blue-400">{book} Book</span>
@@ -738,7 +750,7 @@ function HedgeTable({ book, showForm, setShowForm }: { book: "CANADA" | "US"; sh
 
       {/* ─── Edit form (single trade) ────────────────────────────────────── */}
       {showForm && editing && (
-        <form onSubmit={handleEditSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+        <form onSubmit={handleEditSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 animate-fade-in">
           <h2 className="text-sm font-semibold text-slate-200">
             Edit <span className="text-blue-400">{editing.tradeRef}</span>
           </h2>
@@ -855,15 +867,19 @@ function HedgeTable({ book, showForm, setShowForm }: { book: "CANADA" | "US"; sh
             <thead>
               <tr className="bg-slate-800/50 border-b border-slate-800">
                 <th className="w-8" />
-                {["Ref", "Month", "Lots", "Open", "Allocated", "Unalloc.", "Price ($/bu)", "Status", ""].map((h) => (
-                  <th key={h} className="text-left px-3 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
+                <SortableHeader label="Ref" sortKey="tradeRef" activeKey={hedgeSort.key} activeDir={hedgeSort.dir} onToggle={(k) => toggleHedgeSort(k as HedgeSortKey)} className="px-3" />
+                <SortableHeader label="Month" sortKey="futuresMonth" activeKey={hedgeSort.key} activeDir={hedgeSort.dir} onToggle={(k) => toggleHedgeSort(k as HedgeSortKey)} className="px-3" />
+                <SortableHeader label="Lots" sortKey="lots" activeKey={hedgeSort.key} activeDir={hedgeSort.dir} onToggle={(k) => toggleHedgeSort(k as HedgeSortKey)} className="px-3" />
+                <SortableHeader label="Open" sortKey="openLots" activeKey={hedgeSort.key} activeDir={hedgeSort.dir} onToggle={(k) => toggleHedgeSort(k as HedgeSortKey)} className="px-3" />
+                <SortableHeader label="Allocated" sortKey="allocatedLots" activeKey={hedgeSort.key} activeDir={hedgeSort.dir} onToggle={(k) => toggleHedgeSort(k as HedgeSortKey)} className="px-3" />
+                <SortableHeader label="Unalloc." sortKey="unallocatedLots" activeKey={hedgeSort.key} activeDir={hedgeSort.dir} onToggle={(k) => toggleHedgeSort(k as HedgeSortKey)} className="px-3" />
+                <SortableHeader label="Price ($/bu)" sortKey="pricePerBushel" activeKey={hedgeSort.key} activeDir={hedgeSort.dir} onToggle={(k) => toggleHedgeSort(k as HedgeSortKey)} className="px-3" />
+                <SortableHeader label="Status" sortKey="status" activeKey={hedgeSort.key} activeDir={hedgeSort.dir} onToggle={(k) => toggleHedgeSort(k as HedgeSortKey)} className="px-3" />
+                <th className="text-left px-3 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider whitespace-nowrap"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {hedges.map((h) => (
+              {sortedHedges.map((h) => (
                 <>
                   <tr
                     key={h.id}
@@ -887,12 +903,7 @@ function HedgeTable({ book, showForm, setShowForm }: { book: "CANADA" | "US"; sh
                     </td>
                     <td className="px-3 py-3 tabular-nums text-slate-200">{h.pricePerBushel != null ? (h.pricePerBushel / 100).toFixed(4) : "\u2014"}</td>
                     <td className="px-3 py-3">
-                      <span className={cn(
-                        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-                        STATUS_COLORS[h.status] ?? "text-slate-400"
-                      )}>
-                        {h.status}
-                      </span>
+                      <HedgeStatusBadge status={h.status} />
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
@@ -907,7 +918,7 @@ function HedgeTable({ book, showForm, setShowForm }: { book: "CANADA" | "US"; sh
                   </tr>
                   {expandedId === h.id && (
                     <tr key={`${h.id}-alloc`}>
-                      <td colSpan={10} className="px-4 py-3 bg-slate-950/40">
+                      <td colSpan={10} className="px-4 py-3 bg-slate-950/40 animate-slide-down">
                         <AllocationPanel
                           trade={h}
                           onClose={() => setExpandedId(null)}

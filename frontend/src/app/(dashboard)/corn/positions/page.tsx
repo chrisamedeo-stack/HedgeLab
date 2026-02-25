@@ -44,6 +44,7 @@ import {
 import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SideBadge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { MtmPnlChart } from "./_components/mtm-pnl-chart";
@@ -863,7 +864,7 @@ function HedgeBookTable({
             </button>
 
             {isExpanded && (
-              <div className="bg-slate-800/20">
+              <div className="bg-slate-800/20 animate-slide-down">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-800/40">
@@ -948,14 +949,14 @@ function HedgeBookTable({
                             </td>
                           </tr>
                           {isBreakdown && (
-                            <tr className="border-t border-slate-800/50 bg-slate-800/10">
+                            <tr className="border-t border-slate-800/50 bg-slate-800/10 animate-slide-down">
                               <td colSpan={9}>
                                 <AllocationBreakdown tradeId={h.hedgeTradeId} />
                               </td>
                             </tr>
                           )}
                           {isAlloc && (
-                            <tr className="border-t border-slate-800/50">
+                            <tr className="border-t border-slate-800/50 animate-slide-down">
                               <td colSpan={9} className="px-4 py-2">
                                 <AllocateForm hedge={h} sites={sites} onDone={handleDone} onCancel={() => setAllocTradeId(null)} />
                               </td>
@@ -1079,7 +1080,7 @@ function MonthAllocationsTable({
             </button>
 
             {isExpanded && (
-              <div className="bg-slate-800/20">
+              <div className="bg-slate-800/20 animate-slide-down">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-800/40">
@@ -1097,9 +1098,7 @@ function MonthAllocationsTable({
                           <tr className="border-t border-slate-800/50 hover:bg-slate-800/30 transition-colors bg-amber-500/5">
                             <td className="px-4 py-2 font-mono text-slate-200 text-xs">{a.tradeRef}</td>
                             <td className="px-4 py-2">
-                              <span className={cn("px-2 py-0.5 rounded text-xs font-semibold",
-                                a.side === "SHORT" ? "bg-red-500/15 text-red-300" : "bg-emerald-500/15 text-emerald-300"
-                              )}>{a.side || "LONG"}</span>
+                              <SideBadge side={a.side || "LONG"} />
                             </td>
                             <td className="px-4 py-2 text-slate-500 text-xs font-mono">{a.tradeDate}</td>
                             <td className="px-4 py-2">
@@ -1311,12 +1310,12 @@ export default function PositionsPage() {
 
       {/* Book Hedge form */}
       {hedgeFormOpen && (
-        <BookHedgeForm
+        <div className="animate-fade-in"><BookHedgeForm
           book={book}
           editing={editing}
           onDone={handleHedgeFormDone}
           onCancel={handleHedgeFormCancel}
-        />
+        /></div>
       )}
 
       {/* Settle publisher */}

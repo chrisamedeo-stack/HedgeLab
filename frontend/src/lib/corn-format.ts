@@ -53,14 +53,5 @@ export const btnPrimary =
 export const btnSecondary =
   "px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm rounded-lg font-medium";
 
-// ─── Status helpers ──────────────────────────────────────────────────────────
-
-export function statusColor(status: string) {
-  switch (status) {
-    case "OPEN": return "text-slate-400";
-    case "BASIS_LOCKED": return "text-blue-400";
-    case "EFP_EXECUTED": return "text-emerald-400";
-    case "PO_ISSUED": return "text-emerald-500";
-    default: return "text-slate-500";
-  }
-}
+export const inputClsError =
+  "bg-slate-900 border border-red-500 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-red-500";

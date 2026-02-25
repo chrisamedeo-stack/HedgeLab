@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, Fragment } from "react";
+import { useState, useMemo, useEffect, Fragment, useCallback } from "react";
 import {
   MapPin,
   ChevronDown,
@@ -44,8 +44,11 @@ import {
   inputCls,
   btnPrimary,
   btnSecondary,
-  statusColor,
 } from "@/lib/corn-format";
+import { TradeTypeBadge, ContractStatusBadge, SideBadge } from "@/components/ui/Badge";
+import { FormField } from "@/components/ui/FormField";
+import { useTableSort } from "@/hooks/useTableSort";
+import { SortableHeader } from "@/components/ui/SortableHeader";
 import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -164,6 +167,7 @@ function NewPurchaseForm({
 }) {
   const toast = useToast();
   const { suppliers } = useSuppliers();
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [tradeType, setTradeType] = useState<"BASIS" | "INDEX" | "ALL_IN">("BASIS");
   const [boardPriceBu, setBoardPriceBu] = useState("");
   const [site, setSite] = useState(siteCode || sites[0]?.code || "");
@@ -179,9 +183,11 @@ function NewPurchaseForm({
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit() {
-    if (!site) { toast.toast("Select a site", "error"); return; }
-    if (!deliveryMonth) { toast.toast("Enter delivery month", "error"); return; }
-    if (!quantityMt) { toast.toast("Enter quantity", "error"); return; }
+    const errs: Record<string, string> = {};
+    if (!site) errs.site = "Site is required";
+    if (!deliveryMonth) errs.deliveryMonth = "Delivery month is required";
+    if (!quantityMt) errs.quantityMt = "Quantity is required";
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
     setSaving(true);
     try {
@@ -228,12 +234,11 @@ function NewPurchaseForm({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Site</label>
-          <select value={site} onChange={(e) => setSite(e.target.value)} className={inputCls}>
+        <FormField label="Site" error={errors.site}>
+          <select value={site} onChange={(e) => { setSite(e.target.value); setErrors((prev) => { const { site: _, ...rest } = prev; return rest; }); }} className={cn(inputCls, errors.site && "border-red-500 focus:ring-red-500")}>
             {sites.map((s) => <option key={s.code} value={s.code}>{s.code} &middot; {s.name}</option>)}
           </select>
-        </div>
+        </FormField>
         <div className="flex flex-col gap-1">
           <label className="text-xs text-slate-500">Supplier</label>
           <select value={supplier} onChange={(e) => setSupplier(e.target.value)} className={inputCls}>
@@ -241,15 +246,13 @@ function NewPurchaseForm({
             {(suppliers ?? []).map((s: { name: string }) => <option key={s.name} value={s.name}>{s.name}</option>)}
           </select>
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Delivery Month</label>
-          <input type="month" value={deliveryMonth} onChange={(e) => setDeliveryMonth(e.target.value)} className={inputCls} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Quantity (bushels)</label>
-          <input type="number" step="1000" value={quantityMt} onChange={(e) => setQuantityMt(e.target.value)}
-            placeholder="e.g. 50000" className={inputCls} />
-        </div>
+        <FormField label="Delivery Month" error={errors.deliveryMonth}>
+          <input type="month" value={deliveryMonth} onChange={(e) => { setDeliveryMonth(e.target.value); setErrors((prev) => { const { deliveryMonth: _, ...rest } = prev; return rest; }); }} className={cn(inputCls, errors.deliveryMonth && "border-red-500 focus:ring-red-500")} />
+        </FormField>
+        <FormField label="Quantity (bushels)" error={errors.quantityMt}>
+          <input type="number" step="1000" value={quantityMt} onChange={(e) => { setQuantityMt(e.target.value); setErrors((prev) => { const { quantityMt: _, ...rest } = prev; return rest; }); }}
+            placeholder="e.g. 50000" className={cn(inputCls, errors.quantityMt && "border-red-500 focus:ring-red-500")} />
+        </FormField>
         {(tradeType === "BASIS" || tradeType === "ALL_IN") && (
           <div className="flex flex-col gap-1">
             <label className="text-xs text-slate-500">Basis (&cent;/bu)</label>
@@ -443,6 +446,21 @@ function SiteAllocationsTable({
   const [efpAllocId, setEfpAllocId] = useState<number | null>(null);
   const [offsetAllocId, setOffsetAllocId] = useState<number | null>(null);
 
+  type AllocSortKey = "tradeRef" | "side" | "futuresMonth" | "siteCode" | "budgetMonth" | "allocatedBushels" | "entryPrice";
+  const allocAccessor = useCallback((a: SiteAllocationItem, key: AllocSortKey) => {
+    switch (key) {
+      case "tradeRef": return a.tradeRef;
+      case "side": return a.side;
+      case "futuresMonth": return a.futuresMonth;
+      case "siteCode": return a.siteCode;
+      case "budgetMonth": return a.budgetMonth;
+      case "allocatedBushels": return a.allocatedBushels;
+      case "entryPrice": return a.entryPrice;
+      default: return null;
+    }
+  }, []);
+  const { sorted: sortedAllocations, sort: allocSort, toggleSort: toggleAllocSort } = useTableSort<SiteAllocationItem, AllocSortKey>(allocations, "budgetMonth", allocAccessor);
+
   function handleDone() {
     setEfpAllocId(null);
     setOffsetAllocId(null);
@@ -454,16 +472,26 @@ function SiteAllocationsTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-slate-800/50">
-            {["Trade", "Dir", "Date", "ZC", "Site", "Month", "Alloc bu", "Open bu", "Entry $/bu", "Settle $/bu", "Basis", "MTM", ""].map((h) => (
-              <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
-            ))}
+            <SortableHeader label="Trade" sortKey="tradeRef" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
+            <SortableHeader label="Dir" sortKey="side" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
+            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Date</th>
+            <SortableHeader label="ZC" sortKey="futuresMonth" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
+            <SortableHeader label="Site" sortKey="siteCode" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
+            <SortableHeader label="Month" sortKey="budgetMonth" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
+            <SortableHeader label="Alloc bu" sortKey="allocatedBushels" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
+            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Open bu</th>
+            <SortableHeader label="Entry $/bu" sortKey="entryPrice" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
+            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Settle $/bu</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Basis</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">MTM</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap"></th>
           </tr>
         </thead>
         <tbody>
-          {allocations.length === 0 && (
+          {sortedAllocations.length === 0 && (
             <tr><td colSpan={13} className="px-4 py-8 text-center text-slate-500 text-sm">No allocations yet</td></tr>
           )}
-          {allocations.map((a) => {
+          {sortedAllocations.map((a) => {
             const isEfp = efpAllocId === a.allocationId;
             const isOffset = offsetAllocId === a.allocationId;
             return (
@@ -471,9 +499,7 @@ function SiteAllocationsTable({
                 <tr className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
                   <td className="px-4 py-3 font-mono text-slate-200 text-xs">{a.tradeRef}</td>
                   <td className="px-4 py-3">
-                    <span className={cn("px-2 py-0.5 rounded text-xs font-semibold",
-                      a.side === "SHORT" ? "bg-red-500/15 text-red-300" : "bg-emerald-500/15 text-emerald-300"
-                    )}>{a.side || "LONG"}</span>
+                    <SideBadge side={a.side || "LONG"} />
                   </td>
                   <td className="px-4 py-3 text-slate-500 text-xs font-mono">{a.tradeDate}</td>
                   <td className="px-4 py-3">
@@ -533,14 +559,14 @@ function SiteAllocationsTable({
                   </td>
                 </tr>
                 {isEfp && (
-                  <tr className="border-t border-slate-800">
+                  <tr className="border-t border-slate-800 animate-slide-down">
                     <td colSpan={13} className="px-4 py-3">
                       <EFPForm allocation={a} physicalPositions={physicalPositions} sites={sites} settles={settles} onDone={handleDone} onCancel={() => setEfpAllocId(null)} />
                     </td>
                   </tr>
                 )}
                 {isOffset && (
-                  <tr className="border-t border-slate-800">
+                  <tr className="border-t border-slate-800 animate-slide-down">
                     <td colSpan={13} className="px-4 py-3">
                       <OffsetForm
                         entryPrice={a.entryPrice}
@@ -631,11 +657,6 @@ function SiteSummary({
 
 // ─── Physical Positions Table ────────────────────────────────────────────────
 
-function tradeTypeBadge(type: string) {
-  if (type === "INDEX") return <span className="bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/25 px-2 py-0.5 rounded text-xs font-mono font-semibold">INDEX</span>;
-  if (type === "ALL_IN") return <span className="bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/25 px-2 py-0.5 rounded text-xs font-mono font-semibold">ALL-IN</span>;
-  return <span className="bg-blue-500/15 text-blue-300 ring-1 ring-blue-500/25 px-2 py-0.5 rounded text-xs font-mono font-semibold">BASIS</span>;
-}
 
 function PhysicalPositionsTable({
   positions,
@@ -711,7 +732,7 @@ function PhysicalPositionsTable({
             )}
             {positions.map((p) => (
               <tr key={p.contractId} className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
-                <td className="px-4 py-3">{tradeTypeBadge(p.tradeType)}</td>
+                <td className="px-4 py-3"><TradeTypeBadge type={p.tradeType} /></td>
                 <td className="px-4 py-3 font-mono text-slate-300 text-xs">{p.deliveryMonth}</td>
                 <td className="px-4 py-3"><span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">{p.siteCode}</span></td>
                 <td className="px-4 py-3 font-mono text-slate-400 text-xs">{p.contractRef}</td>
@@ -748,7 +769,7 @@ function PhysicalPositionsTable({
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <span className={cn("text-xs font-medium", statusColor(p.status))}>{p.status.replace("_", " ")}</span>
+                  <ContractStatusBadge status={p.status} />
                 </td>
               </tr>
             ))}
@@ -798,7 +819,7 @@ function EFPHedgesTable({ locked }: { locked: LockedPositionItem[] }) {
                   {/* Buy row */}
                   <tr className="border-t border-slate-800 hover:bg-slate-800/30">
                     <td className="px-3 py-2 font-mono text-slate-300 text-xs" rowSpan={2}>{l.ticketRef}</td>
-                    <td className="px-3 py-2"><span className="bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded text-xs font-semibold">BUY</span></td>
+                    <td className="px-3 py-2"><SideBadge side="BUY" /></td>
                     <td className="px-3 py-2"><span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{l.futuresMonth}</span></td>
                     <td className="px-3 py-2 text-slate-300">{l.lots}</td>
                     <td className="px-3 py-2 text-slate-300">{fmtVol(bu)}</td>
@@ -817,7 +838,7 @@ function EFPHedgesTable({ locked }: { locked: LockedPositionItem[] }) {
                   </tr>
                   {/* Sell row */}
                   <tr className="border-t border-slate-800/50 hover:bg-slate-800/30">
-                    <td className="px-3 py-2"><span className="bg-red-500/15 text-red-300 px-2 py-0.5 rounded text-xs font-semibold">SELL</span></td>
+                    <td className="px-3 py-2"><SideBadge side="SELL" /></td>
                     <td className="px-3 py-2"><span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{l.futuresMonth}</span></td>
                     <td className="px-3 py-2 text-slate-300">{l.lots}</td>
                     <td className="px-3 py-2 text-slate-300">{fmtVol(bu)}</td>
@@ -871,7 +892,7 @@ function OffsetHedgesTable({ offsets }: { offsets: OffsetItem[] }) {
                   {/* Buy row */}
                   <tr className="border-t border-slate-800 hover:bg-slate-800/30">
                     <td className="px-3 py-2 font-mono text-slate-300 text-xs">{o.tradeRef}</td>
-                    <td className="px-3 py-2"><span className="bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded text-xs font-semibold">BUY</span></td>
+                    <td className="px-3 py-2"><SideBadge side="BUY" /></td>
                     <td className="px-3 py-2"><span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{o.futuresMonth}</span></td>
                     <td className="px-3 py-2 text-slate-300">{o.lots}</td>
                     <td className="px-3 py-2 text-slate-300">{fmtVol(o.bushels)}</td>
@@ -891,7 +912,7 @@ function OffsetHedgesTable({ offsets }: { offsets: OffsetItem[] }) {
                   {/* Sell row */}
                   <tr className="border-t border-slate-800/50 hover:bg-slate-800/30">
                     <td className="px-3 py-2 font-mono text-amber-400 text-xs">OFFSET</td>
-                    <td className="px-3 py-2"><span className="bg-red-500/15 text-red-300 px-2 py-0.5 rounded text-xs font-semibold">SELL</span></td>
+                    <td className="px-3 py-2"><SideBadge side="SELL" /></td>
                     <td className="px-3 py-2"><span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{o.futuresMonth}</span></td>
                     <td className="px-3 py-2 text-slate-300">{o.lots}</td>
                     <td className="px-3 py-2 text-slate-300">{fmtVol(o.bushels)}</td>
@@ -1346,7 +1367,7 @@ export default function SitesPage() {
           </button>
         </div>
         {newPurchaseOpen && (
-          <div className="px-5 py-4 border-b border-slate-800">
+          <div className="px-5 py-4 border-b border-slate-800 animate-slide-down">
             <NewPurchaseForm
               siteCode={siteFilter}
               sites={sites}
