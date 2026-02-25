@@ -45,7 +45,7 @@ export default function AuditPage() {
         <select
           value={entityType}
           onChange={(e) => { setEntityType(e.target.value); setPage(0); }}
-          className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+          className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
         >
           {ENTITY_TYPES.map((t) => (
             <option key={t} value={t}>{t || "All entity types"}</option>

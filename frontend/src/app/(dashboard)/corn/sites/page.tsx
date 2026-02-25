@@ -498,7 +498,7 @@ function SiteAllocationsTable({
             const isOffset = offsetAllocId === a.allocationId;
             return (
               <Fragment key={a.allocationId}>
-                <tr className="border-t border-b-default hover:bg-input-bg/30 transition-colors">
+                <tr className="border-t border-b-default hover:bg-row-hover transition-colors">
                   <td className="px-4 py-3 font-mono text-secondary text-xs">{a.tradeRef}</td>
                   <td className="px-4 py-3">
                     <SideBadge side={a.side || "LONG"} />
@@ -715,7 +715,7 @@ function PhysicalPositionsTable({
               <tr><td colSpan={11} className="px-4 py-8 text-center text-faint text-sm">No active physical contracts</td></tr>
             )}
             {positions.map((p) => (
-              <tr key={p.contractId} className="border-t border-b-default hover:bg-input-bg/30 transition-colors">
+              <tr key={p.contractId} className="border-t border-b-default hover:bg-row-hover transition-colors">
                 <td className="px-4 py-3"><TradeTypeBadge type={p.tradeType} /></td>
                 <td className="px-4 py-3 font-mono tabular-nums text-secondary text-xs">{p.deliveryMonth}</td>
                 <td className="px-4 py-3"><span className="bg-input-bg text-secondary px-2 py-0.5 rounded text-xs font-mono">{p.siteCode}</span></td>
@@ -801,7 +801,7 @@ function EFPHedgesTable({ locked }: { locked: LockedPositionItem[] }) {
               return (
                 <Fragment key={l.efpTicketId}>
                   {/* Buy row */}
-                  <tr className="border-t border-b-default hover:bg-input-bg/30">
+                  <tr className="border-t border-b-default hover:bg-row-hover">
                     <td className="px-3 py-2 font-mono text-secondary text-xs" rowSpan={2}>{l.ticketRef}</td>
                     <td className="px-3 py-2"><SideBadge side="BUY" /></td>
                     <td className="px-3 py-2"><span className={zcBadgeCls}>{l.futuresMonth}</span></td>
@@ -821,7 +821,7 @@ function EFPHedgesTable({ locked }: { locked: LockedPositionItem[] }) {
                     </td>
                   </tr>
                   {/* Sell row */}
-                  <tr className="border-t border-b-default/50 hover:bg-input-bg/30">
+                  <tr className="border-t border-b-default/50 hover:bg-row-hover">
                     <td className="px-3 py-2"><SideBadge side="SELL" /></td>
                     <td className="px-3 py-2"><span className={zcBadgeCls}>{l.futuresMonth}</span></td>
                     <td className="px-3 py-2 text-secondary">{l.lots}</td>
@@ -874,7 +874,7 @@ function OffsetHedgesTable({ offsets }: { offsets: OffsetItem[] }) {
               return (
                 <Fragment key={o.offsetId}>
                   {/* Buy row */}
-                  <tr className="border-t border-b-default hover:bg-input-bg/30">
+                  <tr className="border-t border-b-default hover:bg-row-hover">
                     <td className="px-3 py-2 font-mono text-secondary text-xs">{o.tradeRef}</td>
                     <td className="px-3 py-2"><SideBadge side="BUY" /></td>
                     <td className="px-3 py-2"><span className={zcBadgeCls}>{o.futuresMonth}</span></td>
@@ -894,7 +894,7 @@ function OffsetHedgesTable({ offsets }: { offsets: OffsetItem[] }) {
                     </td>
                   </tr>
                   {/* Sell row */}
-                  <tr className="border-t border-b-default/50 hover:bg-input-bg/30">
+                  <tr className="border-t border-b-default/50 hover:bg-row-hover">
                     <td className="px-3 py-2 font-mono text-muted text-xs">OFFSET</td>
                     <td className="px-3 py-2"><SideBadge side="SELL" /></td>
                     <td className="px-3 py-2"><span className={zcBadgeCls}>{o.futuresMonth}</span></td>
@@ -1301,7 +1301,7 @@ export default function SitesPage() {
         {/* Section 1: Open Hedges */}
         <button
           onClick={() => setExpandedSection(expandedSection === "open" ? null : "open")}
-          className="w-full flex items-center gap-4 px-5 py-3 hover:bg-input-bg/30 transition-colors text-left border-t border-b-default"
+          className="w-full flex items-center gap-4 px-5 py-3 hover:bg-row-hover transition-colors text-left border-t border-b-default"
         >
           {expandedSection === "open"
             ? <ChevronDown className="h-4 w-4 text-faint" />
@@ -1330,7 +1330,7 @@ export default function SitesPage() {
         {/* Section 2: Exchange for Physical */}
         <button
           onClick={() => setExpandedSection(expandedSection === "efp" ? null : "efp")}
-          className="w-full flex items-center gap-4 px-5 py-3 hover:bg-input-bg/30 transition-colors text-left border-t border-b-default"
+          className="w-full flex items-center gap-4 px-5 py-3 hover:bg-row-hover transition-colors text-left border-t border-b-default"
         >
           {expandedSection === "efp"
             ? <ChevronDown className="h-4 w-4 text-faint" />
@@ -1353,7 +1353,7 @@ export default function SitesPage() {
         {/* Section 3: Offset Hedges */}
         <button
           onClick={() => setExpandedSection(expandedSection === "offset" ? null : "offset")}
-          className="w-full flex items-center gap-4 px-5 py-3 hover:bg-input-bg/30 transition-colors text-left border-t border-b-default"
+          className="w-full flex items-center gap-4 px-5 py-3 hover:bg-row-hover transition-colors text-left border-t border-b-default"
         >
           {expandedSection === "offset"
             ? <ChevronDown className="h-4 w-4 text-faint" />

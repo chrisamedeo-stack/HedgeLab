@@ -58,7 +58,7 @@ export function ForecastUpdateGrid({ lines, onSaved, onCancel }: {
       <div className="space-y-1">
         <label className="text-xs text-muted">Update Note</label>
         <input type="text" placeholder="e.g. March review" value={note} onChange={(e) => setNote(e.target.value)}
-          className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+          className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
       </div>
       <div className="rounded-lg border border-b-input overflow-hidden">
         <table className="w-full text-sm">

@@ -123,7 +123,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           "flex items-center border-b border-b-default h-14 shrink-0",
           collapsed ? "justify-center px-0" : "px-4 gap-3"
         )}>
-          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-action text-white font-bold text-sm shrink-0">
+          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-br from-action to-accent text-white font-bold text-sm shrink-0 shadow-sm shadow-action-20">
             HL
           </div>
           {!collapsed && (

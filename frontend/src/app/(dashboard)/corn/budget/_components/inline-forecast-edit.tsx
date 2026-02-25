@@ -36,7 +36,7 @@ export function InlineForecastEdit({ line, onSaved, onCancel }: {
     <div className="flex items-center gap-2">
       <input type="number" step="any" min="0" value={value}
         onChange={(e) => setValue(e.target.value)} autoFocus
-        className="w-20 bg-input-bg border border-b-input text-secondary text-right tabular-nums rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-action" />
+        className="w-20 bg-input-bg border border-b-input text-secondary text-right tabular-nums rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-focus" />
       <input type="text" placeholder="Note" value={noteText}
         onChange={(e) => setNoteText(e.target.value)}
         className="w-24 bg-input-bg border border-b-input text-secondary rounded px-2 py-1 text-xs focus:outline-none placeholder:text-ph" />

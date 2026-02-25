@@ -200,7 +200,7 @@ export default function ReceiptsPage() {
             <div className="space-y-1">
               <label className="text-xs text-muted">Physical Contract</label>
               <select
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
                 value={form.physicalContractId}
                 onChange={(e) => field("physicalContractId", e.target.value)}
                 required
@@ -216,7 +216,7 @@ export default function ReceiptsPage() {
             <div className="space-y-1">
               <label className="text-xs text-muted">Site</label>
               <select
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
                 value={form.siteCode}
                 onChange={(e) => field("siteCode", e.target.value)}
                 required
@@ -229,7 +229,7 @@ export default function ReceiptsPage() {
               <label className="text-xs text-muted">Receipt Date</label>
               <input
                 type="date"
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
                 value={form.receiptDate}
                 onChange={(e) => field("receiptDate", e.target.value)}
                 required
@@ -240,7 +240,7 @@ export default function ReceiptsPage() {
               <input
                 type="number"
                 step="0.001"
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="e.g. 25.450"
                 value={form.grossMt}
                 onChange={(e) => field("grossMt", e.target.value)}
@@ -254,7 +254,7 @@ export default function ReceiptsPage() {
                 step="0.1"
                 min="0"
                 max="30"
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="15.5"
                 value={form.moisturePct}
                 onChange={(e) => field("moisturePct", e.target.value)}
@@ -266,7 +266,7 @@ export default function ReceiptsPage() {
               <input
                 type="number"
                 step="0.01"
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="e.g. 244.87"
                 value={form.deliveredCostPerMt}
                 onChange={(e) => field("deliveredCostPerMt", e.target.value)}
@@ -276,7 +276,7 @@ export default function ReceiptsPage() {
               <label className="text-xs text-muted">Vehicle / Truck Ref</label>
               <input
                 type="text"
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="e.g. ON-123456"
                 value={form.vehicleRef}
                 onChange={(e) => field("vehicleRef", e.target.value)}
@@ -286,7 +286,7 @@ export default function ReceiptsPage() {
               <label className="text-xs text-muted">Notes</label>
               <input
                 type="text"
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="Optional"
                 value={form.notes}
                 onChange={(e) => field("notes", e.target.value)}
@@ -342,7 +342,7 @@ export default function ReceiptsPage() {
       <div className="flex items-center gap-3">
         <label className="text-xs text-muted">Site:</label>
         <select
-          className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+          className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
           value={siteFilter}
           onChange={(e) => setSiteFilter(e.target.value)}
         >

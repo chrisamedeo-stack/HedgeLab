@@ -33,7 +33,7 @@ export default function MarketDataPage() {
         <select
           value={selectedIndex}
           onChange={(e) => setSelectedIndex(Number(e.target.value))}
-          className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+          className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
         >
           {PRICE_INDICES.map((idx) => (
             <option key={idx.id} value={idx.id}>{idx.name}</option>

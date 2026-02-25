@@ -139,12 +139,12 @@ export default function BudgetPage() {
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
         <select value={filterSite} onChange={(e) => setFilterSite(e.target.value)}
-          className="bg-surface border border-b-default text-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+          className="bg-surface border border-b-default text-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
           <option value="">All</option>
           {countrySites.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
         </select>
         <select value={filterFY} onChange={(e) => setFilterFY(e.target.value)}
-          className="bg-surface border border-b-default text-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+          className="bg-surface border border-b-default text-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
           <option value="">All Fiscal Years</option>
           {availableFiscalYears(fyStartMonth).map((fy) => <option key={fy}>{fy}</option>)}
         </select>

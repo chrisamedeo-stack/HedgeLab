@@ -80,7 +80,7 @@ export default function ExportsPage() {
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
             />
           </div>
           <div>
@@ -89,7 +89,7 @@ export default function ExportsPage() {
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
             />
           </div>
           <div className="col-span-2 md:col-span-1">
@@ -99,7 +99,7 @@ export default function ExportsPage() {
               value={bookId}
               onChange={(e) => setBookId(e.target.value)}
               placeholder="Leave blank for all books"
-              className="w-full bg-input-bg border border-b-input text-primary placeholder:text-ph rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+              className="w-full bg-input-bg border border-b-input text-primary placeholder:text-ph rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
             />
           </div>
         </div>

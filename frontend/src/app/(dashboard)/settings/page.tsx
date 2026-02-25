@@ -270,7 +270,7 @@ function SitesTab() {
               <label className="text-xs text-muted">Code</label>
               <input
                 type="text" maxLength={10} required
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="e.g. GM1"
                 value={form.code}
                 onChange={(e) => field("code", e.target.value)}
@@ -280,7 +280,7 @@ function SitesTab() {
               <label className="text-xs text-muted">Name</label>
               <input
                 type="text" maxLength={100} required
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="e.g. Gimli"
                 value={form.name}
                 onChange={(e) => field("name", e.target.value)}
@@ -289,7 +289,7 @@ function SitesTab() {
             <div className="space-y-1">
               <label className="text-xs text-muted">Country</label>
               <select
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
                 value={form.country}
                 onChange={(e) => field("country", e.target.value)}
                 required
@@ -302,7 +302,7 @@ function SitesTab() {
               <label className="text-xs text-muted">Province / State</label>
               <input
                 type="text"
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="e.g. MB"
                 value={form.province}
                 onChange={(e) => field("province", e.target.value)}
@@ -505,31 +505,31 @@ function SuppliersTab() {
             <div className="space-y-1">
               <label className="text-xs text-muted">Code</label>
               <input type="text" maxLength={20} required
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="e.g. CARG" value={form.code} onChange={(e) => field("code", e.target.value)} />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted">Name</label>
               <input type="text" maxLength={200} required
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="e.g. Cargill" value={form.name} onChange={(e) => field("name", e.target.value)} />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted">Country</label>
               <input type="text"
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="e.g. Canada" value={form.country} onChange={(e) => field("country", e.target.value)} />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted">Email</label>
               <input type="email" maxLength={150}
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="contact@example.com" value={form.contactEmail} onChange={(e) => field("contactEmail", e.target.value)} />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted">Phone</label>
               <input type="tel" maxLength={30}
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="+1 204 555 0100" value={form.contactPhone} onChange={(e) => field("contactPhone", e.target.value)} />
             </div>
           </div>
@@ -713,25 +713,25 @@ function CommoditiesTab() {
             <div className="space-y-1">
               <label className="text-xs text-muted">Code</label>
               <input type="text" maxLength={30} required
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="e.g. CORN-ZC" value={form.code} onChange={(e) => field("code", e.target.value)} />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted">Name</label>
               <input type="text" maxLength={100} required
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="e.g. Corn (CBOT)" value={form.name} onChange={(e) => field("name", e.target.value)} />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted">Category</label>
-              <select className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+              <select className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
                 value={form.category} onChange={(e) => field("category", e.target.value)}>
                 {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted">Unit of Measure</label>
-              <select className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+              <select className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
                 value={form.unitOfMeasure} onChange={(e) => field("unitOfMeasure", e.target.value)}>
                 {UOMS.map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
@@ -739,20 +739,20 @@ function CommoditiesTab() {
             <div className="space-y-1">
               <label className="text-xs text-muted">Currency</label>
               <input type="text" maxLength={3} required
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="USD" value={form.currency} onChange={(e) => field("currency", e.target.value)} />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted">ICIS Code</label>
               <input type="text" maxLength={30}
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="Optional" value={form.icisCode} onChange={(e) => field("icisCode", e.target.value)} />
             </div>
             <div className="flex items-end pb-1">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={form.hedgeable}
                   onChange={(e) => field("hedgeable", e.target.checked)}
-                  className="h-4 w-4 rounded border-b-input bg-input-bg text-action focus:ring-action" />
+                  className="h-4 w-4 rounded border-b-input bg-input-bg text-action focus:ring-focus" />
                 <span className="text-sm text-secondary">Hedgeable</span>
               </label>
             </div>
@@ -760,7 +760,7 @@ function CommoditiesTab() {
           <div className="space-y-1">
             <label className="text-xs text-muted">Description</label>
             <input type="text" maxLength={500}
-              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
               placeholder="Optional description" value={form.description} onChange={(e) => field("description", e.target.value)} />
           </div>
           <div className="flex justify-end gap-2">
@@ -887,7 +887,7 @@ function FiscalYearTab() {
         <div className="space-y-1">
           <label className="text-xs text-muted">Start Month</label>
           <select
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
             value={effectiveMonth}
             onChange={(e) => setMonth(parseInt(e.target.value))}
           >

@@ -84,7 +84,7 @@ export default function TradesPage() {
         <select
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(0); }}
-          className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-action"
+          className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-focus"
         >
           {STATUS_OPTIONS.map((s) => (
             <option key={s} value={s}>{s || "All statuses"}</option>

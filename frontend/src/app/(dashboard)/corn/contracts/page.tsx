@@ -169,7 +169,7 @@ function ContractForm({ editing, onSaved, onCancel }: {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <FormField label="Site" error={errors.siteCode}>
           <select value={form.siteCode} onChange={(e) => f("siteCode", e.target.value)} required
-            className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.siteCode ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-action")}>
+            className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.siteCode ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-focus")}>
             <option value="">— Select —</option>
             {sites.map((s) => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}
           </select>
@@ -177,25 +177,25 @@ function ContractForm({ editing, onSaved, onCancel }: {
         <div className="space-y-1">
           <label className="text-xs text-muted">Supplier</label>
           <select value={form.supplierName} onChange={(e) => f("supplierName", e.target.value)}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
             <option value="">— Select —</option>
             {suppliers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
           </select>
         </div>
         <FormField label="Delivery Month" error={errors.deliveryMonth}>
           <input type="month" value={form.deliveryMonth} onChange={(e) => f("deliveryMonth", e.target.value)} required
-            className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.deliveryMonth ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-action")} />
+            className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.deliveryMonth ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-focus")} />
         </FormField>
 
         <FormField label="Volume (bushels)" error={errors.quantityBu}>
           <input type="number" step="1" min="0" placeholder="e.g. 50000" value={form.quantityBu}
             onChange={(e) => f("quantityBu", e.target.value)} required
-            className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 placeholder:text-ph", errors.quantityBu ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-action")} />
+            className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 placeholder:text-ph", errors.quantityBu ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-focus")} />
         </FormField>
         <div className="space-y-1">
           <label className="text-xs text-muted">Currency</label>
           <select value={form.currency} onChange={(e) => f("currency", e.target.value)}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
             <option>USD</option>
             <option>CAD</option>
           </select>
@@ -206,7 +206,7 @@ function ContractForm({ editing, onSaved, onCancel }: {
             <label className="text-xs text-muted">Basis ($/bu)</label>
             <input type="number" step="0.0025" placeholder="e.g. -0.25" value={form.basisPerBu}
               onChange={(e) => f("basisPerBu", e.target.value)}
-              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
           </div>
         )}
         {(form.tradeType === "BASIS" || form.tradeType === "ALL_IN") && (
@@ -214,7 +214,7 @@ function ContractForm({ editing, onSaved, onCancel }: {
             <label className="text-xs text-muted">Against Futures</label>
             <input type="text" placeholder="e.g. ZCN26" value={form.futuresRef}
               onChange={(e) => f("futuresRef", e.target.value)}
-              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
           </div>
         )}
         {form.tradeType === "ALL_IN" && (
@@ -222,25 +222,25 @@ function ContractForm({ editing, onSaved, onCancel }: {
             <label className="text-xs text-muted">Board Price ($/bu)</label>
             <input type="number" step="0.0025" placeholder="e.g. 4.55" value={form.boardPriceBu}
               onChange={(e) => f("boardPriceBu", e.target.value)}
-              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
           </div>
         )}
         <div className="space-y-1">
           <label className="text-xs text-muted">Freight ($/bu)</label>
           <input type="number" step="0.01" min="0" placeholder="Optional" value={form.freightPerMt}
             onChange={(e) => f("freightPerMt", e.target.value)}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
         </div>
 
         <div className="space-y-1">
           <label className="text-xs text-muted">Contract Date</label>
           <input type="date" value={form.contractDate} onChange={(e) => f("contractDate", e.target.value)}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action" />
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus" />
         </div>
         <div className="space-y-1 col-span-2">
           <label className="text-xs text-muted">Notes</label>
           <input type="text" placeholder="Optional" value={form.notes} onChange={(e) => f("notes", e.target.value)}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
         </div>
       </div>
 
@@ -306,17 +306,17 @@ function LockBasisPanel({ contract, onDone }: { contract: PhysicalContractRespon
           <label className="text-xs text-faint">Basis ($/bu)</label>
           <input type="number" step="0.0025" placeholder="-0.25" value={basis}
             onChange={(e) => setBasis(e.target.value)} required
-            className="w-28 bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+            className="w-28 bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
         </div>
         <div className="space-y-1">
           <label className="text-xs text-faint">Against Futures</label>
           <input type="text" placeholder="ZCN26" value={futures} onChange={(e) => setFutures(e.target.value)}
-            className="w-28 bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+            className="w-28 bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
         </div>
         <div className="space-y-1 flex-1 min-w-32">
           <label className="text-xs text-faint">Notes</label>
           <input type="text" placeholder="Optional" value={notes} onChange={(e) => setNotes(e.target.value)}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
         </div>
         <button type="submit" disabled={submitting}
           className="flex items-center gap-1.5 px-4 py-1.5 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
@@ -578,12 +578,12 @@ export default function ContractsPage() {
 
       <div className="flex gap-3 flex-wrap">
         <select value={filterSite} onChange={(e) => setFilterSite(e.target.value)}
-          className="bg-surface border border-b-default text-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+          className="bg-surface border border-b-default text-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
           <option value="">All Sites</option>
           {sites.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
         </select>
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-          className="bg-surface border border-b-default text-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+          className="bg-surface border border-b-default text-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
           <option value="">All Statuses</option>
           {Object.entries(CONTRACT_STATUS_LABELS).map(([k, v]) => (
             <option key={k} value={k}>{v}</option>

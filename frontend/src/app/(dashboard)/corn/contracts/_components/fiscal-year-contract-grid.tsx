@@ -138,7 +138,7 @@ export function FiscalYearContractGrid({ onSaved, onCancel, fyStartMonth = 7 }: 
         <div className="space-y-1">
           <label className="text-xs text-muted">Site</label>
           <select value={config.siteCode} onChange={(e) => setConfig((c) => ({ ...c, siteCode: e.target.value }))} required
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
             <option value="">&mdash; Select &mdash;</option>
             {sites.map((s) => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}
           </select>
@@ -146,7 +146,7 @@ export function FiscalYearContractGrid({ onSaved, onCancel, fyStartMonth = 7 }: 
         <div className="space-y-1">
           <label className="text-xs text-muted">Supplier</label>
           <select value={config.supplierName} onChange={(e) => setConfig((c) => ({ ...c, supplierName: e.target.value }))}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
             <option value="">&mdash; Select &mdash;</option>
             {suppliers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
           </select>
@@ -167,7 +167,7 @@ export function FiscalYearContractGrid({ onSaved, onCancel, fyStartMonth = 7 }: 
         <div className="space-y-1">
           <label className="text-xs text-muted">Currency</label>
           <select value={config.currency} onChange={(e) => setConfig((c) => ({ ...c, currency: e.target.value }))}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
             <option>USD</option>
             <option>CAD</option>
           </select>
@@ -175,7 +175,7 @@ export function FiscalYearContractGrid({ onSaved, onCancel, fyStartMonth = 7 }: 
         <div className="space-y-1">
           <label className="text-xs text-muted">Fiscal Year</label>
           <select value={config.fiscalYear} onChange={(e) => handleFYChange(e.target.value)}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
             {availableFiscalYears(fyStartMonth).map((fy) => <option key={fy}>{fy}</option>)}
           </select>
         </div>
@@ -188,28 +188,28 @@ export function FiscalYearContractGrid({ onSaved, onCancel, fyStartMonth = 7 }: 
             <label className="text-xs text-muted">Basis ($/bu)</label>
             <input type="number" step="0.0025" placeholder="e.g. -0.25" value={pricing.basisBu}
               onChange={(e) => setPricing((p) => ({ ...p, basisBu: e.target.value }))}
-              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
           </div>
         )}
         <div className="space-y-1">
           <label className="text-xs text-muted">Freight ($/MT)</label>
           <input type="number" step="0.01" min="0" placeholder="Optional" value={pricing.freightPerMt}
             onChange={(e) => setPricing((p) => ({ ...p, freightPerMt: e.target.value }))}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
         </div>
         {showBoard && (
           <div className="space-y-1">
             <label className="text-xs text-muted">Board Price ($/bu)</label>
             <input type="number" step="0.0025" placeholder="e.g. 4.55" value={pricing.boardPriceBu}
               onChange={(e) => setPricing((p) => ({ ...p, boardPriceBu: e.target.value }))}
-              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
           </div>
         )}
         <div className="space-y-1">
           <label className="text-xs text-muted">Contract Date</label>
           <input type="date" value={pricing.contractDate}
             onChange={(e) => setPricing((p) => ({ ...p, contractDate: e.target.value }))}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action" />
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus" />
         </div>
       </div>
 
@@ -218,7 +218,7 @@ export function FiscalYearContractGrid({ onSaved, onCancel, fyStartMonth = 7 }: 
         <div className="flex items-center gap-2">
           <label className="text-xs text-muted whitespace-nowrap">Default volume:</label>
           <input type="number" placeholder="bushels" step="1" min="0" value={defaultVolume}
-            className="w-32 bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+            className="w-32 bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
             onChange={(e) => applyAll(e.target.value)} />
           <span className="text-xs text-ph">bu/month</span>
         </div>

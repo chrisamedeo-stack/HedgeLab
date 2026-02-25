@@ -89,7 +89,7 @@ export function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSave
         <div className="space-y-1">
           <label className="text-xs text-muted">Site</label>
           <select value={config.siteCode} onChange={(e) => setConfig((c) => ({ ...c, siteCode: e.target.value }))} required
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
             <option value="">&mdash; Select &mdash;</option>
             {sites.map((s) => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}
           </select>
@@ -97,14 +97,14 @@ export function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSave
         <div className="space-y-1">
           <label className="text-xs text-muted">Commodity</label>
           <select value={config.commodityCode} onChange={(e) => setConfig((c) => ({ ...c, commodityCode: e.target.value }))}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
             {COMMODITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         <div className="space-y-1">
           <label className="text-xs text-muted">Fiscal Year</label>
           <select value={config.fiscalYear} onChange={(e) => handleFYChange(e.target.value)}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
             {availableFiscalYears(fyStartMonth).map((fy) => <option key={fy}>{fy}</option>)}
           </select>
         </div>
@@ -120,7 +120,7 @@ export function FiscalYearGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSave
         <div className="flex items-center gap-2">
           <label className="text-xs text-muted whitespace-nowrap">Default volume:</label>
           <input type="number" placeholder="bushels" step="1" min="0"
-            className="w-32 bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+            className="w-32 bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
             onChange={(e) => applyAll(e.target.value)} />
           <span className="text-xs text-ph">bu/month</span>
         </div>

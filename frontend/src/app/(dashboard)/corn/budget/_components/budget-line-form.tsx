@@ -78,7 +78,7 @@ export function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editi
         <div className="space-y-1">
           <label className="text-xs text-muted">Site</label>
           <select value={form.siteCode} onChange={(e) => field("siteCode", e.target.value)} required
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
             <option value="">&mdash; Select &mdash;</option>
             {sites.map((s) => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}
           </select>
@@ -86,25 +86,25 @@ export function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editi
         <div className="space-y-1">
           <label className="text-xs text-muted">Commodity</label>
           <select value={form.commodityCode} onChange={(e) => field("commodityCode", e.target.value)}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action">
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus">
             {COMMODITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         <div className="space-y-1">
           <label className="text-xs text-muted">Budget Month</label>
           <input type="month" value={form.budgetMonth} onChange={(e) => field("budgetMonth", e.target.value)} required
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action" />
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus" />
         </div>
         <div className="space-y-1">
           <label className="text-xs text-muted">Futures Month</label>
           <input type="text" placeholder="e.g. ZCN26" value={form.futuresMonth} onChange={(e) => field("futuresMonth", e.target.value)}
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
         </div>
         <div className="space-y-1">
           <label className="text-xs text-muted">Volume (bushels)</label>
           <input type="number" step="1" min="0" placeholder="e.g. 196,842"
             value={form.budgetVolumeBu} onChange={(e) => field("budgetVolumeBu", e.target.value)} required
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
         </div>
       </div>
       {form.budgetMonth && (
@@ -120,7 +120,7 @@ export function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editi
       <div className="space-y-1">
         <label className="text-xs text-muted">Notes</label>
         <input type="text" placeholder="Optional" value={form.notes} onChange={(e) => field("notes", e.target.value)}
-          className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph" />
+          className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
       </div>
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancel} className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">Cancel</button>

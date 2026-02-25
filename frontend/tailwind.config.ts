@@ -86,6 +86,9 @@ const config: Config = {
         "neutral-15":  "var(--color-neutral-15)",
         "neutral-20":  "var(--color-neutral-20)",
 
+        /* Focus */
+        focus: "var(--color-focus)",
+
         /* Chart */
         "chart-1": "var(--chart-1)",
         "chart-2": "var(--chart-2)",

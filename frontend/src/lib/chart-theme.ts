@@ -11,7 +11,7 @@ export const chartTheme = {
   warning: "#E3B341",
   orange: "#FFA657",
   unhedged: "#30363D",
-  committed: "#58A6FF",
+  committed: "#388BFD",
   hedged: "#3FB68B",
   budget: "#E3B341",
 } as const;

@@ -28,7 +28,7 @@ export function ForecastHistoryTimeline({ budgetLineId }: { budgetLineId: number
           </thead>
           <tbody className="divide-y divide-b-default/50">
             {visible.map((h) => (
-              <tr key={h.id}>
+              <tr key={h.id} className="hover:bg-row-hover transition-colors">
                 <td className="px-3 py-1.5 text-muted whitespace-nowrap">{fmtDate(h.recordedAt)}</td>
                 <td className="px-3 py-1.5 text-faint">{h.recordedBy ?? "\u2014"}</td>
                 <td className="px-3 py-1.5 text-right tabular-nums text-secondary">{fmtVol(h.forecastBu)}</td>

@@ -6,7 +6,7 @@ interface SkeletonProps {
 
 export function Skeleton({ className }: SkeletonProps) {
   return (
-    <div className={cn("bg-gradient-to-r from-input-bg via-hover to-input-bg bg-[length:200%_100%] animate-shimmer rounded", className)} />
+    <div className={cn("bg-gradient-to-r from-input-bg via-b-input to-input-bg bg-[length:200%_100%] animate-shimmer rounded", className)} />
   );
 }
 

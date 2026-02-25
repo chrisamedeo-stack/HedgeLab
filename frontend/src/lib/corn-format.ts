@@ -50,7 +50,7 @@ export function pnlColor(n: number | null | undefined): string {
 // ─── Shared CSS constants ────────────────────────────────────────────────────
 
 export const inputCls =
-  "bg-surface border border-b-input rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-action";
+  "bg-surface border border-b-input rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-focus";
 
 export const btnPrimary =
   "px-4 py-1.5 bg-action hover:bg-action-hover text-white text-sm rounded-lg font-medium disabled:opacity-50";

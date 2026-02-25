@@ -68,7 +68,7 @@ export function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onCh
                     </td>
                     <td className="px-3 py-1.5">
                       <select value={r.unit} onChange={(e) => updateRow(r.key, "unit", e.target.value)}
-                        className="bg-input-bg border border-b-input text-secondary text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-action w-full">
+                        className="bg-input-bg border border-b-input text-secondary text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-focus w-full">
                         {UNIT_OPTIONS.map((u) => <option key={u}>{u}</option>)}
                         {!UNIT_OPTIONS.includes(r.unit) && <option value={r.unit}>{r.unit}</option>}
                       </select>

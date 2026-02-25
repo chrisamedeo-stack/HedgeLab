@@ -167,7 +167,7 @@ export default function EFPPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <FormField label="Hedge Trade" error={errors.hedgeTradeId}>
               <select
-                className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.hedgeTradeId ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-action")}
+                className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.hedgeTradeId ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-focus")}
                 value={form.hedgeTradeId}
                 onChange={(e) => field("hedgeTradeId", e.target.value)}
                 required
@@ -183,7 +183,7 @@ export default function EFPPage() {
 
             <FormField label="Physical Contract" error={errors.physicalContractId}>
               <select
-                className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.physicalContractId ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-action")}
+                className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1", errors.physicalContractId ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-focus")}
                 value={form.physicalContractId}
                 onChange={(e) => field("physicalContractId", e.target.value)}
                 required
@@ -202,7 +202,7 @@ export default function EFPPage() {
                 type="number"
                 min="1"
                 max={openLotsOnHedge || undefined}
-                className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 placeholder:text-ph", errors.lots ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-action")}
+                className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 placeholder:text-ph", errors.lots ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-focus")}
                 placeholder="e.g. 20"
                 value={form.lots}
                 onChange={(e) => field("lots", e.target.value)}
@@ -214,7 +214,7 @@ export default function EFPPage() {
               <input
                 type="number"
                 step="0.0025"
-                className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 placeholder:text-ph", errors.boardPrice ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-action")}
+                className={cn("w-full bg-input-bg border text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 placeholder:text-ph", errors.boardPrice ? "border-destructive focus:ring-destructive" : "border-b-input focus:ring-focus")}
                 placeholder="e.g. 4.41"
                 value={form.boardPrice}
                 onChange={(e) => field("boardPrice", e.target.value)}
@@ -227,7 +227,7 @@ export default function EFPPage() {
               <input
                 type="number"
                 step="0.0025"
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="Leave blank to use contract basis"
                 value={form.basisValue}
                 onChange={(e) => field("basisValue", e.target.value)}
@@ -238,7 +238,7 @@ export default function EFPPage() {
               <label className="text-xs text-muted">EFP Date</label>
               <input
                 type="date"
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
                 value={form.efpDate}
                 onChange={(e) => field("efpDate", e.target.value)}
                 required
@@ -249,7 +249,7 @@ export default function EFPPage() {
               <label className="text-xs text-muted">Confirmation Ref</label>
               <input
                 type="text"
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="e.g. SX-EFP-2025-001"
                 value={form.confirmationRef}
                 onChange={(e) => field("confirmationRef", e.target.value)}
@@ -260,7 +260,7 @@ export default function EFPPage() {
               <label className="text-xs text-muted">Notes</label>
               <input
                 type="text"
-                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
                 placeholder="Optional"
                 value={form.notes}
                 onChange={(e) => field("notes", e.target.value)}

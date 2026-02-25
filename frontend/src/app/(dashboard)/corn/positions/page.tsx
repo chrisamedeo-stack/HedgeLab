@@ -320,7 +320,7 @@ function BookHedgeForm({
           <div className="space-y-1">
             <label className="text-xs text-muted">Broker Account</label>
             <input type="text"
-              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
               value={shared.brokerAccount}
               onChange={(e) => setShared((s) => ({ ...s, brokerAccount: e.target.value }))}
             />
@@ -328,7 +328,7 @@ function BookHedgeForm({
           <div className="space-y-1">
             <label className="text-xs text-muted">Trade Date</label>
             <input type="date"
-              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
               value={shared.tradeDate}
               onChange={(e) => setShared((s) => ({ ...s, tradeDate: e.target.value }))}
               required
@@ -491,7 +491,7 @@ function BookHedgeForm({
         <div className="space-y-1">
           <label className="text-xs text-muted">Futures Month</label>
           <select
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
             value={editForm.futuresMonth}
             onChange={(e) => setEditForm((f) => ({ ...f, futuresMonth: e.target.value }))}
             required
@@ -503,7 +503,7 @@ function BookHedgeForm({
           <label className="text-xs text-muted">Lots (5,000 bu each)</label>
           <input
             type="number" min="1"
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
             placeholder="e.g. 40"
             value={editForm.lots}
             onChange={(e) => setEditForm((f) => ({ ...f, lots: e.target.value }))}
@@ -514,7 +514,7 @@ function BookHedgeForm({
           <label className="text-xs text-muted">Price ($/bu)</label>
           <input
             type="number" step="0.0025"
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
             placeholder="e.g. 4.39"
             value={editForm.pricePerBushel}
             onChange={(e) => setEditForm((f) => ({ ...f, pricePerBushel: e.target.value }))}
@@ -525,7 +525,7 @@ function BookHedgeForm({
           <label className="text-xs text-muted">Broker Account</label>
           <input
             type="text"
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
             value={editForm.brokerAccount}
             onChange={(e) => setEditForm((f) => ({ ...f, brokerAccount: e.target.value }))}
           />
@@ -534,7 +534,7 @@ function BookHedgeForm({
           <label className="text-xs text-muted">Trade Date</label>
           <input
             type="date"
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action"
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
             value={editForm.tradeDate}
             onChange={(e) => setEditForm((f) => ({ ...f, tradeDate: e.target.value }))}
             required
@@ -544,7 +544,7 @@ function BookHedgeForm({
           <label className="text-xs text-muted">Notes</label>
           <input
             type="text"
-            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-action placeholder:text-ph"
+            className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
             placeholder="Optional"
             value={editForm.notes}
             onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}

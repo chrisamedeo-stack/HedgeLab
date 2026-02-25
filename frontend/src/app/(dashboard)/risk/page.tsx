@@ -112,7 +112,7 @@ export default function RiskPage() {
                 type="number"
                 value={priceIndexId}
                 onChange={(e) => setPriceIndexId(e.target.value)}
-                className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm w-32 focus:outline-none focus:ring-1 focus:ring-action"
+                className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm w-32 focus:outline-none focus:ring-1 focus:ring-focus"
               />
             </div>
             <div>
@@ -121,7 +121,7 @@ export default function RiskPage() {
                 type="number"
                 value={positionSize}
                 onChange={(e) => setPositionSize(e.target.value)}
-                className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm w-40 focus:outline-none focus:ring-1 focus:ring-action"
+                className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm w-40 focus:outline-none focus:ring-1 focus:ring-focus"
               />
             </div>
             <button
