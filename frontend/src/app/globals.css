@@ -23,8 +23,8 @@
   --text-placeholder: #484F58;
 
   /* Semantic colors */
-  --color-primary:          #58A6FF;
-  --color-primary-hover:    #79B8FF;
+  --color-primary:          #185ABF;
+  --color-primary-hover:    #2870D6;
   --color-profit:           #3FB68B;
   --color-profit-hover:     #56D1A0;
   --color-loss:             #E2725B;
@@ -36,9 +36,9 @@
   --color-neutral:          #778DA9;
 
   /* Opacity variants */
-  --color-primary-5:  #58A6FF0D;  --color-primary-10: #58A6FF1A;
-  --color-primary-15: #58A6FF26;  --color-primary-20: #58A6FF33;
-  --color-primary-30: #58A6FF4D;
+  --color-primary-5:  #185ABF0D;  --color-primary-10: #185ABF1A;
+  --color-primary-15: #185ABF26;  --color-primary-20: #185ABF33;
+  --color-primary-30: #185ABF4D;
 
   --color-profit-5:  #3FB68B0D;   --color-profit-10: #3FB68B1A;
   --color-profit-15: #3FB68B26;   --color-profit-20: #3FB68B33;
