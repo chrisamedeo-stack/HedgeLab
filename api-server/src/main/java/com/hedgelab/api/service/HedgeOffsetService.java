@@ -56,10 +56,11 @@ public class HedgeOffsetService {
                 .notes(req.getNotes())
                 .build();
 
-        hedge.setOpenLots(hedge.getOpenLots() - req.getLots());
-        if (hedge.getOpenLots() <= 0) {
-            hedge.setStatus(HedgeTradeStatus.CLOSED);
-        }
+        int newOpenLots = hedge.getOpenLots() - req.getLots();
+        hedge.setOpenLots(newOpenLots);
+        // DB sum doesn't include the in-flight offset yet, so add it
+        int offsetLots = offsetRepo.sumOffsetLotsByTradeId(hedge.getId()) + req.getLots();
+        hedge.setStatus(HedgeService.computeStatus(hedge.getLots(), newOpenLots, offsetLots));
         hedgeRepo.save(hedge);
 
         return toResponse(offsetRepo.save(offset));
@@ -103,10 +104,10 @@ public class HedgeOffsetService {
             allocationRepo.save(allocation);
         }
 
-        hedge.setOpenLots(hedge.getOpenLots() - req.getLots());
-        if (hedge.getOpenLots() <= 0) {
-            hedge.setStatus(HedgeTradeStatus.CLOSED);
-        }
+        int newOpenLots = hedge.getOpenLots() - req.getLots();
+        hedge.setOpenLots(newOpenLots);
+        int offsetLots = offsetRepo.sumOffsetLotsByTradeId(hedge.getId()) + req.getLots();
+        hedge.setStatus(HedgeService.computeStatus(hedge.getLots(), newOpenLots, offsetLots));
         hedgeRepo.save(hedge);
 
         return toResponse(offsetRepo.save(offset));

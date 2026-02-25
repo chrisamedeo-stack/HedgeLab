@@ -22,6 +22,7 @@ public class EFPService {
     private final EFPTicketRepository efpRepository;
     private final HedgeTradeRepository hedgeRepository;
     private final PhysicalContractRepository contractRepository;
+    private final HedgeOffsetRepository offsetRepository;
 
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<EFPTicketResponse> getAllEFPs() {
@@ -45,10 +46,11 @@ public class EFPService {
                 .confirmationRef(req.getConfirmationRef())
                 .status(EFPTicketStatus.CONFIRMED).notes(req.getNotes())
                 .entryPrice(hedge.getPricePerBushel()).build();
-        // Update hedge open lots
+        // Update hedge open lots and status
         int newOpenLots = Math.max(0, hedge.getOpenLots() - req.getLots());
         hedge.setOpenLots(newOpenLots);
-        hedge.setStatus(newOpenLots == 0 ? HedgeTradeStatus.FULLY_ALLOCATED : HedgeTradeStatus.PARTIALLY_ALLOCATED);
+        int offsetLots = offsetRepository.sumOffsetLotsByTradeId(hedge.getId());
+        hedge.setStatus(HedgeService.computeStatus(hedge.getLots(), newOpenLots, offsetLots));
         hedgeRepository.save(hedge);
         // Update contract board price and status
         contract.setBoardPriceCentsBu(req.getBoardPrice());
@@ -61,14 +63,12 @@ public class EFPService {
     public void delete(Long id) {
         var efp = efpRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "EFP ticket not found"));
-        // Restore hedge trade open lots
+        // Restore hedge trade open lots and recompute status
         var hedge = efp.getHedgeTrade();
-        hedge.setOpenLots(hedge.getOpenLots() + efp.getLots());
-        if (hedge.getOpenLots() > 0 && hedge.getOpenLots() < hedge.getLots()) {
-            hedge.setStatus(HedgeTradeStatus.PARTIALLY_ALLOCATED);
-        } else if (hedge.getOpenLots() >= hedge.getLots()) {
-            hedge.setStatus(HedgeTradeStatus.OPEN);
-        }
+        int newOpenLots = hedge.getOpenLots() + efp.getLots();
+        hedge.setOpenLots(newOpenLots);
+        int offsetLots = offsetRepository.sumOffsetLotsByTradeId(hedge.getId());
+        hedge.setStatus(HedgeService.computeStatus(hedge.getLots(), newOpenLots, offsetLots));
         hedgeRepository.save(hedge);
         efpRepository.delete(efp);
     }

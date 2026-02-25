@@ -10,6 +10,7 @@ import java.util.List;
 public interface HedgeTradeRepository extends JpaRepository<HedgeTrade, Long> {
     List<HedgeTrade> findByStatusOrderByTradeDateDesc(HedgeTradeStatus status);
     List<HedgeTrade> findAllByOrderByTradeDateDesc();
+    List<HedgeTrade> findByBookOrderByTradeDateDesc(String book);
     List<HedgeTrade> findByFuturesMonth(String futuresMonth);
     List<HedgeTrade> findByStatusInOrderByTradeDateDesc(Collection<HedgeTradeStatus> statuses);
     List<HedgeTrade> findByStatusInAndBookOrderByTradeDateDesc(Collection<HedgeTradeStatus> statuses, String book);

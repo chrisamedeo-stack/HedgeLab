@@ -18,6 +18,10 @@ public interface HedgeAllocationRepository extends JpaRepository<HedgeAllocation
     @Query("SELECT COALESCE(SUM(a.allocatedLots), 0) FROM HedgeAllocation a WHERE a.hedgeTrade.id = :tradeId")
     int sumAllocatedLotsByTradeId(@Param("tradeId") Long tradeId);
 
+    @Query("SELECT a.hedgeTrade.id, COALESCE(SUM(a.allocatedLots), 0) " +
+           "FROM HedgeAllocation a WHERE a.hedgeTrade.id IN :tradeIds GROUP BY a.hedgeTrade.id")
+    List<Object[]> sumAllocatedLotsByTradeIds(@Param("tradeIds") List<Long> tradeIds);
+
     // Month-only allocations for a trade (site IS NULL)
     List<HedgeAllocation> findByHedgeTrade_IdAndSiteIsNullOrderByBudgetMonthAsc(Long hedgeTradeId);
 
