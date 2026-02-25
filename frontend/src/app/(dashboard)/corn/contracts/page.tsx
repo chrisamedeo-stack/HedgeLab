@@ -40,7 +40,7 @@ function monthLabel(ym: string | null) {
 const CONTRACT_STATUS_LABELS: Record<string, string> = {
   OPEN: "Open",
   BASIS_LOCKED: "Basis Locked",
-  EFP_EXECUTED: "EFP'd",
+  EFP_EXECUTED: "EFP",
   PO_ISSUED: "PO Issued",
   CLOSED: "Closed",
   CANCELLED: "Cancelled",

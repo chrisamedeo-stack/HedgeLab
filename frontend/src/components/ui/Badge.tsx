@@ -99,7 +99,7 @@ const contractStatusColors: Record<string, BadgeColor> = {
 const contractStatusLabels: Record<string, string> = {
   OPEN: "Open",
   BASIS_LOCKED: "Basis Locked",
-  EFP_EXECUTED: "EFP'd",
+  EFP_EXECUTED: "EFP",
   PO_ISSUED: "PO Issued",
   CLOSED: "Closed",
   CANCELLED: "Cancelled",

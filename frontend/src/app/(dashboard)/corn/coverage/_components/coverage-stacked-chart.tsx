@@ -85,7 +85,7 @@ export function CoverageStackedChart({ coverage }: Props) {
             <Legend wrapperStyle={{ fontSize: 11, color: chartTheme.tick }} />
             <Bar dataKey="hedged" name="Hedged" stackId="cov" fill={chartTheme.hedged} radius={[0, 0, 0, 0]} />
             <Bar dataKey="committed" name="Committed" stackId="cov" fill={chartTheme.committed} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="efpd" name="EFP'd" stackId="cov" fill={chartTheme.accent} radius={[2, 2, 0, 0]} />
+            <Bar dataKey="efpd" name="EFP" stackId="cov" fill={chartTheme.accent} radius={[2, 2, 0, 0]} />
             <Line dataKey="budget" name="Budget Target" type="stepAfter" stroke={chartTheme.budget} strokeWidth={2} strokeDasharray="6 3" dot={false} />
           </ComposedChart>
         </ResponsiveContainer>

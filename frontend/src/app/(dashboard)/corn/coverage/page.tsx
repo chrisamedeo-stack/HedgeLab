@@ -171,7 +171,7 @@ export default function CoveragePage() {
                     { label: "Budgeted",  value: `${fmtBu(site.budgetedMt  ?? 0)} bu` },
                     { label: "Committed", value: `${fmtBu(site.committedMt ?? 0)} bu` },
                     { label: "Hedged",    value: `${fmtBu(site.hedgedMt    ?? 0)} bu` },
-                    { label: "EFP'd",     value: `${fmtBu(site.efpdMt      ?? 0)} bu` },
+                    { label: "EFP",     value: `${fmtBu(site.efpdMt      ?? 0)} bu` },
                     { label: "Received",  value: `${fmtBu(site.receivedMt  ?? 0)} bu` },
                     { label: "Open Lots", value: formatNumber(Math.round(site.openHedgeLots  ?? 0)) },
                   ].map(({ label, value }) => (
@@ -193,7 +193,7 @@ export default function CoveragePage() {
                         <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Budget</th>
                         <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Committed</th>
                         <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Hedged</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">EFP'd</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">EFP</th>
                         <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Received</th>
                         <th className="px-6 py-2 text-left text-xs font-medium text-faint uppercase tracking-wider w-48">Hedge Coverage</th>
                       </tr>

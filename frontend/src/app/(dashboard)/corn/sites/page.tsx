@@ -651,7 +651,7 @@ function PhysicalPositionsTable({
   allocations: SiteAllocationItem[];
   settles: Record<string, number>;
 }) {
-  // VWAP board price from open hedge allocations for non-EFP'd contracts
+  // VWAP board price from open hedge allocations for non-EFP contracts
   const vwapBySite = useMemo(() => {
     const map: Record<string, number> = {};
     const grouped: Record<string, { sumPriceVol: number; sumVol: number }> = {};
