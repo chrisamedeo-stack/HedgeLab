@@ -44,6 +44,7 @@ import {
   inputCls,
   btnPrimary,
   btnSecondary,
+  pnlColor,
 } from "@/lib/corn-format";
 import { TradeTypeBadge, ContractStatusBadge, SideBadge } from "@/components/ui/Badge";
 import { FormField } from "@/components/ui/FormField";
@@ -53,6 +54,8 @@ import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
+
+const zcBadgeCls = "bg-zinc-800 text-zinc-300 ring-1 ring-zinc-700 px-2 py-0.5 rounded text-xs font-mono font-semibold";
 
 // ─── Offset Form ─────────────────────────────────────────────────────────────
 
@@ -111,29 +114,29 @@ function OffsetForm({
   }
 
   return (
-    <div className="bg-slate-800/70 border border-amber-500/30 rounded-xl p-4 mt-2">
+    <div className="bg-zinc-800/70 border border-zinc-700 rounded-lg p-4 mt-2">
       <div className="flex items-center gap-2 mb-3">
-        <ArrowRightLeft className="h-4 w-4 text-amber-400" />
-        <span className="text-sm font-semibold text-amber-300">Offset Futures</span>
-        <span className="ml-auto text-xs text-slate-500">{fmtBu(availableBu)} bu available</span>
+        <ArrowRightLeft className="h-4 w-4 text-zinc-400" />
+        <span className="text-sm font-semibold text-zinc-300">Offset Futures</span>
+        <span className="ml-auto text-xs text-zinc-500">{fmtBu(availableBu)} bu available</span>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Bushels</label>
+          <label className="text-xs text-zinc-500">Bushels</label>
           <input type="number" step={5000} min={5000} value={bushels} onChange={(e) => setBushels(e.target.value)}
             placeholder="e.g. 10000" className={inputCls} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Exit Price ($/bu)</label>
+          <label className="text-xs text-zinc-500">Exit Price ($/bu)</label>
           <input type="number" step="0.0025" value={exitPrice} onChange={(e) => setExitPrice(e.target.value)}
             placeholder="e.g. 4.55" className={inputCls} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Offset Date</label>
+          <label className="text-xs text-zinc-500">Offset Date</label>
           <input type="date" value={offsetDate} onChange={(e) => setOffsetDate(e.target.value)} className={inputCls} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Notes</label>
+          <label className="text-xs text-zinc-500">Notes</label>
           <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional\u2026" className={inputCls} />
         </div>
       </div>
@@ -216,18 +219,18 @@ function NewPurchaseForm({
   }
 
   return (
-    <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 mb-4">
+    <div className="bg-zinc-800/60 border border-zinc-700 rounded-lg p-4 mb-4">
       <div className="flex items-center gap-2 mb-3">
         <Plus className="h-4 w-4 text-blue-400" />
-        <span className="text-sm font-semibold text-slate-200">New Physical Purchase</span>
+        <span className="text-sm font-semibold text-zinc-200">New Physical Purchase</span>
       </div>
 
       {/* Trade type toggle */}
-      <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg w-fit mb-4">
+      <div className="flex gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg w-fit mb-4">
         {(["BASIS", "ALL_IN", "INDEX"] as const).map((t) => (
           <button key={t} onClick={() => setTradeType(t)}
             className={cn("px-4 py-1.5 rounded-md text-xs font-medium transition-colors",
-              tradeType === t ? (t === "BASIS" ? "bg-blue-600 text-white" : t === "ALL_IN" ? "bg-emerald-600 text-white" : "bg-amber-600 text-white") : "text-slate-400 hover:text-slate-200")}>
+              tradeType === t ? (t === "BASIS" ? "bg-blue-600 text-white" : t === "ALL_IN" ? "bg-emerald-600 text-white" : "bg-amber-600 text-white") : "text-zinc-400 hover:text-zinc-200")}>
             {t === "ALL_IN" ? "ALL-IN" : t}
           </button>
         ))}
@@ -240,7 +243,7 @@ function NewPurchaseForm({
           </select>
         </FormField>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Supplier</label>
+          <label className="text-xs text-zinc-500">Supplier</label>
           <select value={supplier} onChange={(e) => setSupplier(e.target.value)} className={inputCls}>
             <option value="">Select&hellip;</option>
             {(suppliers ?? []).map((s: { name: string }) => <option key={s.name} value={s.name}>{s.name}</option>)}
@@ -255,43 +258,43 @@ function NewPurchaseForm({
         </FormField>
         {(tradeType === "BASIS" || tradeType === "ALL_IN") && (
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-slate-500">Basis (&cent;/bu)</label>
+            <label className="text-xs text-zinc-500">Basis (&cent;/bu)</label>
             <input type="number" step="1" value={basisCentsBu} onChange={(e) => setBasisCentsBu(e.target.value)}
               placeholder="e.g. -20" className={inputCls} />
           </div>
         )}
         {(tradeType === "BASIS" || tradeType === "ALL_IN") && (
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-slate-500">Futures Ref</label>
+            <label className="text-xs text-zinc-500">Futures Ref</label>
             <input type="text" value={futuresRef} onChange={(e) => setFuturesRef(e.target.value)}
               placeholder="e.g. ZCN26" className={inputCls} />
           </div>
         )}
         {tradeType === "ALL_IN" && (
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-slate-500">Board Price ($/bu)</label>
+            <label className="text-xs text-zinc-500">Board Price ($/bu)</label>
             <input type="number" step="0.0025" value={boardPriceBu} onChange={(e) => setBoardPriceBu(e.target.value)}
               placeholder="e.g. 4.55" className={inputCls} />
           </div>
         )}
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Freight ($/bu)</label>
+          <label className="text-xs text-zinc-500">Freight ($/bu)</label>
           <input type="number" step="0.01" value={freightPerMt} onChange={(e) => setFreightPerMt(e.target.value)}
             placeholder="e.g. 0.32" className={inputCls} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Currency</label>
+          <label className="text-xs text-zinc-500">Currency</label>
           <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={inputCls}>
             <option value="USD">USD</option>
             <option value="CAD">CAD</option>
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Contract Date</label>
+          <label className="text-xs text-zinc-500">Contract Date</label>
           <input type="date" value={contractDate} onChange={(e) => setContractDate(e.target.value)} className={inputCls} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Notes</label>
+          <label className="text-xs text-zinc-500">Notes</label>
           <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional&hellip;" className={inputCls} />
         </div>
       </div>
@@ -374,22 +377,22 @@ function EFPForm({
   }
 
   return (
-    <div className="bg-slate-800/70 border border-blue-500/30 rounded-xl p-4 mt-2">
+    <div className="bg-zinc-800/70 border border-zinc-700 rounded-lg p-4 mt-2">
       <div className="flex items-center gap-2 mb-3">
-        <Zap className="h-4 w-4 text-blue-400" />
-        <span className="text-sm font-semibold text-blue-300">
+        <Zap className="h-4 w-4 text-zinc-400" />
+        <span className="text-sm font-semibold text-zinc-300">
           Execute EFP &middot; {allocation.tradeRef} &gt; {allocation.siteCode}
         </span>
-        <span className="ml-auto text-xs text-slate-500">{allocation.openAllocatedLots} lots available</span>
+        <span className="ml-auto text-xs text-zinc-500">{allocation.openAllocatedLots} lots available</span>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Lots (max {allocation.openAllocatedLots})</label>
+          <label className="text-xs text-zinc-500">Lots (max {allocation.openAllocatedLots})</label>
           <input type="number" min={1} max={allocation.openAllocatedLots} value={lots}
             onChange={(e) => setLots(e.target.value)} className={inputCls} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Physical Contract</label>
+          <label className="text-xs text-zinc-500">Physical Contract</label>
           <select value={contractId} onChange={(e) => setContractId(e.target.value)} className={inputCls}>
             <option value="">Select contract&hellip;</option>
             {eligible.map((p) => (
@@ -401,19 +404,19 @@ function EFPForm({
           {eligible.length === 0 && <span className="text-xs text-amber-400">No open contracts at {allocation.siteCode}</span>}
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Board Price ($/bu)</label>
+          <label className="text-xs text-zinc-500">Board Price ($/bu)</label>
           <input type="number" step="0.0025" value={boardPrice} onChange={(e) => setBoardPrice(e.target.value)} className={inputCls} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">EFP Date</label>
+          <label className="text-xs text-zinc-500">EFP Date</label>
           <input type="date" value={efpDate} onChange={(e) => setEfpDate(e.target.value)} className={inputCls} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Confirm Ref</label>
+          <label className="text-xs text-zinc-500">Confirm Ref</label>
           <input type="text" value={confirmRef} onChange={(e) => setConfirmRef(e.target.value)} placeholder="Broker ref&hellip;" className={inputCls} />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-slate-500">Notes</label>
+          <label className="text-xs text-zinc-500">Notes</label>
           <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional&hellip;" className={inputCls} />
         </div>
       </div>
@@ -471,71 +474,54 @@ function SiteAllocationsTable({
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-slate-800/50">
+          <tr className="bg-zinc-800/50">
             <SortableHeader label="Trade" sortKey="tradeRef" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
             <SortableHeader label="Dir" sortKey="side" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
-            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Date</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">Date</th>
             <SortableHeader label="ZC" sortKey="futuresMonth" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
             <SortableHeader label="Site" sortKey="siteCode" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
             <SortableHeader label="Month" sortKey="budgetMonth" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
             <SortableHeader label="Alloc bu" sortKey="allocatedBushels" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
-            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Open bu</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">Open bu</th>
             <SortableHeader label="Entry $/bu" sortKey="entryPrice" activeKey={allocSort.key} activeDir={allocSort.dir} onToggle={(k) => toggleAllocSort(k as AllocSortKey)} />
-            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Settle $/bu</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Basis</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">MTM</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap"></th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">Settle $/bu</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">MTM</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap"></th>
           </tr>
         </thead>
         <tbody>
           {sortedAllocations.length === 0 && (
-            <tr><td colSpan={13} className="px-4 py-8 text-center text-slate-500 text-sm">No allocations yet</td></tr>
+            <tr><td colSpan={12} className="px-4 py-8 text-center text-zinc-500 text-sm">No allocations yet</td></tr>
           )}
           {sortedAllocations.map((a) => {
             const isEfp = efpAllocId === a.allocationId;
             const isOffset = offsetAllocId === a.allocationId;
             return (
               <Fragment key={a.allocationId}>
-                <tr className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-3 font-mono text-slate-200 text-xs">{a.tradeRef}</td>
+                <tr className="border-t border-zinc-800 hover:bg-zinc-800/30 transition-colors">
+                  <td className="px-4 py-3 font-mono text-zinc-200 text-xs">{a.tradeRef}</td>
                   <td className="px-4 py-3">
                     <SideBadge side={a.side || "LONG"} />
                   </td>
-                  <td className="px-4 py-3 text-slate-500 text-xs font-mono">{a.tradeDate}</td>
+                  <td className="px-4 py-3 text-zinc-500 text-xs font-mono tabular-nums">{a.tradeDate}</td>
                   <td className="px-4 py-3">
-                    <span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
+                    <span className={zcBadgeCls}>{a.futuresMonth}</span>
                   </td>
-                  <td className="px-4 py-3"><span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">{a.siteCode}</span></td>
-                  <td className="px-4 py-3 text-slate-400 text-xs font-mono">{a.budgetMonth}</td>
-                  <td className="px-4 py-3 text-slate-300">{fmtVol(a.allocatedBushels)}</td>
-                  <td className="px-4 py-3 text-emerald-400 font-semibold">{fmtVol(a.openAllocatedLots * 5000)}</td>
-                  <td className="px-4 py-3 text-slate-300 font-mono">{centsToUsd(a.entryPrice)}</td>
+                  <td className="px-4 py-3"><span className="bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded text-xs font-mono">{a.siteCode}</span></td>
+                  <td className="px-4 py-3 text-zinc-400 text-xs font-mono tabular-nums">{a.budgetMonth}</td>
+                  <td className="px-4 py-3 text-zinc-300">{fmtVol(a.allocatedBushels)}</td>
+                  <td className="px-4 py-3 text-zinc-200 font-semibold">{fmtVol(a.openAllocatedLots * 5000)}</td>
+                  <td className="px-4 py-3 text-zinc-300 font-mono tabular-nums">${centsToUsd(a.entryPrice)}</td>
                   <td className="px-4 py-3 font-mono">
-                    {a.settlePrice != null ? <span className="text-slate-200">{centsToUsd(a.settlePrice)}</span>
-                      : <span className="text-slate-600 italic text-xs">no settle</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    {(() => {
-                      const matchingContract = physicalPositions.find(
-                        (p) => p.siteCode === a.siteCode && p.deliveryMonth === a.budgetMonth && p.basisLocked
-                      );
-                      if (matchingContract) {
-                        return (
-                          <span className="flex items-center gap-1 text-blue-300 font-mono text-xs">
-                            <Lock className="h-3 w-3 text-blue-400" />
-                            {matchingContract.basisValue != null ? (matchingContract.basisValue / 100).toFixed(4) : "\u2013"}
-                          </span>
-                        );
-                      }
-                      return <span className="text-orange-400 italic text-xs">Open</span>;
-                    })()}
+                    {a.settlePrice != null ? <span className="text-zinc-200">${centsToUsd(a.settlePrice)}</span>
+                      : <span className="text-zinc-600 italic text-xs">no settle</span>}
                   </td>
                   <td className="px-4 py-3">
                     {a.mtmPnlUsd != null ? (
-                      <span className={cn("font-semibold", a.mtmPnlUsd > 0 ? "text-emerald-400" : a.mtmPnlUsd < 0 ? "text-red-400" : "text-slate-400")}>
-                        {fmtPnl(a.mtmPnlUsd)}
+                      <span className={cn("font-semibold tabular-nums", pnlColor(a.mtmPnlUsd))}>
+                        {a.mtmPnlUsd >= 0 ? "+" : "\u2212"}${Math.abs(a.mtmPnlUsd).toLocaleString("en-US", { maximumFractionDigits: 0 })}
                       </span>
-                    ) : <span className="text-slate-600 italic text-xs">&ndash;</span>}
+                    ) : <span className="text-zinc-600 italic text-xs">&ndash;</span>}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
@@ -543,13 +529,13 @@ function SiteAllocationsTable({
                         <>
                           <button
                             onClick={() => { setEfpAllocId(isEfp ? null : a.allocationId); setOffsetAllocId(null); }}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded-lg text-xs font-medium transition-colors"
+                            className="flex items-center gap-1 px-2.5 py-1 bg-zinc-700/50 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-medium transition-colors"
                           >
                             <Zap className="h-3 w-3" /> EFP
                           </button>
                           <button
                             onClick={() => { setOffsetAllocId(isOffset ? null : a.allocationId); setEfpAllocId(null); }}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 rounded-lg text-xs font-medium transition-colors"
+                            className="flex items-center gap-1 px-2.5 py-1 bg-zinc-700/50 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-medium transition-colors"
                           >
                             <X className="h-3 w-3" /> Offset
                           </button>
@@ -559,15 +545,15 @@ function SiteAllocationsTable({
                   </td>
                 </tr>
                 {isEfp && (
-                  <tr className="border-t border-slate-800 animate-slide-down">
-                    <td colSpan={13} className="px-4 py-3">
+                  <tr className="border-t border-zinc-800 animate-slide-down">
+                    <td colSpan={12} className="px-4 py-3">
                       <EFPForm allocation={a} physicalPositions={physicalPositions} sites={sites} settles={settles} onDone={handleDone} onCancel={() => setEfpAllocId(null)} />
                     </td>
                   </tr>
                 )}
                 {isOffset && (
-                  <tr className="border-t border-slate-800 animate-slide-down">
-                    <td colSpan={13} className="px-4 py-3">
+                  <tr className="border-t border-zinc-800 animate-slide-down">
+                    <td colSpan={12} className="px-4 py-3">
                       <OffsetForm
                         entryPrice={a.entryPrice}
                         availableBu={a.openAllocatedLots * 5000}
@@ -614,39 +600,37 @@ function SiteSummary({
     return { unrealizedPnl, realizedEfp, realizedOffset, totalRealized, totalPnl };
   }, [allocations, lockedPositions, offsets, siteCode]);
 
-  const pnlCls = (v: number) => v > 0 ? "text-emerald-400" : v < 0 ? "text-red-400" : "text-slate-400";
-
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl px-5 py-4">
-      <h3 className="text-xs text-slate-500 uppercase tracking-wider mb-3 font-semibold">Site Summary</h3>
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg px-5 py-4">
+      <h3 className="text-xs text-zinc-500 uppercase tracking-wider mb-3 font-semibold">Site Summary</h3>
       <div className="grid grid-cols-5 gap-4">
         <div>
-          <p className="text-xs text-slate-500 mb-0.5">Unrealized P&L</p>
-          <p className={cn("text-sm font-bold tabular-nums", pnlCls(summary.unrealizedPnl))}>
+          <p className="text-xs text-zinc-500 mb-0.5">Unrealized P&L</p>
+          <p className={cn("text-sm font-bold tabular-nums", pnlColor(summary.unrealizedPnl))}>
             {fmtPnl(summary.unrealizedPnl)}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 mb-0.5">Realized (EFP)</p>
-          <p className={cn("text-sm font-bold tabular-nums", pnlCls(summary.realizedEfp))}>
+          <p className="text-xs text-zinc-500 mb-0.5">Realized (EFP)</p>
+          <p className={cn("text-sm font-bold tabular-nums", pnlColor(summary.realizedEfp))}>
             {fmtPnl(summary.realizedEfp)}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 mb-0.5">Realized (Offset)</p>
-          <p className={cn("text-sm font-bold tabular-nums", pnlCls(summary.realizedOffset))}>
+          <p className="text-xs text-zinc-500 mb-0.5">Realized (Offset)</p>
+          <p className={cn("text-sm font-bold tabular-nums", pnlColor(summary.realizedOffset))}>
             {fmtPnl(summary.realizedOffset)}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 mb-0.5">Total Realized</p>
-          <p className={cn("text-sm font-bold tabular-nums", pnlCls(summary.totalRealized))}>
+          <p className="text-xs text-zinc-500 mb-0.5">Total Realized</p>
+          <p className={cn("text-sm font-bold tabular-nums", pnlColor(summary.totalRealized))}>
             {fmtPnl(summary.totalRealized)}
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 mb-0.5">Total P&L</p>
-          <p className={cn("text-sm font-bold tabular-nums", pnlCls(summary.totalPnl))}>
+          <p className="text-xs text-zinc-500 mb-0.5">Total P&L</p>
+          <p className={cn("text-sm font-bold tabular-nums", pnlColor(summary.totalPnl))}>
             {fmtPnl(summary.totalPnl)}
           </p>
         </div>
@@ -720,52 +704,52 @@ function PhysicalPositionsTable({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-800/50">
+            <tr className="bg-zinc-800/50">
               {["Type", "Month", "Site", "Contract", "Supplier", "Bushels", "Board", "Basis", "Freight", "All-In $/bu", "Status"].map((h) => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {positions.length === 0 && (
-              <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-500 text-sm">No active physical contracts</td></tr>
+              <tr><td colSpan={11} className="px-4 py-8 text-center text-zinc-500 text-sm">No active physical contracts</td></tr>
             )}
             {positions.map((p) => (
-              <tr key={p.contractId} className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
+              <tr key={p.contractId} className="border-t border-zinc-800 hover:bg-zinc-800/30 transition-colors">
                 <td className="px-4 py-3"><TradeTypeBadge type={p.tradeType} /></td>
-                <td className="px-4 py-3 font-mono text-slate-300 text-xs">{p.deliveryMonth}</td>
-                <td className="px-4 py-3"><span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs font-mono">{p.siteCode}</span></td>
-                <td className="px-4 py-3 font-mono text-slate-400 text-xs">{p.contractRef}</td>
-                <td className="px-4 py-3 text-slate-400 text-xs">{p.supplierName}</td>
-                <td className="px-4 py-3 text-slate-300">{fmtVol(p.committedMt, "MT")}</td>
+                <td className="px-4 py-3 font-mono tabular-nums text-zinc-300 text-xs">{p.deliveryMonth}</td>
+                <td className="px-4 py-3"><span className="bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded text-xs font-mono">{p.siteCode}</span></td>
+                <td className="px-4 py-3 font-mono text-zinc-400 text-xs">{p.contractRef}</td>
+                <td className="px-4 py-3 text-zinc-400 text-xs">{p.supplierName}</td>
+                <td className="px-4 py-3 text-zinc-300">{fmtVol(p.committedMt, "MT")}</td>
                 <td className="px-4 py-3">
                   {p.efpExecuted ? (
-                    <span className="flex items-center gap-1 text-emerald-400 font-mono">
-                      <Lock className="h-3 w-3" /> {centsToUsd(p.boardPriceLocked)}
+                    <span className="flex items-center gap-1 text-zinc-200 font-mono">
+                      <Lock className="h-3 w-3 text-zinc-400" /> {centsToUsd(p.boardPriceLocked)}
                     </span>
                   ) : vwapBySite[p.siteCode] != null ? (
-                    <span className="text-amber-300 font-mono text-xs">~{centsToUsd(vwapBySite[p.siteCode])} <span className="text-amber-500/70">(VWAP)</span></span>
+                    <span className="text-zinc-300 font-mono text-xs">~{centsToUsd(vwapBySite[p.siteCode])} <span className="text-zinc-500">(VWAP)</span></span>
                   ) : (
-                    <span className="text-orange-400 italic text-xs">Open</span>
+                    <span className="text-zinc-500 italic text-xs">Open</span>
                   )}
                 </td>
                 <td className="px-4 py-3">
                   {p.tradeType === "INDEX" ? (
-                    <span className="text-slate-600 italic text-xs">N/A</span>
+                    <span className="text-zinc-600 italic text-xs">N/A</span>
                   ) : p.basisLocked ? (
-                    <span className="flex items-center gap-1 text-blue-300 font-mono">
-                      <Lock className="h-3 w-3 text-blue-400" /> {p.basisValue != null ? (p.basisValue / 100).toFixed(4) : "\u2013"}
+                    <span className="flex items-center gap-1 text-zinc-300 font-mono">
+                      <Lock className="h-3 w-3 text-zinc-400" /> {p.basisValue != null ? (p.basisValue / 100).toFixed(4) : "\u2013"}
                     </span>
                   ) : (
-                    <span className="text-orange-400 italic text-xs">Open</span>
+                    <span className="text-zinc-500 italic text-xs">Open</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-slate-400 font-mono">{fmt2(null)}</td>
+                <td className="px-4 py-3 text-zinc-400 font-mono">{fmt2(null)}</td>
                 <td className="px-4 py-3">
                   {p.allInPricePerMt != null ? (
-                    <span className="text-emerald-300 font-semibold">${(p.allInPricePerMt / BUSHELS_PER_MT).toFixed(4)}</span>
+                    <span className="text-zinc-200 font-semibold">${(p.allInPricePerMt / BUSHELS_PER_MT).toFixed(4)}</span>
                   ) : (
-                    <span className="text-slate-600 italic text-xs">&ndash;</span>
+                    <span className="text-zinc-600 italic text-xs">&ndash;</span>
                   )}
                 </td>
                 <td className="px-4 py-3">
@@ -778,9 +762,9 @@ function PhysicalPositionsTable({
       </div>
 
       {positions.length > 0 && blended.blendedPerBu != null && (
-        <div className="px-5 py-3 border-t border-slate-800 bg-slate-800/30">
-          <span className="text-xs text-slate-400">
-            Blended Cost: <span className="text-emerald-300 font-semibold">${blended.blendedPerBu.toFixed(4)}/bu</span>
+        <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-800/30">
+          <span className="text-xs text-zinc-400">
+            Blended Cost: <span className="text-zinc-200 font-semibold">${blended.blendedPerBu.toFixed(4)}/bu</span>
             {blended.hedgedBu > 0 && <span> (hedged: ${blended.hedgedPerBu?.toFixed(4)}/bu x {fmtVol(blended.hedgedBu)} bu</span>}
             {blended.marketBu > 0 && <span>{blended.hedgedBu > 0 ? " + " : " ("}market: ${blended.marketPerBu?.toFixed(4)}/bu x {fmtVol(blended.marketBu)} bu</span>}
             {(blended.hedgedBu > 0 || blended.marketBu > 0) && <span>)</span>}
@@ -801,49 +785,49 @@ function EFPHedgesTable({ locked }: { locked: LockedPositionItem[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-800/50">
+            <tr className="bg-zinc-800/50">
               {["Ticket", "Dir", "ZC", "Lots", "Bu", "Trade Date", "Price $/bu", "P&L \u00a2/bu", "P&L $"].map((h) => (
-                <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {locked.length === 0 && (
-              <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-500 text-sm">No EFP positions locked yet</td></tr>
+              <tr><td colSpan={9} className="px-4 py-8 text-center text-zinc-500 text-sm">No EFP positions locked yet</td></tr>
             )}
             {locked.map((l) => {
               const bu = l.lots * 5000;
-              const pnlColor = (l.gainLossCentsBu ?? 0) > 0 ? "text-emerald-400" : (l.gainLossCentsBu ?? 0) < 0 ? "text-red-400" : "text-slate-400";
+              const pnlCls = pnlColor(l.gainLossCentsBu ?? 0);
               return (
                 <Fragment key={l.efpTicketId}>
                   {/* Buy row */}
-                  <tr className="border-t border-slate-800 hover:bg-slate-800/30">
-                    <td className="px-3 py-2 font-mono text-slate-300 text-xs" rowSpan={2}>{l.ticketRef}</td>
+                  <tr className="border-t border-zinc-800 hover:bg-zinc-800/30">
+                    <td className="px-3 py-2 font-mono text-zinc-300 text-xs" rowSpan={2}>{l.ticketRef}</td>
                     <td className="px-3 py-2"><SideBadge side="BUY" /></td>
-                    <td className="px-3 py-2"><span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{l.futuresMonth}</span></td>
-                    <td className="px-3 py-2 text-slate-300">{l.lots}</td>
-                    <td className="px-3 py-2 text-slate-300">{fmtVol(bu)}</td>
-                    <td className="px-3 py-2 text-slate-500 text-xs font-mono">{l.efpDate}</td>
-                    <td className="px-3 py-2 text-slate-300 font-mono">{centsToUsd(l.futuresBuyPrice)}</td>
+                    <td className="px-3 py-2"><span className={zcBadgeCls}>{l.futuresMonth}</span></td>
+                    <td className="px-3 py-2 text-zinc-300">{l.lots}</td>
+                    <td className="px-3 py-2 text-zinc-300">{fmtVol(bu)}</td>
+                    <td className="px-3 py-2 text-zinc-500 text-xs font-mono tabular-nums">{l.efpDate}</td>
+                    <td className="px-3 py-2 text-zinc-300 font-mono tabular-nums">{centsToUsd(l.futuresBuyPrice)}</td>
                     <td className="px-3 py-2" rowSpan={2}>
-                      <span className={cn("font-mono font-semibold", pnlColor)}>
+                      <span className={cn("font-mono font-semibold", pnlCls)}>
                         {l.gainLossCentsBu != null ? `${l.gainLossCentsBu > 0 ? "+" : ""}${(l.gainLossCentsBu / 100).toFixed(4)}` : "\u2013"}
                       </span>
                     </td>
                     <td className="px-3 py-2" rowSpan={2}>
-                      <span className={cn("font-semibold", pnlColor)}>
+                      <span className={cn("font-semibold", pnlCls)}>
                         {l.gainLossUsd != null ? fmtPnl(l.gainLossUsd) : "\u2013"}
                       </span>
                     </td>
                   </tr>
                   {/* Sell row */}
-                  <tr className="border-t border-slate-800/50 hover:bg-slate-800/30">
+                  <tr className="border-t border-zinc-800/50 hover:bg-zinc-800/30">
                     <td className="px-3 py-2"><SideBadge side="SELL" /></td>
-                    <td className="px-3 py-2"><span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{l.futuresMonth}</span></td>
-                    <td className="px-3 py-2 text-slate-300">{l.lots}</td>
-                    <td className="px-3 py-2 text-slate-300">{fmtVol(bu)}</td>
-                    <td className="px-3 py-2 text-slate-500 text-xs font-mono">{l.efpDate}</td>
-                    <td className="px-3 py-2 text-emerald-400 font-mono">{centsToUsd(l.futuresSellPrice)}</td>
+                    <td className="px-3 py-2"><span className={zcBadgeCls}>{l.futuresMonth}</span></td>
+                    <td className="px-3 py-2 text-zinc-300">{l.lots}</td>
+                    <td className="px-3 py-2 text-zinc-300">{fmtVol(bu)}</td>
+                    <td className="px-3 py-2 text-zinc-500 text-xs font-mono tabular-nums">{l.efpDate}</td>
+                    <td className="px-3 py-2 text-emerald-400 font-mono tabular-nums">{centsToUsd(l.futuresSellPrice)}</td>
                   </tr>
                 </Fragment>
               );
@@ -852,10 +836,10 @@ function EFPHedgesTable({ locked }: { locked: LockedPositionItem[] }) {
         </table>
       </div>
       {locked.length > 0 && (
-        <div className="px-5 py-3 border-t border-slate-800 bg-slate-800/30">
-          <span className="text-xs text-slate-400">
+        <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-800/30">
+          <span className="text-xs text-zinc-400">
             Total Realized (EFP):{" "}
-            <span className={cn("font-semibold", totalPnl > 0 ? "text-emerald-400" : totalPnl < 0 ? "text-red-400" : "text-slate-400")}>
+            <span className={cn("font-semibold", pnlColor(totalPnl))}>
               {fmtPnl(totalPnl)}
             </span>
           </span>
@@ -875,49 +859,49 @@ function OffsetHedgesTable({ offsets }: { offsets: OffsetItem[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-800/50">
+            <tr className="bg-zinc-800/50">
               {["Trade", "Dir", "ZC", "Lots", "Bu", "Date", "Price $/bu", "P&L \u00a2/bu", "P&L $"].map((h) => (
-                <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                <th key={h} className="px-3 py-3 text-left text-xs font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {offsets.length === 0 && (
-              <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-500 text-sm">No offset hedges yet</td></tr>
+              <tr><td colSpan={9} className="px-4 py-8 text-center text-zinc-500 text-sm">No offset hedges yet</td></tr>
             )}
             {offsets.map((o) => {
-              const pnlColor = o.pnlCentsBu > 0 ? "text-emerald-400" : o.pnlCentsBu < 0 ? "text-red-400" : "text-slate-400";
+              const pnlCls = pnlColor(o.pnlCentsBu);
               return (
                 <Fragment key={o.offsetId}>
                   {/* Buy row */}
-                  <tr className="border-t border-slate-800 hover:bg-slate-800/30">
-                    <td className="px-3 py-2 font-mono text-slate-300 text-xs">{o.tradeRef}</td>
+                  <tr className="border-t border-zinc-800 hover:bg-zinc-800/30">
+                    <td className="px-3 py-2 font-mono text-zinc-300 text-xs">{o.tradeRef}</td>
                     <td className="px-3 py-2"><SideBadge side="BUY" /></td>
-                    <td className="px-3 py-2"><span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{o.futuresMonth}</span></td>
-                    <td className="px-3 py-2 text-slate-300">{o.lots}</td>
-                    <td className="px-3 py-2 text-slate-300">{fmtVol(o.bushels)}</td>
-                    <td className="px-3 py-2 text-slate-500 text-xs font-mono">{o.offsetDate}</td>
-                    <td className="px-3 py-2 text-slate-300 font-mono">{centsToUsd(o.entryPrice)}</td>
+                    <td className="px-3 py-2"><span className={zcBadgeCls}>{o.futuresMonth}</span></td>
+                    <td className="px-3 py-2 text-zinc-300">{o.lots}</td>
+                    <td className="px-3 py-2 text-zinc-300">{fmtVol(o.bushels)}</td>
+                    <td className="px-3 py-2 text-zinc-500 text-xs font-mono tabular-nums">{o.offsetDate}</td>
+                    <td className="px-3 py-2 text-zinc-300 font-mono tabular-nums">{centsToUsd(o.entryPrice)}</td>
                     <td className="px-3 py-2" rowSpan={2}>
-                      <span className={cn("font-mono font-semibold", pnlColor)}>
+                      <span className={cn("font-mono font-semibold", pnlCls)}>
                         {`${o.pnlCentsBu > 0 ? "+" : ""}${(o.pnlCentsBu / 100).toFixed(4)}`}
                       </span>
                     </td>
                     <td className="px-3 py-2" rowSpan={2}>
-                      <span className={cn("font-semibold", pnlColor)}>
+                      <span className={cn("font-semibold", pnlCls)}>
                         {fmtPnl(o.pnlUsd)}
                       </span>
                     </td>
                   </tr>
                   {/* Sell row */}
-                  <tr className="border-t border-slate-800/50 hover:bg-slate-800/30">
-                    <td className="px-3 py-2 font-mono text-amber-400 text-xs">OFFSET</td>
+                  <tr className="border-t border-zinc-800/50 hover:bg-zinc-800/30">
+                    <td className="px-3 py-2 font-mono text-zinc-400 text-xs">OFFSET</td>
                     <td className="px-3 py-2"><SideBadge side="SELL" /></td>
-                    <td className="px-3 py-2"><span className="bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{o.futuresMonth}</span></td>
-                    <td className="px-3 py-2 text-slate-300">{o.lots}</td>
-                    <td className="px-3 py-2 text-slate-300">{fmtVol(o.bushels)}</td>
-                    <td className="px-3 py-2 text-slate-500 text-xs font-mono">{o.offsetDate}</td>
-                    <td className="px-3 py-2 text-emerald-400 font-mono">{centsToUsd(o.exitPrice)}</td>
+                    <td className="px-3 py-2"><span className={zcBadgeCls}>{o.futuresMonth}</span></td>
+                    <td className="px-3 py-2 text-zinc-300">{o.lots}</td>
+                    <td className="px-3 py-2 text-zinc-300">{fmtVol(o.bushels)}</td>
+                    <td className="px-3 py-2 text-zinc-500 text-xs font-mono tabular-nums">{o.offsetDate}</td>
+                    <td className="px-3 py-2 text-emerald-400 font-mono tabular-nums">{centsToUsd(o.exitPrice)}</td>
                   </tr>
                 </Fragment>
               );
@@ -926,10 +910,10 @@ function OffsetHedgesTable({ offsets }: { offsets: OffsetItem[] }) {
         </table>
       </div>
       {offsets.length > 0 && (
-        <div className="px-5 py-3 border-t border-slate-800 bg-slate-800/30">
-          <span className="text-xs text-slate-400">
+        <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-800/30">
+          <span className="text-xs text-zinc-400">
             Total Realized (Offset):{" "}
-            <span className={cn("font-semibold", totalPnl > 0 ? "text-emerald-400" : totalPnl < 0 ? "text-red-400" : "text-slate-400")}>
+            <span className={cn("font-semibold", pnlColor(totalPnl))}>
               {fmtPnl(totalPnl)}
             </span>
           </span>
@@ -971,21 +955,21 @@ function BudgetMonthNavigator({
     <div className="flex items-center gap-2">
       <button
         onClick={goPrev}
-        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors border border-slate-700"
+        className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors border border-zinc-700"
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
       <div className="min-w-[120px] text-center">
         <span className={cn(
           "text-sm font-semibold",
-          selected ? "text-slate-100" : "text-slate-400"
+          selected ? "text-zinc-100" : "text-zinc-400"
         )}>
           {selected ? monthLabel(selected) : "All Months"}
         </span>
       </div>
       <button
         onClick={goNext}
-        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors border border-slate-700"
+        className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors border border-zinc-700"
       >
         <ChevronRight className="h-4 w-4" />
       </button>
@@ -1064,50 +1048,50 @@ function MonthCoverageSummary({
 
   if (!summary) {
     return (
-      <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl px-5 py-4">
-        <p className="text-sm text-slate-500">No budget data for {monthLabel(budgetMonth)}</p>
+      <div className="bg-zinc-800/40 border border-zinc-700/50 rounded-lg px-5 py-4">
+        <p className="text-sm text-zinc-500">No budget data for {monthLabel(budgetMonth)}</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl px-5 py-4 space-y-3">
+    <div className="bg-zinc-800/40 border border-zinc-700/50 rounded-lg px-5 py-4 space-y-3">
       <div className="grid grid-cols-4 gap-4">
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Budget</p>
-          <p className="text-lg font-bold tabular-nums text-slate-100">
-            {fmtVol(summary.budgetMt, "MT")} <span className="text-xs text-slate-500 font-normal">bu</span>
+          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Budget</p>
+          <p className="text-lg font-bold tabular-nums text-zinc-100">
+            {fmtVol(summary.budgetMt, "MT")} <span className="text-xs text-zinc-500 font-normal">bu</span>
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Hedged</p>
-          <p className="text-lg font-bold tabular-nums text-slate-100">
-            {fmtVol(summary.hedgedMt, "MT")} <span className="text-xs text-slate-500 font-normal">bu</span>
+          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Hedged</p>
+          <p className="text-lg font-bold tabular-nums text-zinc-100">
+            {fmtVol(summary.hedgedMt, "MT")} <span className="text-xs text-zinc-500 font-normal">bu</span>
           </p>
           <p className="text-xs tabular-nums text-emerald-400 font-medium">
             {summary.coveragePct.toFixed(0)}% covered
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Target All-In</p>
-          <p className="text-lg font-bold tabular-nums text-slate-100">
+          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Target All-In</p>
+          <p className="text-lg font-bold tabular-nums text-zinc-100">
             {summary.targetAllInBu != null ? `$${summary.targetAllInBu.toFixed(4)}` : "\u2013"}
-            <span className="text-xs text-slate-500 font-normal">/bu</span>
+            <span className="text-xs text-zinc-500 font-normal">/bu</span>
           </p>
         </div>
         <div>
           <p className="text-xs text-amber-400/80 uppercase tracking-wider mb-1">Market Est (Unhedged)</p>
-          <p className={cn("text-lg font-bold tabular-nums", summary.marketEstBu != null ? "text-amber-300" : "text-slate-500")}>
+          <p className={cn("text-lg font-bold tabular-nums", summary.marketEstBu != null ? "text-amber-300" : "text-zinc-500")}>
             {summary.marketEstBu != null ? `$${summary.marketEstBu.toFixed(4)}` : "\u2013"}
-            <span className="text-xs text-slate-500 font-normal">/bu</span>
+            <span className="text-xs text-zinc-500 font-normal">/bu</span>
           </p>
           {summary.futuresMonth && summary.marketEstBu != null && (
-            <p className="text-xs text-slate-600">via {summary.futuresMonth} settle</p>
+            <p className="text-xs text-zinc-600">via {summary.futuresMonth} settle</p>
           )}
         </div>
       </div>
       {/* Coverage progress bar */}
-      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+      <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
         <div
           className="h-full bg-emerald-500 rounded-full transition-all"
           style={{ width: `${Math.min(summary.coveragePct, 100)}%` }}
@@ -1128,6 +1112,7 @@ export default function SitesPage() {
   const [siteFilter, setSiteFilter] = useState("");
   const [budgetMonth, setBudgetMonth] = useState<string | null>(null);
   const [newPurchaseOpen, setNewPurchaseOpen] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<"open" | "efp" | "offset" | null>("open");
 
   // Settings for fiscal year
   const { settings } = useAppSettings();
@@ -1200,10 +1185,14 @@ export default function SitesPage() {
 
   const filterLabel = [siteFilter, budgetMonth ? monthLabel(budgetMonth) : ""].filter(Boolean).join(" \u00b7 ");
 
+  const openHedgeMtm = filteredAllocations.reduce((s, a) => s + (a.mtmPnlUsd ?? 0), 0);
+  const efpRealizedPnl = filteredLocked.reduce((s, l) => s + (l.gainLossUsd ?? 0), 0);
+  const offsetRealizedPnl = filteredOffsets.reduce((s, o) => s + o.pnlUsd, 0);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Sites</h1>
+        <h1 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Sites</h1>
         <SkeletonTable rows={3} cols={8} />
         <SkeletonTable rows={4} cols={8} />
       </div>
@@ -1219,20 +1208,20 @@ export default function SitesPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <MapPin className="h-5 w-5 text-blue-400" />
-        <h1 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Sites</h1>
+        <h1 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Sites</h1>
       </div>
 
       {/* Controls: Book toggle */}
       <div className="flex items-center gap-4">
         {/* Book toggle */}
-        <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl">
+        <div className="flex gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg">
           {(["CANADA", "US"] as Book[]).map((b) => (
             <button
               key={b}
               onClick={() => { setBook(b); setSiteFilter(""); setBudgetMonth(null); }}
               className={cn(
                 "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
-                book === b ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
+                book === b ? "bg-blue-600 text-white shadow" : "text-zinc-400 hover:text-zinc-200"
               )}
             >
               {b === "CANADA" ? "\ud83c\udde8\ud83c\udde6 Canada" : "\ud83c\uddfa\ud83c\uddf8 United States"}
@@ -1243,16 +1232,16 @@ export default function SitesPage() {
       </div>
 
       {/* Site tabs + Month Navigator */}
-      <div className="flex items-center gap-4 bg-slate-900/50 border border-slate-800 rounded-xl px-5 py-3">
+      <div className="flex items-center gap-4 bg-zinc-900/50 border border-zinc-800 rounded-lg px-5 py-3">
         {dataSitesMapped.length > 0 ? (
-          <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl">
+          <div className="flex gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg">
             {dataSitesMapped.map((s) => (
               <button
                 key={s.code}
                 onClick={() => { setSiteFilter(s.code); setBudgetMonth(null); }}
                 className={cn(
                   "px-4 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                  siteFilter === s.code ? "bg-blue-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
+                  siteFilter === s.code ? "bg-blue-600 text-white shadow" : "text-zinc-400 hover:text-zinc-200"
                 )}
               >
                 {s.code} &middot; {s.name}
@@ -1260,11 +1249,11 @@ export default function SitesPage() {
             ))}
           </div>
         ) : (
-          <span className="text-sm text-slate-500">No sites with data</span>
+          <span className="text-sm text-zinc-500">No sites with data</span>
         )}
 
         {/* Divider */}
-        <div className="w-px h-8 bg-slate-700" />
+        <div className="w-px h-8 bg-zinc-700" />
 
         <BudgetMonthNavigator
           months={fyMonths}
@@ -1272,7 +1261,7 @@ export default function SitesPage() {
           onChange={setBudgetMonth}
         />
         {budgetMonth && (
-          <span className="text-xs text-slate-600">
+          <span className="text-xs text-zinc-600">
             Futures: <span className="text-blue-400 font-mono">{suggestFuturesMonth(budgetMonth)}</span>
           </span>
         )}
@@ -1299,75 +1288,115 @@ export default function SitesPage() {
         />
       )}
 
-      {/* 2. Open Hedges */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-200">
-            Open Hedges{filterLabel && ` \u00b7 ${filterLabel}`}
+      {/* 2. Hedge Book (accordion) */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+        {/* Hedge Book header */}
+        <div className="px-5 py-4 border-b border-zinc-800">
+          <h2 className="text-sm font-semibold text-zinc-200">
+            Hedge Book{filterLabel && ` \u00b7 ${filterLabel}`}
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {filteredAllocations.length} open allocation{filteredAllocations.length !== 1 ? "s" : ""} &middot;{" "}
-            {fmtVol(filteredAllocations.reduce((s, a) => s + a.openAllocatedLots * 5000, 0))} bu open
+          <p className="text-xs text-zinc-500 mt-0.5">
+            {filteredAllocations.length} open &middot; {filteredLocked.length} EFP &middot; {filteredOffsets.length} offset
           </p>
         </div>
-        <SiteAllocationsTable
-          allocations={filteredAllocations}
-          physicalPositions={filteredPhysical}
-          sites={sites}
-          settles={settles}
-          onRefresh={() => mutate()}
-        />
-      </div>
 
-      {/* 3. EFP Hedges */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-200">
-            EFP Hedges{filterLabel && ` \u00b7 ${filterLabel}`}
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {filteredLocked.length} EFP ticket{filteredLocked.length !== 1 ? "s" : ""} &middot;{" "}
-            {filteredLocked.reduce((s, l) => s + l.lots, 0)} lots locked
-          </p>
-        </div>
-        <EFPHedgesTable locked={filteredLocked} />
-      </div>
+        {/* Section 1: Open Hedges */}
+        <button
+          onClick={() => setExpandedSection(expandedSection === "open" ? null : "open")}
+          className="w-full flex items-center gap-4 px-5 py-3 hover:bg-zinc-800/30 transition-colors text-left border-t border-zinc-800"
+        >
+          {expandedSection === "open"
+            ? <ChevronDown className="h-4 w-4 text-zinc-500" />
+            : <ChevronRight className="h-4 w-4 text-zinc-500" />}
+          <span className="text-sm font-semibold text-zinc-300">Open Hedges</span>
+          <span className="text-xs text-zinc-500">
+            {filteredAllocations.length} position{filteredAllocations.length !== 1 ? "s" : ""} &middot;{" "}
+            {fmtVol(filteredAllocations.reduce((s, a) => s + a.openAllocatedLots * 5000, 0))} bu
+          </span>
+          <span className={cn("text-sm font-semibold ml-auto tabular-nums", pnlColor(openHedgeMtm))}>
+            {fmtPnl(openHedgeMtm)}
+          </span>
+        </button>
+        {expandedSection === "open" && (
+          <div className="animate-slide-down">
+            <SiteAllocationsTable
+              allocations={filteredAllocations}
+              physicalPositions={filteredPhysical}
+              sites={sites}
+              settles={settles}
+              onRefresh={() => mutate()}
+            />
+          </div>
+        )}
 
-      {/* 4. Offset Hedges */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-200">
-            Offset Hedges{filterLabel && ` \u00b7 ${filterLabel}`}
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+        {/* Section 2: Exchange for Physical */}
+        <button
+          onClick={() => setExpandedSection(expandedSection === "efp" ? null : "efp")}
+          className="w-full flex items-center gap-4 px-5 py-3 hover:bg-zinc-800/30 transition-colors text-left border-t border-zinc-800"
+        >
+          {expandedSection === "efp"
+            ? <ChevronDown className="h-4 w-4 text-zinc-500" />
+            : <ChevronRight className="h-4 w-4 text-zinc-500" />}
+          <span className="text-sm font-semibold text-zinc-300">Exchange for Physical</span>
+          <span className="text-xs text-zinc-500">
+            {filteredLocked.length} ticket{filteredLocked.length !== 1 ? "s" : ""} &middot;{" "}
+            {filteredLocked.reduce((s, l) => s + l.lots, 0)} lots
+          </span>
+          <span className={cn("text-sm font-semibold ml-auto tabular-nums", pnlColor(efpRealizedPnl))}>
+            {fmtPnl(efpRealizedPnl)}
+          </span>
+        </button>
+        {expandedSection === "efp" && (
+          <div className="animate-slide-down">
+            <EFPHedgesTable locked={filteredLocked} />
+          </div>
+        )}
+
+        {/* Section 3: Offset Hedges */}
+        <button
+          onClick={() => setExpandedSection(expandedSection === "offset" ? null : "offset")}
+          className="w-full flex items-center gap-4 px-5 py-3 hover:bg-zinc-800/30 transition-colors text-left border-t border-zinc-800"
+        >
+          {expandedSection === "offset"
+            ? <ChevronDown className="h-4 w-4 text-zinc-500" />
+            : <ChevronRight className="h-4 w-4 text-zinc-500" />}
+          <span className="text-sm font-semibold text-zinc-300">Offset Hedges</span>
+          <span className="text-xs text-zinc-500">
             {filteredOffsets.length} offset{filteredOffsets.length !== 1 ? "s" : ""} &middot;{" "}
-            {fmtVol(filteredOffsets.reduce((s, o) => s + o.bushels, 0))} bu offset
-          </p>
-        </div>
-        <OffsetHedgesTable offsets={filteredOffsets} />
+            {fmtVol(filteredOffsets.reduce((s, o) => s + o.bushels, 0))} bu
+          </span>
+          <span className={cn("text-sm font-semibold ml-auto tabular-nums", pnlColor(offsetRealizedPnl))}>
+            {fmtPnl(offsetRealizedPnl)}
+          </span>
+        </button>
+        {expandedSection === "offset" && (
+          <div className="animate-slide-down">
+            <OffsetHedgesTable offsets={filteredOffsets} />
+          </div>
+        )}
       </div>
 
       {/* 5. Physical Positions */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+        <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-slate-200">
+            <h2 className="text-sm font-semibold text-zinc-200">
               Physical Positions{filterLabel && ` \u00b7 ${filterLabel}`}
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-zinc-500 mt-0.5">
               {filteredPhysical.length} contract{filteredPhysical.length !== 1 ? "s" : ""} &middot;{" "}
               {fmtVol(filteredPhysical.reduce((s, p) => s + p.committedMt, 0), "MT")} bu committed
             </p>
           </div>
           <button
             onClick={() => setNewPurchaseOpen((o) => !o)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded-lg text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-700/50 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-medium transition-colors"
           >
             <Plus className="h-3.5 w-3.5" /> New Purchase
           </button>
         </div>
         {newPurchaseOpen && (
-          <div className="px-5 py-4 border-b border-slate-800 animate-slide-down">
+          <div className="px-5 py-4 border-b border-zinc-800 animate-slide-down">
             <NewPurchaseForm
               siteCode={siteFilter}
               sites={sites}
