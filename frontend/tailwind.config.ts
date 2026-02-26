@@ -75,6 +75,13 @@ const config: Config = {
         "destructive-20":    "var(--color-destructive-20)",
         "destructive-30":    "var(--color-destructive-30)",
 
+        /* Caution (burnt amber) + opacity variants */
+        caution:       "var(--color-caution)",
+        "caution-5":   "var(--color-caution-5)",
+        "caution-10":  "var(--color-caution-10)",
+        "caution-20":  "var(--color-caution-20)",
+        "caution-30":  "var(--color-caution-30)",
+
         /* Warning (amber) + opacity variants */
         warning:         "var(--color-warning)",
         "warning-hover": "var(--color-warning-hover)",

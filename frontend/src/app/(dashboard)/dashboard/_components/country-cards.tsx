@@ -15,9 +15,9 @@ interface CountryCardsProps {
 }
 
 function coverageColor(pct: number) {
-  if (pct >= 80) return "profit";
+  if (pct >= 80) return "action";
   if (pct >= 50) return "warning";
-  return "warning";
+  return "caution";
 }
 
 export function CountryCards({ coverage, sites, hedgeBook, onSelectCountry }: CountryCardsProps) {
@@ -40,9 +40,9 @@ export function CountryCards({ coverage, sites, hedgeBook, onSelectCountry }: Co
             onClick={() => onSelectCountry(country)}
             className={cn(
               "bg-surface border rounded-lg p-5 text-left hover:border-action-30 transition-colors group",
+              highlight === "action" && "border-action-30",
               highlight === "warning" && "border-warning-30",
-              highlight === "profit" && "border-profit-30",
-              !highlight && "border-b-default"
+              highlight === "caution" && "border-caution-30",
             )}
           >
             <div className="flex items-center justify-between mb-4">
@@ -54,7 +54,8 @@ export function CountryCards({ coverage, sites, hedgeBook, onSelectCountry }: Co
               </div>
               <span className={cn(
                 "text-2xl font-bold tabular-nums",
-                highlight === "warning" ? "text-warning" : "text-profit"
+                highlight === "action" ? "text-action" :
+                highlight === "caution" ? "text-caution" : "text-warning"
               )}>
                 {formatPct(agg.coveragePct)}
               </span>
@@ -93,7 +94,8 @@ export function CountryCards({ coverage, sites, hedgeBook, onSelectCountry }: Co
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-500",
-                    highlight === "warning" ? "bg-warning" : "bg-profit"
+                    highlight === "action" ? "bg-action" :
+                    highlight === "caution" ? "bg-caution" : "bg-warning"
                   )}
                   style={{ width: `${Math.min(agg.coveragePct, 100)}%` }}
                 />

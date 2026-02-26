@@ -32,6 +32,7 @@
   --color-loss:             #F14444; /* Red 400 */
   --color-destructive:      #F14444; /* Red 400 */
   --color-destructive-hover:#F76C6C; /* Red 300 */
+  --color-caution:          #D97706; /* Burnt Amber — low coverage */
   --color-warning:          #F29E1A; /* Orange 500 */
   --color-warning-hover:    #F5B148; /* Orange 400 */
   --color-accent:           #7B90AE; /* Sat 500 — visible on dark bg */
@@ -53,6 +54,10 @@
   --color-destructive-5:  #F144440D;  --color-destructive-10: #F144441A;
   --color-destructive-15: #F1444426;  --color-destructive-20: #F1444433;
   --color-destructive-30: #F144444D;
+
+  /* Opacity variants — caution #D97706 */
+  --color-caution-5:  #D977060D;   --color-caution-10: #D977061A;
+  --color-caution-20: #D9770633;   --color-caution-30: #D977064D;
 
   /* Opacity variants — warning #F29E1A */
   --color-warning-5:  #F29E1A0D;   --color-warning-10: #F29E1A1A;

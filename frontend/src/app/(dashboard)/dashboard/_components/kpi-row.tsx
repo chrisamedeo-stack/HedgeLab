@@ -67,9 +67,11 @@ function formatCardValue(value: number, unit: string): string {
   }
 }
 
-function highlightForCard(value: number, unit: string): "profit" | "warning" | "destructive" | undefined {
+type Highlight = "profit" | "warning" | "caution" | "action" | "destructive";
+
+function highlightForCard(value: number, unit: string): Highlight | undefined {
   if (unit === "pct") {
-    return value >= 80 ? "profit" : value >= 50 ? "warning" : "warning";
+    return value >= 80 ? "action" : value >= 50 ? "warning" : "caution";
   }
   if (unit === "usd") {
     return value >= 0 ? "profit" : "destructive";
@@ -100,9 +102,9 @@ export function KpiRow(props: KpiRowProps) {
 
   // Legacy path
   const { totalBudgetBu, hedgeCoveragePct, openHedgeLots, activeContracts } = props;
-  const coverageColor =
-    hedgeCoveragePct >= 80 ? "profit" :
-    hedgeCoveragePct >= 50 ? "warning" : "warning";
+  const coverageColor: Highlight =
+    hedgeCoveragePct >= 80 ? "action" :
+    hedgeCoveragePct >= 50 ? "warning" : "caution";
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -146,16 +148,30 @@ function KpiCard({
   value: string;
   icon: LucideIcon;
   href: string;
-  highlight?: "profit" | "warning" | "destructive";
+  highlight?: Highlight;
 }) {
+  const borderBg =
+    highlight === "destructive" ? "border-destructive-30 bg-destructive-5" :
+    highlight === "profit"      ? "border-profit-30 bg-profit-5" :
+    highlight === "action"      ? "border-action-30 bg-action-5" :
+    highlight === "warning"     ? "border-warning-30 bg-warning-5" :
+    highlight === "caution"     ? "border-caution-30 bg-caution-5" :
+    undefined;
+
+  const textColor =
+    highlight === "destructive" ? "text-destructive" :
+    highlight === "profit"      ? "text-profit" :
+    highlight === "action"      ? "text-action" :
+    highlight === "warning"     ? "text-warning" :
+    highlight === "caution"     ? "text-caution" :
+    undefined;
+
   return (
     <Link
       href={href}
       className={cn(
         "bg-surface border border-b-default rounded-lg p-5 block hover:border-b-input transition-colors group",
-        highlight === "destructive" && "border-destructive-30 bg-destructive-5",
-        highlight === "warning" && "border-warning-30 bg-warning-5",
-        highlight === "profit" && "border-profit-30 bg-profit-5"
+        borderBg
       )}
     >
       <div className="flex items-center justify-between mb-3">
@@ -163,19 +179,13 @@ function KpiCard({
         <Icon
           className={cn(
             "h-4 w-4",
-            highlight === "destructive" ? "text-destructive" :
-            highlight === "warning" ? "text-warning" :
-            highlight === "profit" ? "text-profit" :
-            "text-ph group-hover:text-muted transition-colors"
+            textColor ?? "text-ph group-hover:text-muted transition-colors"
           )}
         />
       </div>
       <p className={cn(
         "text-2xl font-bold",
-        highlight === "destructive" ? "text-destructive" :
-        highlight === "warning" ? "text-warning" :
-        highlight === "profit" ? "text-profit" :
-        "text-primary"
+        textColor ?? "text-primary"
       )}>
         {value}
       </p>

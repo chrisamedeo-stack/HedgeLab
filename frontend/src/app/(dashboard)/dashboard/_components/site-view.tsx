@@ -18,10 +18,10 @@ function monthLabel(ym: string) {
 }
 
 function barColor(pct: number) {
-  return pct >= 80 ? "bg-profit" : pct >= 50 ? "bg-warning" : "bg-warning";
+  return pct >= 80 ? "bg-action" : pct >= 50 ? "bg-warning" : "bg-caution";
 }
 function pctColor(pct: number) {
-  return pct >= 80 ? "text-profit" : pct >= 50 ? "text-warning" : "text-warning";
+  return pct >= 80 ? "text-action" : pct >= 50 ? "text-warning" : "text-caution";
 }
 
 interface SiteViewProps {
