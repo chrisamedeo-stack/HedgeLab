@@ -31,7 +31,7 @@ export function SiteSummaryTable({ coverage, onSelectSite }: SiteSummaryTablePro
       </div>
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-input-bg/40 border-b border-b-default">
+          <tr className="bg-tbl-header border-b border-b-default">
             <th className="px-5 py-2 text-left text-xs font-medium text-faint uppercase tracking-wider">Site</th>
             <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Budget (bu)</th>
             <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Hedged (bu)</th>

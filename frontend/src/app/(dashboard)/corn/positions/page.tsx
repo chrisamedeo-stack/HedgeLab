@@ -24,6 +24,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { toCsv, downloadCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
+import { btnPrimary } from "@/lib/corn-format";
 
 import type { Book } from "./_components/shared";
 import { usePermissions } from "./_components/permissions";
@@ -157,7 +158,7 @@ export default function PositionsPage() {
           {can("book-hedge") && (
             <button
               onClick={() => { setEditing(null); setHedgeFormOpen((o) => !o); }}
-              className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white text-sm rounded-lg font-medium transition-colors"
+              className={btnPrimary}
             >
               {hedgeFormOpen && !editing ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               {hedgeFormOpen && !editing ? "Cancel" : "Book Hedge"}
@@ -224,7 +225,7 @@ export default function PositionsPage() {
       />
 
       {/* MTM P&L Chart */}
-      <MtmPnlChart hedgeBook={hedgeBook} />
+      <MtmPnlChart hedgeBook={hedgeBook} siteAllocations={allocations} />
 
       {/* ═══════════════ DELIVERY MONTH SECTION ═══════════════ */}
       <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
@@ -262,6 +263,7 @@ export default function PositionsPage() {
         <BudgetMonthTable
           monthAllocations={monthAllocs}
           siteAllocations={allocations}
+          hedgeBook={hedgeBook}
           sites={siteOptions}
           can={can}
           onRefresh={() => mutate()}

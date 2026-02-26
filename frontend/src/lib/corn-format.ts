@@ -56,10 +56,13 @@ export const inputCls =
   "bg-surface border border-b-input rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-focus";
 
 export const btnPrimary =
-  "px-4 py-1.5 bg-action hover:bg-action-hover text-white text-sm rounded-lg font-medium disabled:opacity-50";
+  "flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors";
 
 export const btnSecondary =
-  "px-4 py-1.5 bg-hover hover:bg-overlay text-secondary text-sm rounded-lg font-medium";
+  "flex items-center gap-2 px-3 py-1.5 bg-input-bg hover:bg-hover border border-b-input text-secondary text-sm font-medium rounded-lg transition-colors";
+
+export const btnCancel =
+  "px-4 py-2 text-faint hover:text-secondary text-sm transition-colors";
 
 export const inputClsError =
   "bg-surface border border-destructive rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-destructive";

@@ -12,6 +12,7 @@ import { HedgeStatusBadge } from "@/components/ui/Badge";
 import { useTableSort } from "@/hooks/useTableSort";
 import { SortableHeader } from "@/components/ui/SortableHeader";
 import { cn } from "@/lib/utils";
+import { btnPrimary, btnCancel } from "@/lib/corn-format";
 
 const ZC_MONTHS = [
   "ZCH25","ZCK25","ZCN25","ZCU25","ZCZ25",
@@ -737,11 +738,11 @@ function HedgeTable({ book, showForm, setShowForm }: { book: "CANADA" | "US"; sh
 
           <div className="flex justify-end gap-2">
             <button type="button" onClick={cancelForm}
-              className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">
+              className={btnCancel}>
               Cancel
             </button>
             <button type="submit" disabled={submitting || filledRows.length === 0}
-              className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+              className={btnPrimary}>
               {submitting ? "Saving\u2026" : `Book ${filledRows.length} Hedge${filledRows.length !== 1 ? "s" : ""}`}
             </button>
           </div>
@@ -840,11 +841,11 @@ function HedgeTable({ book, showForm, setShowForm }: { book: "CANADA" | "US"; sh
 
           <div className="flex justify-end gap-2">
             <button type="button" onClick={cancelForm}
-              className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">
+              className={btnCancel}>
               Cancel
             </button>
             <button type="submit" disabled={submitting}
-              className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+              className={btnPrimary}>
               {submitting ? "Saving\u2026" : "Update Hedge"}
             </button>
           </div>
@@ -955,7 +956,7 @@ export default function HedgesPage() {
         </div>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white text-sm font-medium rounded-lg transition-colors"
+          className={btnPrimary}
         >
           {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showForm ? "Cancel" : "Book Hedge"}

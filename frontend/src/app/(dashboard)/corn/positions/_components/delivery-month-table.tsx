@@ -98,7 +98,7 @@ export function DeliveryMonthTable({
               <div className="bg-input-bg/20 animate-slide-down">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-input-bg/40">
+                    <tr className="bg-tbl-header">
                       <th className={colHeaderCls}>Ref</th>
                       <th className={colHeaderCls}>Side</th>
                       <th className={colHeaderCls}>Lots</th>
@@ -177,7 +177,7 @@ export function DeliveryMonthTable({
                       );
                     })}
                     {/* Group summary */}
-                    <tr className="border-t border-b-default bg-input-bg/40 font-semibold text-xs">
+                    <tr className="border-t border-b-default bg-tbl-header font-semibold text-xs">
                       <td className="px-4 py-1.5 text-faint" colSpan={2}>Total</td>
                       <td className="px-4 py-1.5 text-secondary tabular-nums">{g.items.reduce((s, i) => s + i.unallocatedLots, 0)}</td>
                       <td className="px-4 py-1.5 text-secondary tabular-nums">{fmtVol(g.unallocBu)}</td>

@@ -5,10 +5,12 @@ import {
   ChevronDown,
   ChevronRight,
   MapPinPlus,
+  ArrowRightLeft,
+  Plus,
   Undo2,
 } from "lucide-react";
-import type { MonthAllocationItem, SiteAllocationItem } from "@/hooks/useCorn";
-import { fmtVol, fmtPerBu, fmtPnl, pnlColor, inputCls, btnPrimary, btnSecondary } from "@/lib/corn-format";
+import type { HedgeBookItem, MonthAllocationItem, SiteAllocationItem } from "@/hooks/useCorn";
+import { fmtVol, fmtBu, fmtPerBu, fmtPnl, pnlColor, inputCls, btnPrimary, btnCancel } from "@/lib/corn-format";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/contexts/ToastContext";
 import { api } from "@/lib/api";
@@ -24,6 +26,7 @@ const colHeaderCls = "px-4 py-2 text-left text-xs font-semibold text-ph uppercas
 interface BudgetMonthTableProps {
   monthAllocations: MonthAllocationItem[];
   siteAllocations: SiteAllocationItem[];
+  hedgeBook: HedgeBookItem[];
   sites: SiteOption[];
   can: ReturnType<typeof usePermissions>["can"];
   onRefresh: () => void;
@@ -33,6 +36,7 @@ interface BudgetMonthTableProps {
 export function BudgetMonthTable({
   monthAllocations,
   siteAllocations,
+  hedgeBook,
   sites,
   can,
   onRefresh,
@@ -43,6 +47,15 @@ export function BudgetMonthTable({
   const [assigningId, setAssigningId] = useState<number | null>(null);
   const [assignSite, setAssignSite] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Allocate-from-budget-month state
+  const [allocMonth, setAllocMonth] = useState<string | null>(null);
+  const [allocHedgeId, setAllocHedgeId] = useState<string>("");
+  const [allocSite, setAllocSite] = useState("");
+  const [allocBushels, setAllocBushels] = useState("");
+  const [allocSaving, setAllocSaving] = useState(false);
+
+  const unallocatedHedges = hedgeBook.filter((h) => h.unallocatedLots > 0);
 
   const groups: BudgetMonthGroup[] = useMemo(() => {
     const map = new Map<string, { monthOnly: MonthAllocationItem[]; siteAssigned: SiteAllocationItem[] }>();
@@ -92,6 +105,49 @@ export function BudgetMonthTable({
     }
   }
 
+  function openAllocForm(budgetMonth: string) {
+    setAllocMonth(budgetMonth);
+    setAllocHedgeId("");
+    setAllocSite("");
+    setAllocBushels("");
+  }
+
+  function closeAllocForm() {
+    setAllocMonth(null);
+    setAllocHedgeId("");
+    setAllocSite("");
+    setAllocBushels("");
+  }
+
+  async function handleAllocate(budgetMonth: string) {
+    const hedge = unallocatedHedges.find((h) => String(h.hedgeTradeId) === allocHedgeId);
+    if (!hedge) { toast.toast("Select a hedge trade", "error"); return; }
+    if (!allocSite) { toast.toast("Select a site", "error"); return; }
+    const bu = parseInt(allocBushels);
+    if (!bu || bu <= 0) { toast.toast("Enter bushels", "error"); return; }
+    if (bu > hedge.unallocatedBushels) {
+      toast.toast(`Max ${fmtBu(hedge.unallocatedBushels)} bu available`, "error");
+      return;
+    }
+    const lots = Math.round(bu / 5000);
+    if (lots <= 0) { toast.toast("Min 5,000 bu (1 lot)", "error"); return; }
+    setAllocSaving(true);
+    try {
+      await api.post(`/api/v1/corn/hedges/${hedge.hedgeTradeId}/allocations`, {
+        siteCode: allocSite,
+        budgetMonth,
+        allocatedLots: lots,
+      });
+      toast.toast(`Allocated ${fmtBu(lots * 5000)} bu → ${allocSite} · ${fmtBudgetMonth(budgetMonth)}`, "success");
+      closeAllocForm();
+      onRefresh();
+    } catch (e: unknown) {
+      toast.toast((e as Error).message ?? "Allocation failed", "error");
+    } finally {
+      setAllocSaving(false);
+    }
+  }
+
   return (
     <div className="divide-y divide-b-default">
       {groups.length === 0 && (
@@ -122,14 +178,77 @@ export function BudgetMonthTable({
                 <span className="text-xs text-ph">
                   {g.siteAssigned.length} site-assigned
                 </span>
+                {can("allocate") && unallocatedHedges.length > 0 && (
+                  <span
+                    role="button"
+                    onClick={(e) => { e.stopPropagation(); openAllocForm(g.budgetMonth); }}
+                    className="flex items-center gap-1 px-2.5 py-1 bg-profit-20 hover:bg-profit-40 text-profit rounded-lg text-xs font-medium transition-colors"
+                  >
+                    <Plus className="h-3 w-3" /> Allocate
+                  </span>
+                )}
               </span>
             </button>
+
+            {/* Inline allocate form (shows even when collapsed) */}
+            {allocMonth === g.budgetMonth && (
+              <div className="bg-input-bg border-b border-b-default px-5 py-4 animate-slide-down">
+                <div className="flex items-center gap-2 mb-3">
+                  <ArrowRightLeft className="h-4 w-4 text-profit" />
+                  <span className="text-sm font-semibold text-profit">
+                    Allocate to {fmtBudgetMonth(g.budgetMonth)}
+                  </span>
+                </div>
+                <div className="flex items-end gap-3 flex-wrap">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-faint">Hedge Trade</label>
+                    <select value={allocHedgeId} onChange={(e) => { setAllocHedgeId(e.target.value); setAllocBushels(""); }} className={inputCls}>
+                      <option value="">Select trade&hellip;</option>
+                      {unallocatedHedges.map((h) => (
+                        <option key={h.hedgeTradeId} value={h.hedgeTradeId}>
+                          {h.tradeRef} · {h.futuresMonth} · {fmtBu(h.unallocatedBushels)} bu avail
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-faint">Site</label>
+                    <select value={allocSite} onChange={(e) => setAllocSite(e.target.value)} className={inputCls}>
+                      <option value="">Select site&hellip;</option>
+                      {sites.map((s) => (
+                        <option key={s.code} value={s.code}>{s.code} &middot; {s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-faint">Bushels</label>
+                    <input
+                      type="number"
+                      step={5000}
+                      min={5000}
+                      max={allocHedgeId ? unallocatedHedges.find((h) => String(h.hedgeTradeId) === allocHedgeId)?.unallocatedBushels : undefined}
+                      placeholder="e.g. 25000"
+                      value={allocBushels}
+                      onChange={(e) => setAllocBushels(e.target.value)}
+                      className={cn(inputCls, "w-36")}
+                    />
+                  </div>
+                  <div className="text-xs text-faint pb-1.5">
+                    {allocBushels ? `${Math.round(parseInt(allocBushels) / 5000)} lots` : ""}
+                  </div>
+                  <button onClick={() => handleAllocate(g.budgetMonth)} disabled={allocSaving || !allocHedgeId || !allocSite || !allocBushels} className={btnPrimary}>
+                    {allocSaving ? "Allocating\u2026" : "Allocate"}
+                  </button>
+                  <button onClick={closeAllocForm} className={btnCancel}>Cancel</button>
+                </div>
+              </div>
+            )}
 
             {isExpanded && (
               <div className="bg-input-bg/20 animate-slide-down">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-input-bg/40">
+                    <tr className="bg-tbl-header">
                       <th className={colHeaderCls}>Trade Ref</th>
                       <th className={colHeaderCls}>Side</th>
                       <th className={colHeaderCls}>ZC Month</th>
@@ -200,7 +319,7 @@ export function BudgetMonthTable({
                                   <button onClick={() => handleAssignSite(a.allocationId)} disabled={saving || !assignSite} className={btnPrimary}>
                                     {saving ? "Assigning\u2026" : "Assign"}
                                   </button>
-                                  <button onClick={() => setAssigningId(null)} className={btnSecondary}>Cancel</button>
+                                  <button onClick={() => setAssigningId(null)} className={btnCancel}>Cancel</button>
                                 </div>
                               </td>
                             </tr>

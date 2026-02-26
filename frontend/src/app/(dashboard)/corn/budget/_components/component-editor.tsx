@@ -90,7 +90,7 @@ export function ComponentEditor({ rows, onChange }: { rows: ComponentRow[]; onCh
               })}
             </tbody>
             <tfoot>
-              <tr className="bg-input-bg/40 border-t border-b-input">
+              <tr className="bg-tbl-header border-t border-b-input">
                 <td colSpan={3} className="px-3 py-2 text-xs text-faint text-right font-medium">All-in target</td>
                 <td className="px-3 py-2 text-right font-bold text-action tabular-nums text-sm">
                   {totalPerBu > 0 ? `$${totalPerBu.toFixed(4)}` : "\u2014"}

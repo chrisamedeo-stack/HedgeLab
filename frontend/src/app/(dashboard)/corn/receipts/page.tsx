@@ -7,6 +7,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatNumber } from "@/lib/format";
+import { btnPrimary, btnCancel } from "@/lib/corn-format";
 import { Package, Plus, X, Edit2, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ExportButton } from "@/components/ui/ExportButton";
@@ -163,7 +164,7 @@ export default function ReceiptsPage() {
           />
           <button
             onClick={() => showForm ? cancelForm() : setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white text-sm font-medium rounded-lg transition-colors"
+            className={btnPrimary}
           >
             {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {showForm ? "Cancel" : "Log Receipt"}
@@ -323,14 +324,14 @@ export default function ReceiptsPage() {
 
           <div className="flex justify-end gap-2">
             {editing && (
-              <button type="button" onClick={cancelForm} className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">
+              <button type="button" onClick={cancelForm} className={btnCancel}>
                 Cancel
               </button>
             )}
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              className={btnPrimary}
             >
               {submitting ? "Saving…" : editing ? "Update Receipt" : "Log Receipt"}
             </button>

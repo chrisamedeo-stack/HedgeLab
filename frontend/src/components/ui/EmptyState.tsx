@@ -1,4 +1,5 @@
 import { LucideIcon } from "lucide-react";
+import { btnPrimary } from "@/lib/corn-format";
 
 interface EmptyStateProps {
   icon: LucideIcon;
@@ -23,7 +24,7 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-4 px-4 py-2 text-sm font-medium bg-action hover:bg-action-hover text-white rounded-lg transition-colors"
+          className={`mt-4 ${btnPrimary}`}
         >
           {action.label}
         </button>

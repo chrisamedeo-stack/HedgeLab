@@ -5,7 +5,7 @@ import { Plus, X } from "lucide-react";
 import type { HedgeTradeResponse } from "@/hooks/useCorn";
 import { api } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
-import { inputCls } from "@/lib/corn-format";
+import { inputCls, btnPrimary, btnCancel } from "@/lib/corn-format";
 import { useToast } from "@/contexts/ToastContext";
 import { cn } from "@/lib/utils";
 import { ZC_MONTHS, BUSHELS_PER_LOT, type Book } from "./shared";
@@ -331,11 +331,11 @@ export function BookHedgeForm({ book, editing, onDone, onCancel }: BookHedgeForm
 
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onCancel}
-            className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">
+            className={btnCancel}>
             Cancel
           </button>
           <button type="submit" disabled={submitting || filledRows.length === 0}
-            className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+            className={btnPrimary}>
             {submitting ? "Saving\u2026" : `Book ${filledRows.length} Hedge${filledRows.length !== 1 ? "s" : ""}`}
           </button>
         </div>
@@ -436,11 +436,11 @@ export function BookHedgeForm({ book, editing, onDone, onCancel }: BookHedgeForm
 
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancel}
-          className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">
+          className={btnCancel}>
           Cancel
         </button>
         <button type="submit" disabled={submitting}
-          className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+          className={btnPrimary}>
           {submitting ? "Saving\u2026" : "Update Hedge"}
         </button>
       </div>

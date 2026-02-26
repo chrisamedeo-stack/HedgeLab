@@ -13,6 +13,7 @@ import { formatNumber } from "@/lib/format";
 import { FileText, Plus, ChevronDown, ChevronRight, Lock, X, Edit2, Trash2, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BUSHELS_PER_MT } from "@/lib/corn-utils";
+import { btnPrimary, btnCancel } from "@/lib/corn-format";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { toCsv, downloadCsv } from "@/lib/csv-export";
@@ -255,9 +256,9 @@ function ContractForm({ editing, onSaved, onCancel }: {
 
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancel}
-          className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">Cancel</button>
+          className={btnCancel}>Cancel</button>
         <button type="submit" disabled={submitting}
-          className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+          className={btnPrimary}>
           {submitting ? "Saving…" : editing ? "Update Contract" : "Create Contract"}
         </button>
       </div>
@@ -315,12 +316,12 @@ function LockBasisPanel({ contract, onDone }: { contract: PhysicalContractRespon
             className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
         </div>
         <button type="submit" disabled={submitting}
-          className="flex items-center gap-1.5 px-4 py-1.5 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+          className={btnPrimary}>
           <Lock className="h-3.5 w-3.5" />
           {submitting ? "Locking…" : "Lock Basis"}
         </button>
         <button type="button" onClick={onDone}
-          className="text-faint hover:text-secondary text-sm transition-colors">Cancel</button>
+          className={btnCancel}>Cancel</button>
       </div>
     </form>
   );
@@ -565,7 +566,7 @@ export default function ContractsPage() {
             {formMode === "fiscal-year" ? "Cancel" : "Full Year"}
           </button>
           <button onClick={() => { setEditing(undefined); setFormMode((m) => m === "single" ? "none" : "single"); }}
-            className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white text-sm font-medium rounded-lg transition-colors">
+            className={btnPrimary}>
             {formMode === "single" && !editing ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {formMode === "single" && !editing ? "Cancel" : "New Contract"}
           </button>

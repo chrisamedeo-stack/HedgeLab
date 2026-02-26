@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { Download } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { btnPrimary } from "@/lib/corn-format";
 
 interface ExportOption {
   label: string;
@@ -125,7 +127,7 @@ export default function ExportsPage() {
             <button
               onClick={() => handleDownload(opt)}
               disabled={loading === opt.label}
-              className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white rounded-lg text-sm font-medium disabled:opacity-50 whitespace-nowrap ml-4 transition-colors"
+              className={cn(btnPrimary, "whitespace-nowrap ml-4")}
             >
               <Download className="h-3.5 w-3.5" />
               {loading === opt.label ? "Downloading\u2026" : "Download"}

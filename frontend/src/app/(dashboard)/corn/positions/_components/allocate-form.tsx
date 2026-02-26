@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ArrowRightLeft, Plus, X } from "lucide-react";
 import type { HedgeBookItem } from "@/hooks/useCorn";
 import { api } from "@/lib/api";
-import { fmtBu, inputCls, btnPrimary, btnSecondary } from "@/lib/corn-format";
+import { fmtBu, inputCls, btnPrimary, btnCancel } from "@/lib/corn-format";
 import { useToast } from "@/contexts/ToastContext";
 import { cn } from "@/lib/utils";
 import type { SiteOption } from "./shared";
@@ -144,7 +144,7 @@ export function AllocateForm({ hedge, sites, onDone, onCancel }: AllocateFormPro
         <button onClick={handleSubmit} disabled={saving || totalBu <= 0 || totalBu > availBu} className={btnPrimary}>
           {saving ? "Allocating\u2026" : "Allocate"}
         </button>
-        <button onClick={onCancel} className={btnSecondary}>Cancel</button>
+        <button onClick={onCancel} className={btnCancel}>Cancel</button>
       </div>
     </div>
   );

@@ -43,7 +43,7 @@ import {
   today,
   inputCls,
   btnPrimary,
-  btnSecondary,
+  btnCancel,
   pnlColor,
 } from "@/lib/corn-format";
 import { TradeTypeBadge, ContractStatusBadge, SideBadge } from "@/components/ui/Badge";
@@ -149,7 +149,7 @@ function OffsetForm({
         <button onClick={handleSubmit} disabled={saving} className={btnPrimary}>
           {saving ? "Offsetting\u2026" : "Execute Offset"}
         </button>
-        <button onClick={onCancel} className={btnSecondary}>Cancel</button>
+        <button onClick={onCancel} className={btnCancel}>Cancel</button>
       </div>
     </div>
   );
@@ -303,7 +303,7 @@ function NewPurchaseForm({
         <button onClick={handleSubmit} disabled={saving} className={btnPrimary}>
           {saving ? "Creating\u2026" : "Create Purchase"}
         </button>
-        <button onClick={onCancel} className={btnSecondary}>Cancel</button>
+        <button onClick={onCancel} className={btnCancel}>Cancel</button>
       </div>
     </div>
   );
@@ -421,11 +421,11 @@ function EFPForm({
         </div>
       </div>
       <div className="flex gap-2">
-        <button onClick={handleSubmit} disabled={saving} className={cn(btnPrimary, "flex items-center gap-2")}>
+        <button onClick={handleSubmit} disabled={saving} className={btnPrimary}>
           <Zap className="h-3.5 w-3.5" />
           {saving ? "Executing\u2026" : "Execute EFP"}
         </button>
-        <button onClick={onCancel} className={btnSecondary}>Cancel</button>
+        <button onClick={onCancel} className={btnCancel}>Cancel</button>
       </div>
     </div>
   );
@@ -1046,14 +1046,14 @@ function MonthCoverageSummary({
 
   if (!summary) {
     return (
-      <div className="bg-input-bg/40 border border-b-input/50 rounded-lg px-5 py-4">
+      <div className="bg-tbl-header border border-b-input/50 rounded-lg px-5 py-4">
         <p className="text-sm text-faint">No budget data for {monthLabel(budgetMonth)}</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-input-bg/40 border border-b-input/50 rounded-lg px-5 py-4 space-y-3">
+    <div className="bg-tbl-header border border-b-input/50 rounded-lg px-5 py-4 space-y-3">
       <div className="grid grid-cols-4 gap-4">
         <div>
           <p className="text-xs text-faint uppercase tracking-wider mb-1">Budget</p>

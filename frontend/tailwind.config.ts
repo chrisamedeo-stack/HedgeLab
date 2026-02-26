@@ -104,6 +104,11 @@ const config: Config = {
         "neutral-15":  "var(--color-neutral-15)",
         "neutral-20":  "var(--color-neutral-20)",
 
+        /* Table */
+        "tbl-header": "var(--table-header)",
+        "tbl-stripe": "var(--table-stripe)",
+        "tbl-border": "var(--table-border)",
+
         /* Focus */
         focus: "var(--color-focus)",
 

@@ -126,7 +126,7 @@ export function BudgetTab({
 
             return (
               <div key={siteCode} className="bg-surface border border-b-default rounded-lg overflow-hidden">
-                <div className="px-4 py-3 bg-input-bg/40 border-b border-b-default flex items-center justify-between">
+                <div className="px-4 py-3 bg-tbl-header border-b border-b-default flex items-center justify-between">
                   <div>
                     <span className="text-sm font-semibold text-secondary">{siteName}</span>
                     <span className="ml-2 text-xs text-faint">{siteCode}</span>

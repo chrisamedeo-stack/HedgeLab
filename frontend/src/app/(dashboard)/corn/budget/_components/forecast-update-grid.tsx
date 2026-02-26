@@ -6,6 +6,7 @@ import { CornBudgetLineResponse } from "@/hooks/useCorn";
 import { api } from "@/lib/api";
 import { BUSHELS_PER_MT, monthLabel } from "@/lib/corn-utils";
 import { useToast } from "@/contexts/ToastContext";
+import { btnPrimary, btnCancel } from "@/lib/corn-format";
 import { fmtVol } from "./shared";
 
 export function ForecastUpdateGrid({ lines, onSaved, onCancel }: {
@@ -94,9 +95,9 @@ export function ForecastUpdateGrid({ lines, onSaved, onCancel }: {
       <div className="flex items-center justify-between">
         <p className="text-xs text-faint">{changedLines.length} month{changedLines.length !== 1 ? "s" : ""} changed</p>
         <div className="flex gap-2">
-          <button type="button" onClick={onCancel} className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">Cancel</button>
+          <button type="button" onClick={onCancel} className={btnCancel}>Cancel</button>
           <button type="submit" disabled={submitting || changedLines.length === 0}
-            className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+            className={btnPrimary}>
             {submitting ? "Saving\u2026" : `Update ${changedLines.length} forecast${changedLines.length !== 1 ? "s" : ""}`}
           </button>
         </div>

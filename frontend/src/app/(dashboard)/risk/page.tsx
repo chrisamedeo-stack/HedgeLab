@@ -7,6 +7,7 @@ import type { VaRResult } from "@/types/risk";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { ShieldAlert } from "lucide-react";
 import { chartTheme } from "@/lib/chart-theme";
+import { btnPrimary } from "@/lib/corn-format";
 
 export default function RiskPage() {
   const { alerts, isLoading } = useCreditAlerts();
@@ -127,7 +128,7 @@ export default function RiskPage() {
             <button
               onClick={calcVaR}
               disabled={varLoading}
-              className="px-4 py-2 bg-action hover:bg-action-hover text-white rounded-lg text-sm font-medium disabled:opacity-50"
+              className={btnPrimary}
             >
               {varLoading ? "Calculating\u2026" : "Calculate VaR"}
             </button>

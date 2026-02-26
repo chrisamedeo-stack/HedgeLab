@@ -13,6 +13,7 @@ import {
   monthLabel,
 } from "@/lib/corn-utils";
 import { useToast } from "@/contexts/ToastContext";
+import { btnPrimary, btnCancel } from "@/lib/corn-format";
 
 export function FiscalYearContractGrid({ onSaved, onCancel, fyStartMonth = 7 }: { onSaved: () => void; onCancel: () => void; fyStartMonth?: number }) {
   const { sites } = useSites();
@@ -214,7 +215,7 @@ export function FiscalYearContractGrid({ onSaved, onCancel, fyStartMonth = 7 }: 
       </div>
 
       {/* Default Volume */}
-      <div className="rounded-lg bg-input-bg/40 border border-b-input/50 px-4 py-3 space-y-1">
+      <div className="rounded-lg bg-tbl-header border border-b-input/50 px-4 py-3 space-y-1">
         <div className="flex items-center gap-2">
           <label className="text-xs text-muted whitespace-nowrap">Default volume:</label>
           <input type="number" placeholder="bushels" step="1" min="0" value={defaultVolume}
@@ -276,9 +277,9 @@ export function FiscalYearContractGrid({ onSaved, onCancel, fyStartMonth = 7 }: 
       </div>
 
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">Cancel</button>
+        <button type="button" onClick={onCancel} className={btnCancel}>Cancel</button>
         <button type="submit" disabled={submitting}
-          className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+          className={btnPrimary}>
           {submitting ? "Saving\u2026" : `Create ${filledCount} Contract${filledCount !== 1 ? "s" : ""}`}
         </button>
       </div>

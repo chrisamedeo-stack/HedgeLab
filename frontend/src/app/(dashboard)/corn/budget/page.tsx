@@ -16,6 +16,7 @@ import {
   currentFiscalYear,
 } from "@/lib/corn-utils";
 import { cn } from "@/lib/utils";
+import { btnPrimary } from "@/lib/corn-format";
 import { BudgetTab } from "./_components/budget-tab";
 import { ForecastTab } from "./_components/forecast-tab";
 import { BudgetVsCommittedChart } from "./_components/budget-vs-committed-chart";
@@ -85,7 +86,7 @@ export default function BudgetPage() {
                 <CalendarDays className="h-4 w-4" /> Full Year
               </button>
               <button onClick={() => { setFormMode("single"); setEditing(undefined); }}
-                className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white text-sm font-medium rounded-lg transition-colors">
+                className={btnPrimary}>
                 <Plus className="h-4 w-4" /> Add Month
               </button>
             </>

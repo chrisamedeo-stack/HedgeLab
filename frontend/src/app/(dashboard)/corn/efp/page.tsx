@@ -8,6 +8,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatNumber } from "@/lib/format";
+import { btnPrimary } from "@/lib/corn-format";
 import { ArrowLeftRight, Plus, X, Trash2 } from "lucide-react";
 import { useTableSort } from "@/hooks/useTableSort";
 import { SortableHeader } from "@/components/ui/SortableHeader";
@@ -141,7 +142,7 @@ export default function EFPPage() {
           />
           <button
             onClick={() => setShowForm((v) => !v)}
-            className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white text-sm font-medium rounded-lg transition-colors"
+            className={btnPrimary}
           >
             {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {showForm ? "Cancel" : "New EFP"}
@@ -289,7 +290,7 @@ export default function EFPPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              className={btnPrimary}
             >
               {submitting ? "Submitting…" : "Create EFP"}
             </button>

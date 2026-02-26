@@ -9,6 +9,7 @@ import {
   deriveFiscalYear,
 } from "@/lib/corn-utils";
 import { useToast } from "@/contexts/ToastContext";
+import { btnPrimary, btnCancel } from "@/lib/corn-format";
 import { COMMODITY_OPTIONS, ComponentRow } from "./shared";
 import { ComponentEditor } from "./component-editor";
 
@@ -123,9 +124,9 @@ export function BudgetLineForm({ siteCode: defaultSite, onSaved, onCancel, editi
           className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph" />
       </div>
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">Cancel</button>
+        <button type="button" onClick={onCancel} className={btnCancel}>Cancel</button>
         <button type="submit" disabled={submitting}
-          className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+          className={btnPrimary}>
           {submitting ? "Saving\u2026" : editing ? "Update" : "Create"}
         </button>
       </div>

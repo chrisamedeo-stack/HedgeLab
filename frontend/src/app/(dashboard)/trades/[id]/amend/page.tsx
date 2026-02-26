@@ -7,6 +7,7 @@ import { z } from "zod";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { ArrowLeft } from "lucide-react";
+import { btnPrimary } from "@/lib/corn-format";
 
 const schema = z.object({
   quantity:        z.coerce.number().positive().optional(),
@@ -86,7 +87,7 @@ export default function AmendTradePage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-4 py-2 bg-action hover:bg-action-hover text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+            className={btnPrimary}
           >
             {isSubmitting ? "Submitting\u2026" : "Submit Amendment"}
           </button>

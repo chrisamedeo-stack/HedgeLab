@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { btnCancel } from "@/lib/corn-format";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -63,7 +64,7 @@ export function ConfirmDialog({
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-muted hover:text-secondary transition-colors disabled:opacity-50"
+            className={cn(btnCancel, "disabled:opacity-50")}
           >
             Cancel
           </button>
@@ -72,7 +73,7 @@ export function ConfirmDialog({
             onClick={onConfirm}
             disabled={loading}
             className={cn(
-              "px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2",
+              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50",
               isDanger
                 ? "bg-destructive hover:bg-destructive-hover text-white"
                 : "bg-warning hover:bg-warning-hover text-white"

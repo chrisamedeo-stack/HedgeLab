@@ -31,6 +31,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { btnPrimary, btnCancel } from "@/lib/corn-format";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -253,7 +254,7 @@ function SitesTab() {
         <p className="text-sm text-muted">{sites.length} sites configured · click a row to manage linked suppliers and commodities</p>
         <button
           onClick={() => (showForm ? cancelForm() : setShowForm(true))}
-          className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white text-sm font-medium rounded-lg transition-colors"
+          className={btnPrimary}
         >
           {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showForm ? "Cancel" : "Add Site"}
@@ -310,10 +311,10 @@ function SitesTab() {
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={cancelForm} className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">
+            <button type="button" onClick={cancelForm} className={btnCancel}>
               Cancel
             </button>
-            <button type="submit" disabled={submitting} className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+            <button type="submit" disabled={submitting} className={btnPrimary}>
               {submitting ? "Saving..." : editing ? "Update Site" : "Create Site"}
             </button>
           </div>
@@ -489,7 +490,7 @@ function SuppliersTab() {
         <p className="text-sm text-muted">{suppliers.length} suppliers</p>
         <button
           onClick={() => (showForm ? cancelForm() : setShowForm(true))}
-          className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white text-sm font-medium rounded-lg transition-colors"
+          className={btnPrimary}
         >
           {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showForm ? "Cancel" : "Add Supplier"}
@@ -534,8 +535,8 @@ function SuppliersTab() {
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={cancelForm} className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">Cancel</button>
-            <button type="submit" disabled={submitting} className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+            <button type="button" onClick={cancelForm} className={btnCancel}>Cancel</button>
+            <button type="submit" disabled={submitting} className={btnPrimary}>
               {submitting ? "Saving..." : editing ? "Update" : "Create"}
             </button>
           </div>
@@ -697,7 +698,7 @@ function CommoditiesTab() {
         <p className="text-sm text-muted">{commodities.length} commodities</p>
         <button
           onClick={() => (showForm ? cancelForm() : setShowForm(true))}
-          className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white text-sm font-medium rounded-lg transition-colors"
+          className={btnPrimary}
         >
           {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           {showForm ? "Cancel" : "Add Commodity"}
@@ -764,8 +765,8 @@ function CommoditiesTab() {
               placeholder="Optional description" value={form.description} onChange={(e) => field("description", e.target.value)} />
           </div>
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={cancelForm} className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">Cancel</button>
-            <button type="submit" disabled={submitting} className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+            <button type="button" onClick={cancelForm} className={btnCancel}>Cancel</button>
+            <button type="submit" disabled={submitting} className={btnPrimary}>
               {submitting ? "Saving..." : editing ? "Update" : "Create"}
             </button>
           </div>
@@ -907,7 +908,7 @@ function FiscalYearTab() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+          className={btnPrimary}
         >
           {saving ? "Saving..." : "Save"}
         </button>
@@ -991,13 +992,13 @@ function FuturesMonthsTab() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted">CBOT ZC month codes mapped to physical delivery months</p>
         {!editMode ? (
-          <button onClick={startEdit} className="flex items-center gap-2 px-4 py-2 bg-action hover:bg-action-hover text-white text-sm font-medium rounded-lg transition-colors">
+          <button onClick={startEdit} className={btnPrimary}>
             <Edit2 className="h-4 w-4" /> Edit Mappings
           </button>
         ) : (
           <div className="flex items-center gap-2">
-            <button onClick={cancelEdit} className="px-4 py-2 text-muted hover:text-secondary text-sm transition-colors">Cancel</button>
-            <button onClick={handleSave} disabled={saving} className="px-5 py-2 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+            <button onClick={cancelEdit} className={btnCancel}>Cancel</button>
+            <button onClick={handleSave} disabled={saving} className={btnPrimary}>
               {saving ? "Saving..." : "Save Mappings"}
             </button>
           </div>

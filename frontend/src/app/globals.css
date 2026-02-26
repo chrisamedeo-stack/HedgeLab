@@ -17,6 +17,11 @@
   --border-default: #2B4362;  /* Sat 800 */
   --border-input:   #425A7C;  /* Sat 700 */
 
+  /* Table — gray tones from chart palette */
+  --table-header:    #151D28;  /* Dark charcoal — subtle header bg */
+  --table-stripe:    #0F1822;  /* Near-black — alternating rows */
+  --table-border:    #2A3444;  /* Charcoal — table cell borders */
+
   /* Text — Sat tints (light end) */
   --text-primary:     #F3F8FE; /* Sat 50 */
   --text-secondary:   #B3C0D3; /* Sat 300 */
@@ -27,9 +32,9 @@
   /* Semantic — StoneX core + functional colours */
   --color-primary:          #1383F4; /* Light Blue */
   --color-primary-hover:    #4A9DF7;
-  --color-profit:           #078A04; /* Green 500 */
-  --color-profit-hover:     #3AA838; /* Green 400 */
-  --color-loss:             #F14444; /* Red 400 */
+  --color-profit:           #4caf50; /* Green 500 */
+  --color-profit-hover:     #66bb6a; /* Green 400 */
+  --color-loss:             #e57373; /* Red 300 — soft red */
   --color-destructive:      #F14444; /* Red 400 */
   --color-destructive-hover:#F76C6C; /* Red 300 */
   --color-caution:          #D97706; /* Burnt Amber — low coverage */
@@ -44,11 +49,11 @@
   --color-primary-15: #1383F426;  --color-primary-20: #1383F433;
   --color-primary-30: #1383F44D;
 
-  /* Opacity variants — profit #078A04 */
-  --color-profit-5:  #078A040D;   --color-profit-10: #078A041A;
-  --color-profit-15: #078A0426;   --color-profit-20: #078A0433;
-  --color-profit-25: #078A0440;   --color-profit-30: #078A044D;
-  --color-profit-40: #078A0466;
+  /* Opacity variants — profit #4caf50 */
+  --color-profit-5:  #4caf500D;   --color-profit-10: #4caf501A;
+  --color-profit-15: #4caf5026;   --color-profit-20: #4caf5033;
+  --color-profit-25: #4caf5040;   --color-profit-30: #4caf504D;
+  --color-profit-40: #4caf5066;
 
   /* Opacity variants — destructive #F14444 */
   --color-destructive-5:  #F144440D;  --color-destructive-10: #F144441A;
@@ -71,9 +76,9 @@
   /* Opacity variants — neutral #7B90AE */
   --color-neutral-15: #7B90AE26;   --color-neutral-20: #7B90AE33;
 
-  /* Chart — Blue-dominant scale */
-  --chart-1: #1383F4;  --chart-2: #5BA8F7;  --chart-3: #0D1775;
-  --chart-4: #3B5FCC;  --chart-5: #89C4FB;  --chart-6: #F29E1A;
+  /* Chart — Blue/Gray palette */
+  --chart-1: #7089A5;  --chart-2: #7B8290;  --chart-3: #565C68;
+  --chart-4: #4A6585;  --chart-5: #8A9DB5;  --chart-6: #A66B17;
 }
 
 @layer base {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
-import { today, inputCls, btnPrimary, btnSecondary } from "@/lib/corn-format";
+import { today, inputCls, btnPrimary, btnCancel } from "@/lib/corn-format";
 import { cn } from "@/lib/utils";
 
 interface SettlePublisherProps {
@@ -75,7 +75,7 @@ export function SettlePublisher({ futuresMonths, existingSettles, onDone }: Sett
         <button onClick={handleSave} disabled={saving} className={btnPrimary}>
           {saving ? "Saving\u2026" : "Publish"}
         </button>
-        <button onClick={onDone} className={btnSecondary}>Cancel</button>
+        <button onClick={onDone} className={btnCancel}>Cancel</button>
       </div>
     </div>
   );

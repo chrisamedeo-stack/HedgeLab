@@ -19,7 +19,7 @@ export function ForecastHistoryTimeline({ budgetLineId }: { budgetLineId: number
       <div className="rounded-lg border border-b-default overflow-hidden">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-input-bg/40">
+            <tr className="bg-tbl-header">
               <th className="px-3 py-1.5 text-left text-faint font-medium">Date</th>
               <th className="px-3 py-1.5 text-left text-faint font-medium">By</th>
               <th className="px-3 py-1.5 text-right text-faint font-medium">Forecast Bu</th>

@@ -104,20 +104,17 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-primary">Dashboard</h1>
-          {viewLevel !== "company" && (
-            <div className="mt-1">
-              <DashboardBreadcrumb
-                viewLevel={viewLevel}
-                selectedCountry={selectedCountry}
-                selectedSiteName={selectedSiteName}
-                onNavigate={handleBreadcrumbNavigate}
-              />
-            </div>
-          )}
-        </div>
+        <h1 className="text-xl font-bold text-primary">Dashboard</h1>
       </div>
+
+      {viewLevel !== "company" && (
+        <DashboardBreadcrumb
+          viewLevel={viewLevel}
+          selectedCountry={selectedCountry}
+          selectedSiteName={selectedSiteName}
+          onNavigate={handleBreadcrumbNavigate}
+        />
+      )}
 
       {/* Show wizard if setup is incomplete */}
       {(!hasBudget || !hasPositions) && viewLevel === "company" && (
