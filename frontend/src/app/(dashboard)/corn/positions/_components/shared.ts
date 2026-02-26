@@ -1,0 +1,38 @@
+import type { HedgeBookItem, MonthAllocationItem, SiteAllocationItem } from "@/hooks/useCorn";
+
+// ─── Constants ──────────────────────────────────────────────────────────────
+
+export const ZC_MONTHS = [
+  "ZCH25","ZCK25","ZCN25","ZCU25","ZCZ25",
+  "ZCH26","ZCK26","ZCN26","ZCU26","ZCZ26",
+  "ZCH27","ZCK27","ZCN27","ZCU27","ZCZ27",
+];
+
+export const BUSHELS_PER_LOT = 5_000;
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+export type Book = "CANADA" | "US";
+
+export interface SiteOption {
+  code: string;
+  name: string;
+}
+
+export interface FuturesMonthGroup {
+  futuresMonth: string;
+  items: HedgeBookItem[];
+  totalBu: number;
+  unallocBu: number;
+  totalLots: number;
+  wtdAvgEntry: number;
+  totalMtm: number;
+}
+
+export interface BudgetMonthGroup {
+  budgetMonth: string;
+  monthOnly: MonthAllocationItem[];
+  siteAssigned: SiteAllocationItem[];
+  totalLots: number;
+  totalBu: number;
+}
