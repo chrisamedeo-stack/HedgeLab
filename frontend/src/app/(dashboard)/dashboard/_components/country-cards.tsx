@@ -17,7 +17,7 @@ interface CountryCardsProps {
 function coverageColor(pct: number) {
   if (pct >= 80) return "profit";
   if (pct >= 50) return "warning";
-  return "destructive";
+  return "warning";
 }
 
 export function CountryCards({ coverage, sites, hedgeBook, onSelectCountry }: CountryCardsProps) {
@@ -40,7 +40,6 @@ export function CountryCards({ coverage, sites, hedgeBook, onSelectCountry }: Co
             onClick={() => onSelectCountry(country)}
             className={cn(
               "bg-surface border rounded-lg p-5 text-left hover:border-action-30 transition-colors group",
-              highlight === "destructive" && "border-destructive-30",
               highlight === "warning" && "border-warning-30",
               highlight === "profit" && "border-profit-30",
               !highlight && "border-b-default"
@@ -55,7 +54,6 @@ export function CountryCards({ coverage, sites, hedgeBook, onSelectCountry }: Co
               </div>
               <span className={cn(
                 "text-2xl font-bold tabular-nums",
-                highlight === "destructive" ? "text-destructive" :
                 highlight === "warning" ? "text-warning" : "text-profit"
               )}>
                 {formatPct(agg.coveragePct)}
@@ -95,7 +93,6 @@ export function CountryCards({ coverage, sites, hedgeBook, onSelectCountry }: Co
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-500",
-                    highlight === "destructive" ? "bg-destructive" :
                     highlight === "warning" ? "bg-warning" : "bg-profit"
                   )}
                   style={{ width: `${Math.min(agg.coveragePct, 100)}%` }}

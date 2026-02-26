@@ -92,7 +92,7 @@ export function BudgetVsCommittedChart({ lines, coverage }: Props) {
             />
             <Legend wrapperStyle={{ fontSize: 11, color: "#94a3b8" }} />
             <Bar dataKey="budget" name="Budget" fill={chartTheme.primary} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="committed" name="Committed" fill={chartTheme.hedged} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="committed" name="Committed" fill={chartTheme.committed} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

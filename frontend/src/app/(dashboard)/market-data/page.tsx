@@ -64,7 +64,7 @@ export default function MarketDataPage() {
                   tickLine={false}
                 />
                 <Tooltip
-                  contentStyle={{ backgroundColor: chartTheme.tooltipBg, border: `1px solid ${chartTheme.tooltipBorder}`, borderRadius: "8px", color: chartTheme.tooltipText }}
+                  contentStyle={{ backgroundColor: chartTheme.tooltipBg, border: `1px solid ${chartTheme.tooltipBorder}`, borderRadius: "2px", color: chartTheme.tooltipText }}
                   formatter={(v: number) => [`$${v.toFixed(2)}`, "Price"]}
                   labelFormatter={(d) => `Date: ${d}`}
                 />

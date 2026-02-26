@@ -69,7 +69,7 @@ function formatCardValue(value: number, unit: string): string {
 
 function highlightForCard(value: number, unit: string): "profit" | "warning" | "destructive" | undefined {
   if (unit === "pct") {
-    return value >= 80 ? "profit" : value >= 50 ? "warning" : "destructive";
+    return value >= 80 ? "profit" : value >= 50 ? "warning" : "warning";
   }
   if (unit === "usd") {
     return value >= 0 ? "profit" : "destructive";
@@ -102,7 +102,7 @@ export function KpiRow(props: KpiRowProps) {
   const { totalBudgetBu, hedgeCoveragePct, openHedgeLots, activeContracts } = props;
   const coverageColor =
     hedgeCoveragePct >= 80 ? "profit" :
-    hedgeCoveragePct >= 50 ? "warning" : "destructive";
+    hedgeCoveragePct >= 50 ? "warning" : "warning";
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

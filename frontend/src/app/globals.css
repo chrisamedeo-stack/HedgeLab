@@ -27,11 +27,11 @@
   /* Semantic — StoneX core + functional colours */
   --color-primary:          #1383F4; /* Light Blue */
   --color-primary-hover:    #4A9DF7;
-  --color-profit:           #38A236; /* Green 400 */
-  --color-profit-hover:     #6AB968; /* Green 300 */
+  --color-profit:           #078A04; /* Green 500 */
+  --color-profit-hover:     #3AA838; /* Green 400 */
   --color-loss:             #F14444; /* Red 400 */
-  --color-destructive:      #EB0000; /* Red 500 */
-  --color-destructive-hover:#F14444; /* Red 400 */
+  --color-destructive:      #F14444; /* Red 400 */
+  --color-destructive-hover:#F76C6C; /* Red 300 */
   --color-warning:          #F29E1A; /* Orange 500 */
   --color-warning-hover:    #F5B148; /* Orange 400 */
   --color-accent:           #7B90AE; /* Sat 500 — visible on dark bg */
@@ -43,16 +43,16 @@
   --color-primary-15: #1383F426;  --color-primary-20: #1383F433;
   --color-primary-30: #1383F44D;
 
-  /* Opacity variants — profit #38A236 */
-  --color-profit-5:  #38A2360D;   --color-profit-10: #38A2361A;
-  --color-profit-15: #38A23626;   --color-profit-20: #38A23633;
-  --color-profit-25: #38A23640;   --color-profit-30: #38A2364D;
-  --color-profit-40: #38A23666;
+  /* Opacity variants — profit #078A04 */
+  --color-profit-5:  #078A040D;   --color-profit-10: #078A041A;
+  --color-profit-15: #078A0426;   --color-profit-20: #078A0433;
+  --color-profit-25: #078A0440;   --color-profit-30: #078A044D;
+  --color-profit-40: #078A0466;
 
-  /* Opacity variants — destructive #EB0000 */
-  --color-destructive-5:  #EB00000D;  --color-destructive-10: #EB00001A;
-  --color-destructive-15: #EB000026;  --color-destructive-20: #EB000033;
-  --color-destructive-30: #EB00004D;
+  /* Opacity variants — destructive #F14444 */
+  --color-destructive-5:  #F144440D;  --color-destructive-10: #F144441A;
+  --color-destructive-15: #F1444426;  --color-destructive-20: #F1444433;
+  --color-destructive-30: #F144444D;
 
   /* Opacity variants — warning #F29E1A */
   --color-warning-5:  #F29E1A0D;   --color-warning-10: #F29E1A1A;
@@ -66,9 +66,9 @@
   /* Opacity variants — neutral #7B90AE */
   --color-neutral-15: #7B90AE26;   --color-neutral-20: #7B90AE33;
 
-  /* Chart — StoneX high-contrast range */
-  --chart-1: #1383F4;  --chart-2: #0D1775;  --chart-3: #078A04;
-  --chart-4: #F29E1A;  --chart-5: #F36666;  --chart-6: #AA3377;
+  /* Chart — Blue-dominant scale */
+  --chart-1: #1383F4;  --chart-2: #5BA8F7;  --chart-3: #0D1775;
+  --chart-4: #3B5FCC;  --chart-5: #89C4FB;  --chart-6: #F29E1A;
 }
 
 @layer base {

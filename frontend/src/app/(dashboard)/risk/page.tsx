@@ -144,7 +144,7 @@ export default function RiskPage() {
                     <XAxis dataKey="name" tick={{ fontSize: 12, fill: chartTheme.tick }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 12, fill: chartTheme.tick }} tickFormatter={(v) => `$${v.toLocaleString()}`} axisLine={false} tickLine={false} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: chartTheme.tooltipBg, border: `1px solid ${chartTheme.tooltipBorder}`, borderRadius: "8px", color: chartTheme.tooltipText }}
+                      contentStyle={{ backgroundColor: chartTheme.tooltipBg, border: `1px solid ${chartTheme.tooltipBorder}`, borderRadius: "2px", color: chartTheme.tooltipText }}
                       formatter={(v: number) => [`$${v.toLocaleString()}`, "VaR"]}
                     />
                     <Bar dataKey="value" fill={chartTheme.primary} radius={[4, 4, 0, 0]} />

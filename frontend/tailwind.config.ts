@@ -9,6 +9,17 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    borderRadius: {
+      none: "0px",
+      sm: "2px",
+      DEFAULT: "2px",
+      md: "2px",
+      lg: "2px",
+      xl: "2px",
+      "2xl": "2px",
+      "3xl": "2px",
+      full: "9999px",
+    },
     extend: {
       colors: {
         brand: { DEFAULT: "#1383F4", dark: "#0D1775" },

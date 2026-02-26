@@ -11,10 +11,10 @@ interface SiteSummaryTableProps {
 }
 
 function pctColor(pct: number) {
-  return pct >= 80 ? "text-profit" : pct >= 50 ? "text-warning" : "text-destructive";
+  return pct >= 80 ? "text-profit" : pct >= 50 ? "text-warning" : "text-warning";
 }
 function barColor(pct: number) {
-  return pct >= 80 ? "bg-profit" : pct >= 50 ? "bg-warning" : "bg-destructive";
+  return pct >= 80 ? "bg-profit" : pct >= 50 ? "bg-warning" : "bg-warning";
 }
 
 const BUSHELS_PER_MT = 39.3683;
