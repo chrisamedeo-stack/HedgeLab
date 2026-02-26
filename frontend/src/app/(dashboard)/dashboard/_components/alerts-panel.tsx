@@ -12,7 +12,7 @@ interface AlertsPanelProps {
 }
 
 interface Alert {
-  type: "warning" | "info";
+  type: "danger" | "warning" | "info";
   message: string;
 }
 
@@ -31,7 +31,7 @@ export function AlertsPanel({ coverage, positions, contracts, filterSiteCodes }:
     for (const m of site.months ?? []) {
       if (m.coveragePct > 100) {
         alerts.push({
-          type: "warning",
+          type: "danger",
           message: `${site.siteName} is over-hedged in ${m.month} (${m.coveragePct.toFixed(0)}% coverage)`,
         });
       }
@@ -87,20 +87,24 @@ export function AlertsPanel({ coverage, positions, contracts, filterSiteCodes }:
             key={i}
             className={cn(
               "flex items-start gap-3 p-3 rounded-lg border",
-              alert.type === "warning"
-                ? "bg-warning-5 border-warning-20"
-                : "bg-action-5 border-action-20"
+              alert.type === "danger"  && "bg-destructive-5 border-destructive-20",
+              alert.type === "warning" && "bg-warning-5 border-warning-20",
+              alert.type === "info"    && "bg-action-5 border-action-20"
             )}
           >
             <AlertTriangle
               className={cn(
                 "h-4 w-4 shrink-0 mt-0.5",
-                alert.type === "warning" ? "text-warning" : "text-action"
+                alert.type === "danger"  && "text-destructive",
+                alert.type === "warning" && "text-warning",
+                alert.type === "info"    && "text-action"
               )}
             />
             <p className={cn(
               "text-sm",
-              alert.type === "warning" ? "text-warning" : "text-action"
+              alert.type === "danger"  && "text-destructive",
+              alert.type === "warning" && "text-warning",
+              alert.type === "info"    && "text-action"
             )}>
               {alert.message}
             </p>

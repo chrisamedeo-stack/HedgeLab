@@ -1,4 +1,5 @@
-import type { HedgeBookItem } from "@/hooks/useCorn";
+import { useMemo } from "react";
+import type { HedgeBookItem, SiteAllocationItem } from "@/hooks/useCorn";
 import { fmtPnl, fmtVol, pnlColor } from "@/lib/corn-format";
 import { cn } from "@/lib/utils";
 import { BUSHELS_PER_LOT } from "./shared";
@@ -6,9 +7,11 @@ import { BUSHELS_PER_LOT } from "./shared";
 interface PortfolioSummaryProps {
   hedgeBook: HedgeBookItem[];
   bookLabel: string;
+  siteAllocations?: SiteAllocationItem[];
+  unassignedBu?: number;
 }
 
-export function PortfolioSummary({ hedgeBook, bookLabel }: PortfolioSummaryProps) {
+export function PortfolioSummary({ hedgeBook, bookLabel, siteAllocations = [], unassignedBu = 0 }: PortfolioSummaryProps) {
   const portfolioMtm = hedgeBook.reduce((s, h) => s + (h.mtmPnlUsd ?? 0), 0);
   const totalBu = hedgeBook.reduce((s, h) => s + h.bushels, 0);
   const unallocBu = hedgeBook.reduce((s, h) => s + h.unallocatedBushels, 0);
@@ -24,6 +27,20 @@ export function PortfolioSummary({ hedgeBook, bookLabel }: PortfolioSummaryProps
   const shortBu = hedgeBook.filter((h) => h.side === "SHORT").reduce((s, h) => s + h.bushels, 0);
   const longLots = longBu / BUSHELS_PER_LOT;
   const shortLots = shortBu / BUSHELS_PER_LOT;
+
+  // Site breakdown from allocations
+  const siteSummary = useMemo(() => {
+    const map = new Map<string, { lots: number; bu: number }>();
+    for (const a of siteAllocations) {
+      const prev = map.get(a.siteCode) || { lots: 0, bu: 0 };
+      map.set(a.siteCode, { lots: prev.lots + a.allocatedLots, bu: prev.bu + a.allocatedBushels });
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([code, { lots, bu }]) => ({ code, lots, bu }));
+  }, [siteAllocations]);
+
+  const showSiteRow = siteSummary.length > 0 || unassignedBu > 0;
 
   return (
     <div className="bg-surface border border-b-default rounded-lg px-5 py-4 space-y-4">
@@ -43,6 +60,28 @@ export function PortfolioSummary({ hedgeBook, bookLabel }: PortfolioSummaryProps
         <Stat label="Allocated" value={`${fmtVol(allocBu)} bu`} />
         <Stat label="Unallocated" value={`${fmtVol(unallocBu)} bu`} className={unallocBu > 0 ? "text-warning" : undefined} />
       </div>
+
+      {/* Row 3: Site Breakdown */}
+      {showSiteRow && (
+        <div className="border-t border-b-default pt-4">
+          <p className="text-xs text-faint mb-2">Site Allocations</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {siteSummary.map((s) => (
+              <span key={s.code} className="inline-flex items-center gap-1.5 bg-input-bg text-secondary px-2.5 py-1 rounded text-xs font-mono">
+                <span className="font-semibold">{s.code}:</span>
+                {fmtVol(s.bu)} bu
+                <span className="text-faint">({fmtVol(s.lots)} lots)</span>
+              </span>
+            ))}
+            {unassignedBu > 0 && (
+              <span className="inline-flex items-center gap-1.5 bg-warning-15 text-warning px-2.5 py-1 rounded text-xs font-mono">
+                <span className="font-semibold">Unassigned:</span>
+                {fmtVol(unassignedBu)} bu
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

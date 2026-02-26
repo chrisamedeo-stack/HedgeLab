@@ -8,7 +8,7 @@ import {
   Undo2,
 } from "lucide-react";
 import type { MonthAllocationItem, SiteAllocationItem } from "@/hooks/useCorn";
-import { fmtVol, fmtPerBu, inputCls, btnPrimary, btnSecondary } from "@/lib/corn-format";
+import { fmtVol, fmtPerBu, fmtPnl, pnlColor, inputCls, btnPrimary, btnSecondary } from "@/lib/corn-format";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/contexts/ToastContext";
 import { api } from "@/lib/api";
@@ -62,7 +62,11 @@ export function BudgetMonthTable({
       .map(([budgetMonth, { monthOnly, siteAssigned }]) => {
         const totalLots = monthOnly.reduce((s, a) => s + a.allocatedLots, 0) + siteAssigned.reduce((s, a) => s + a.allocatedLots, 0);
         const totalBu = totalLots * 5000;
-        return { budgetMonth, monthOnly, siteAssigned, totalLots, totalBu };
+        const allAllocs = [...monthOnly, ...siteAssigned];
+        const sumWt = allAllocs.reduce((s, a) => s + a.allocatedLots * a.entryPrice, 0);
+        const sumLots = allAllocs.reduce((s, a) => s + a.allocatedLots, 0);
+        const vwap = sumLots > 0 ? sumWt / sumLots : 0;
+        return { budgetMonth, monthOnly, siteAssigned, totalLots, totalBu, vwap };
       })
       .sort((a, b) => a.budgetMonth.localeCompare(b.budgetMonth));
   }, [monthAllocations, siteAllocations]);
@@ -106,15 +110,18 @@ export function BudgetMonthTable({
               <span className="bg-accent-10 text-accent ring-1 ring-accent-20 px-2 py-0.5 rounded text-xs font-semibold">
                 {fmtBudgetMonth(g.budgetMonth)}
               </span>
-              <span className="text-sm text-secondary">{g.totalLots} lots</span>
-              <span className="text-sm text-faint">{fmtVol(g.totalBu)} bu</span>
-              {unassignedCount > 0 && (
-                <span className="bg-warning-15 text-warning ring-1 ring-warning-25 px-2 py-0.5 rounded text-xs font-medium">
-                  {unassignedCount} unassigned
+              <span className="text-sm text-secondary tabular-nums">{g.totalLots} lots</span>
+              <span className="text-sm text-faint tabular-nums">&middot; {fmtVol(g.totalBu)} bu</span>
+              <span className="text-sm text-faint tabular-nums">&middot; ${g.vwap.toFixed(4)}/bu</span>
+              <span className="ml-auto flex items-center gap-2">
+                {unassignedCount > 0 && (
+                  <span className="bg-warning-15 text-warning ring-1 ring-warning-25 px-2 py-0.5 rounded text-xs font-medium">
+                    {unassignedCount} unassigned
+                  </span>
+                )}
+                <span className="text-xs text-ph">
+                  {g.siteAssigned.length} site-assigned
                 </span>
-              )}
-              <span className="text-xs text-ph ml-auto">
-                {g.siteAssigned.length} site-assigned
               </span>
             </button>
 
@@ -129,6 +136,8 @@ export function BudgetMonthTable({
                       <th className={colHeaderCls}>Lots</th>
                       <th className={colHeaderCls}>Bushels</th>
                       <th className={colHeaderCls}>Entry $/bu</th>
+                      <th className={colHeaderCls}>Settle $/bu</th>
+                      <th className={colHeaderCls}>MTM P&amp;L</th>
                       <th className={colHeaderCls}>Site</th>
                       <th className={colHeaderCls} />
                     </tr>
@@ -148,6 +157,8 @@ export function BudgetMonthTable({
                             <td className="px-4 py-2 text-secondary tabular-nums">{a.allocatedLots}</td>
                             <td className="px-4 py-2 text-secondary tabular-nums">{fmtVol(a.allocatedBushels)}</td>
                             <td className="px-4 py-2 text-secondary font-mono tabular-nums">{fmtPerBu(a.entryPrice)}</td>
+                            <td className="px-4 py-2 text-faint">&mdash;</td>
+                            <td className="px-4 py-2 text-faint">&mdash;</td>
                             <td className="px-4 py-2">
                               <span className="italic text-warning text-xs">Unassigned</span>
                             </td>
@@ -175,7 +186,7 @@ export function BudgetMonthTable({
                           </tr>
                           {isAssigning && (
                             <tr className="border-t border-b-default">
-                              <td colSpan={8} className="px-4 py-3">
+                              <td colSpan={10} className="px-4 py-3">
                                 <div className="flex items-end gap-3">
                                   <div className="flex flex-col gap-1">
                                     <label className="text-xs text-faint">Site</label>
@@ -209,6 +220,8 @@ export function BudgetMonthTable({
                         <td className="px-4 py-2 text-secondary tabular-nums">{a.allocatedLots}</td>
                         <td className="px-4 py-2 text-secondary tabular-nums">{fmtVol(a.allocatedBushels)}</td>
                         <td className="px-4 py-2 text-secondary font-mono tabular-nums">{fmtPerBu(a.entryPrice)}</td>
+                        <td className="px-4 py-2 text-secondary font-mono tabular-nums">{fmtPerBu(a.settlePrice)}</td>
+                        <td className={cn("px-4 py-2 font-mono tabular-nums", pnlColor(a.mtmPnlUsd))}>{fmtPnl(a.mtmPnlUsd)}</td>
                         <td className="px-4 py-2">
                           <span className="bg-input-bg text-secondary px-2 py-0.5 rounded text-xs font-mono">{a.siteCode}</span>
                         </td>

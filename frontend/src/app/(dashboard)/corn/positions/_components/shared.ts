@@ -44,4 +44,5 @@ export interface BudgetMonthGroup {
   siteAssigned: SiteAllocationItem[];
   totalLots: number;
   totalBu: number;
+  vwap: number;
 }

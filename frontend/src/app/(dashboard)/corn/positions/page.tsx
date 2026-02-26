@@ -56,7 +56,9 @@ export default function PositionsPage() {
   const allocations = positions?.siteAllocations   ?? [];
   const monthAllocs = positions?.monthAllocations  ?? [];
   const settles     = positions?.latestSettles     ?? {};
-  const siteOptions = sites.map((s) => ({ code: s.code, name: s.name }));
+  const siteOptions = sites
+    .filter((s) => book === "CANADA" ? s.country === "Canada" : s.country === "US")
+    .map((s) => ({ code: s.code, name: s.name }));
   const bookLabel   = book === "CANADA" ? "Canada" : "US";
 
   const allFuturesMonths = useMemo(() => {
@@ -214,7 +216,12 @@ export default function PositionsPage() {
       </div>
 
       {/* Portfolio MTM Summary */}
-      <PortfolioSummary hedgeBook={hedgeBook} bookLabel={bookLabel} />
+      <PortfolioSummary
+        hedgeBook={hedgeBook}
+        bookLabel={bookLabel}
+        siteAllocations={allocations}
+        unassignedBu={monthAllocs.reduce((s, a) => s + a.allocatedBushels, 0)}
+      />
 
       {/* MTM P&L Chart */}
       <MtmPnlChart hedgeBook={hedgeBook} />
