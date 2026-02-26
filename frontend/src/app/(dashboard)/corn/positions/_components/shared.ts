@@ -10,6 +10,15 @@ export const ZC_MONTHS = [
 
 export const BUSHELS_PER_LOT = 5_000;
 
+const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+/** "2025-07" → "Jul 25" */
+export function fmtBudgetMonth(ym: string): string {
+  const [y, m] = ym.split("-");
+  const mi = parseInt(m, 10) - 1;
+  return `${MONTH_SHORT[mi] ?? m} ${y.slice(2)}`;
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export type Book = "CANADA" | "US";

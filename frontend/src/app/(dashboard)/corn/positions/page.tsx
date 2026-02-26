@@ -31,7 +31,7 @@ import { SettlePublisher } from "./_components/settle-publisher";
 import { BookHedgeForm } from "./_components/book-hedge-form";
 import { PortfolioSummary } from "./_components/portfolio-summary";
 import { MtmPnlChart } from "./_components/mtm-pnl-chart";
-import { ContractMonthTable } from "./_components/contract-month-table";
+import { DeliveryMonthTable } from "./_components/delivery-month-table";
 import { BudgetMonthTable } from "./_components/budget-month-table";
 
 export default function PositionsPage() {
@@ -219,27 +219,26 @@ export default function PositionsPage() {
       {/* MTM P&L Chart */}
       <MtmPnlChart hedgeBook={hedgeBook} />
 
-      {/* ═══════════════ CONTRACT MONTH SECTION ═══════════════ */}
+      {/* ═══════════════ DELIVERY MONTH SECTION ═══════════════ */}
       <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
         <div className="px-5 py-4 border-b border-b-default flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-secondary">
-              Contract Month &middot; {bookLabel}
+              Delivery Month &middot; {bookLabel}
             </h2>
             <p className="text-xs text-faint mt-0.5">
-              {hedgeBook.length} trade{hedgeBook.length !== 1 ? "s" : ""} &middot; grouped by futures month
+              Unallocated trades &middot; grouped by futures month
             </p>
           </div>
           <span className="text-xs text-ph">Click to expand</span>
         </div>
-        <ContractMonthTable
-          hedgeBook={hedgeBook}
+        <DeliveryMonthTable
+          hedgeBook={hedgeBook.filter((h) => h.unallocatedLots > 0)}
           sites={siteOptions}
           can={can}
           onRefresh={() => mutate()}
           onEdit={handleEdit}
           onDelete={(id) => setDeleteTarget(id)}
-          onUndoAllocation={handleUndoAllocation}
         />
       </div>
 

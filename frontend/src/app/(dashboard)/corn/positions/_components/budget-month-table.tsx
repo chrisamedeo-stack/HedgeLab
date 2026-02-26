@@ -5,7 +5,7 @@ import {
   ChevronDown,
   ChevronRight,
   MapPinPlus,
-  Trash2,
+  Undo2,
 } from "lucide-react";
 import type { MonthAllocationItem, SiteAllocationItem } from "@/hooks/useCorn";
 import { fmtVol, fmtPerBu, inputCls, btnPrimary, btnSecondary } from "@/lib/corn-format";
@@ -14,13 +14,10 @@ import { useToast } from "@/contexts/ToastContext";
 import { api } from "@/lib/api";
 import { SideBadge } from "@/components/ui/Badge";
 import type { SiteOption, BudgetMonthGroup } from "./shared";
+import { fmtBudgetMonth } from "./shared";
 import type { usePermissions } from "./permissions";
 
-// ─── Column group header styles ─────────────────────────────────────────────
-
-const groupHeaderCls = "px-4 py-1.5 text-[10px] font-bold text-faint uppercase tracking-widest bg-input-bg/60 border-b border-b-input";
 const colHeaderCls = "px-4 py-2 text-left text-xs font-semibold text-ph uppercase tracking-wider whitespace-nowrap";
-const groupBorderR = "border-r border-b-input/30";
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -106,8 +103,8 @@ export function BudgetMonthTable({
               className="w-full flex items-center gap-4 px-5 py-3 hover:bg-row-hover transition-colors text-left"
             >
               {isExpanded ? <ChevronDown className="h-4 w-4 text-faint" /> : <ChevronRight className="h-4 w-4 text-faint" />}
-              <span className="bg-accent-10 text-accent ring-1 ring-accent-20 px-2 py-0.5 rounded text-xs font-mono font-semibold">
-                {g.budgetMonth}
+              <span className="bg-accent-10 text-accent ring-1 ring-accent-20 px-2 py-0.5 rounded text-xs font-semibold">
+                {fmtBudgetMonth(g.budgetMonth)}
               </span>
               <span className="text-sm text-secondary">{g.totalLots} lots</span>
               <span className="text-sm text-faint">{fmtVol(g.totalBu)} bu</span>
@@ -125,24 +122,14 @@ export function BudgetMonthTable({
               <div className="bg-input-bg/20 animate-slide-down">
                 <table className="w-full text-sm">
                   <thead>
-                    {/* Group header row */}
-                    <tr>
-                      <th colSpan={3} className={cn(groupHeaderCls, groupBorderR)}>Trade Info</th>
-                      <th colSpan={3} className={cn(groupHeaderCls, groupBorderR)}>Allocation</th>
-                      <th colSpan={1} className={cn(groupHeaderCls, groupBorderR)}>Pricing</th>
-                      <th colSpan={1} className={cn(groupHeaderCls, groupBorderR)}>Site</th>
-                      <th colSpan={1} className={groupHeaderCls}>Actions</th>
-                    </tr>
-                    {/* Column header row */}
                     <tr className="bg-input-bg/40">
                       <th className={colHeaderCls}>Trade Ref</th>
-                      <th className={colHeaderCls}>Direction</th>
-                      <th className={cn(colHeaderCls, groupBorderR)}>Trade Date</th>
+                      <th className={colHeaderCls}>Side</th>
                       <th className={colHeaderCls}>ZC Month</th>
                       <th className={colHeaderCls}>Lots</th>
-                      <th className={cn(colHeaderCls, groupBorderR)}>Bushels</th>
-                      <th className={cn(colHeaderCls, groupBorderR)}>Entry $/bu</th>
-                      <th className={cn(colHeaderCls, groupBorderR)}>Site</th>
+                      <th className={colHeaderCls}>Bushels</th>
+                      <th className={colHeaderCls}>Entry $/bu</th>
+                      <th className={colHeaderCls}>Site</th>
                       <th className={colHeaderCls} />
                     </tr>
                   </thead>
@@ -153,25 +140,17 @@ export function BudgetMonthTable({
                       return (
                         <Fragment key={`mo-${a.allocationId}`}>
                           <tr className="border-t border-b-default hover:bg-row-hover transition-colors bg-warning-5">
-                            {/* Trade Info */}
                             <td className="px-4 py-2 font-mono text-secondary text-xs">{a.tradeRef}</td>
-                            <td className="px-4 py-2">
-                              <SideBadge side={a.side || "LONG"} />
-                            </td>
-                            <td className={cn("px-4 py-2 text-faint text-xs font-mono", groupBorderR)}>{a.tradeDate}</td>
-                            {/* Allocation */}
+                            <td className="px-4 py-2"><SideBadge side={a.side || "LONG"} /></td>
                             <td className="px-4 py-2">
                               <span className="bg-action-10 text-action ring-1 ring-action-20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
                             </td>
                             <td className="px-4 py-2 text-secondary tabular-nums">{a.allocatedLots}</td>
-                            <td className={cn("px-4 py-2 text-secondary tabular-nums", groupBorderR)}>{fmtVol(a.allocatedBushels)}</td>
-                            {/* Pricing */}
-                            <td className={cn("px-4 py-2 text-secondary font-mono tabular-nums", groupBorderR)}>{fmtPerBu(a.entryPrice)}</td>
-                            {/* Site */}
-                            <td className={cn("px-4 py-2", groupBorderR)}>
+                            <td className="px-4 py-2 text-secondary tabular-nums">{fmtVol(a.allocatedBushels)}</td>
+                            <td className="px-4 py-2 text-secondary font-mono tabular-nums">{fmtPerBu(a.entryPrice)}</td>
+                            <td className="px-4 py-2">
                               <span className="italic text-warning text-xs">Unassigned</span>
                             </td>
-                            {/* Actions */}
                             <td className="px-4 py-2">
                               <div className="flex gap-1">
                                 {can("assign-site") && (
@@ -185,10 +164,10 @@ export function BudgetMonthTable({
                                 {can("undo-allocation") && (
                                   <button
                                     onClick={() => onUndoAllocation(a.allocationId, a.tradeRef)}
-                                    className="flex items-center gap-1 px-2.5 py-1 bg-hover/50 hover:bg-destructive/30 text-secondary hover:text-destructive rounded-lg text-xs font-medium transition-colors"
-                                    title="Remove allocation"
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-hover/50 hover:bg-warning/20 text-secondary hover:text-warning rounded-lg text-xs font-medium transition-colors"
+                                    title="Undo allocation"
                                   >
-                                    <Trash2 className="h-3 w-3" />
+                                    <Undo2 className="h-3 w-3" />
                                   </button>
                                 )}
                               </div>
@@ -196,7 +175,7 @@ export function BudgetMonthTable({
                           </tr>
                           {isAssigning && (
                             <tr className="border-t border-b-default">
-                              <td colSpan={9} className="px-4 py-3">
+                              <td colSpan={8} className="px-4 py-3">
                                 <div className="flex items-end gap-3">
                                   <div className="flex flex-col gap-1">
                                     <label className="text-xs text-faint">Site</label>
@@ -222,33 +201,25 @@ export function BudgetMonthTable({
                     {/* Site-assigned allocations */}
                     {g.siteAssigned.map((a) => (
                       <tr key={`sa-${a.allocationId}`} className="border-t border-b-default hover:bg-row-hover transition-colors">
-                        {/* Trade Info */}
                         <td className="px-4 py-2 font-mono text-secondary text-xs">{a.tradeRef}</td>
-                        <td className="px-4 py-2">
-                          <SideBadge side={a.side || "LONG"} />
-                        </td>
-                        <td className={cn("px-4 py-2 text-faint text-xs font-mono", groupBorderR)}>{a.tradeDate}</td>
-                        {/* Allocation */}
+                        <td className="px-4 py-2"><SideBadge side={a.side || "LONG"} /></td>
                         <td className="px-4 py-2">
                           <span className="bg-action-10 text-action ring-1 ring-action-20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
                         </td>
                         <td className="px-4 py-2 text-secondary tabular-nums">{a.allocatedLots}</td>
-                        <td className={cn("px-4 py-2 text-secondary tabular-nums", groupBorderR)}>{fmtVol(a.allocatedBushels)}</td>
-                        {/* Pricing */}
-                        <td className={cn("px-4 py-2 text-secondary font-mono tabular-nums", groupBorderR)}>{fmtPerBu(a.entryPrice)}</td>
-                        {/* Site */}
-                        <td className={cn("px-4 py-2", groupBorderR)}>
+                        <td className="px-4 py-2 text-secondary tabular-nums">{fmtVol(a.allocatedBushels)}</td>
+                        <td className="px-4 py-2 text-secondary font-mono tabular-nums">{fmtPerBu(a.entryPrice)}</td>
+                        <td className="px-4 py-2">
                           <span className="bg-input-bg text-secondary px-2 py-0.5 rounded text-xs font-mono">{a.siteCode}</span>
                         </td>
-                        {/* Actions */}
                         <td className="px-4 py-2">
                           {can("undo-allocation") && (
                             <button
                               onClick={() => onUndoAllocation(a.allocationId, a.tradeRef)}
-                              className="flex items-center gap-1 px-2.5 py-1 bg-hover/50 hover:bg-destructive/30 text-secondary hover:text-destructive rounded-lg text-xs font-medium transition-colors"
-                              title="Remove allocation"
+                              className="flex items-center gap-1 px-2.5 py-1 bg-hover/50 hover:bg-warning/20 text-secondary hover:text-warning rounded-lg text-xs font-medium transition-colors"
+                              title="Undo allocation"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Undo2 className="h-3 w-3" />
                             </button>
                           )}
                         </td>
