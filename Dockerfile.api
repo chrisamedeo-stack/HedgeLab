@@ -1,0 +1,22 @@
+# Stage 1: Build
+FROM eclipse-temurin:21-jdk-alpine AS build
+RUN apk add --no-cache maven
+WORKDIR /workspace
+
+# Copy POMs first for dependency caching
+COPY pom.xml .
+COPY common-domain/pom.xml common-domain/pom.xml
+COPY api-server/pom.xml api-server/pom.xml
+RUN mvn dependency:go-offline -pl api-server -am -q || true
+
+# Copy source and build
+COPY common-domain/src common-domain/src
+COPY api-server/src api-server/src
+RUN mvn -pl api-server -am package -DskipTests -q
+
+# Stage 2: Run
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+COPY --from=build /workspace/api-server/target/api-server-*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]

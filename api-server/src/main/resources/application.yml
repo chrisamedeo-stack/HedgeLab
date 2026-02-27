@@ -61,7 +61,7 @@ hedgelab:
   pricing:
     default-scale: 6
   security:
-    jwt-secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+    jwt-secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
     jwt-expiration-ms: 86400000
   market-data:
     api-key: ${COMMODITY_API_KEY:}
