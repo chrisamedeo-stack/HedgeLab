@@ -30,18 +30,24 @@ export interface ForwardPoint {
   forwardPrice: string;
 }
 
-export function useDailyPrices(priceIndexId: number | null, days = 90) {
-  const { data, error } = useSWR<DailyPrice[]>(
-    priceIndexId != null ? `/api/v1/market-data/prices/${priceIndexId}?days=${days}` : null,
-    (url: string) => api.get<DailyPrice[]>(url),
+export function useDailyPrices(indexCode: string | null, days = 90) {
+  const to = new Date().toISOString().slice(0, 10);
+  const from = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+  const { data, error } = useSWR<DailyPriceResponse>(
+    indexCode ? `/api/v1/market-data/prices/${indexCode}/history?from=${from}&to=${to}` : null,
+    (url: string) => api.get<DailyPriceResponse>(url),
     { refreshInterval: 300_000 }
   );
-  return { prices: data ?? [], isLoading: !data && !error, error };
+  const prices = Array.isArray(data) ? data : [];
+  return { prices, isLoading: !data && !error, error };
 }
 
-export function useForwardCurve(priceIndexId: number | null) {
+type DailyPriceResponse = DailyPrice[] | DailyPrice;
+
+export function useForwardCurve(indexCode: string | null) {
+  const today = new Date().toISOString().slice(0, 10);
   const { data, error } = useSWR<ForwardPoint[]>(
-    priceIndexId != null ? `/api/v1/market-data/forward-curve/${priceIndexId}` : null,
+    indexCode ? `/api/v1/market-data/forward-curves/${indexCode}?curveDate=${today}` : null,
     (url: string) => api.get<ForwardPoint[]>(url),
     { refreshInterval: 300_000 }
   );

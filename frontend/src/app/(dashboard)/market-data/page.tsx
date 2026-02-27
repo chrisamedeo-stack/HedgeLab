@@ -11,10 +11,9 @@ export default function MarketDataPage() {
   const { indices } = usePriceIndices();
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const activeCode = selectedCode ?? indices[0]?.indexCode ?? null;
-  const activeId = indices.find((i) => i.indexCode === activeCode)?.id ?? null;
 
-  const { prices } = useDailyPrices(activeId, 90);
-  const { curve }  = useForwardCurve(activeId);
+  const { prices } = useDailyPrices(activeCode, 90);
+  const { curve }  = useForwardCurve(activeCode);
   const { fetchPrices, loading: fetchLoading, error: fetchError } = usePriceFetch();
   const { mutate } = useSWRConfig();
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
