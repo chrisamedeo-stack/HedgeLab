@@ -148,7 +148,7 @@ export function DeliveryMonthTable({
                                 {can("edit-hedge") && (
                                   <button
                                     onClick={() => onEdit(h.hedgeTradeId)}
-                                    className="flex items-center gap-1 px-2.5 py-1 bg-hover/50 hover:bg-hover text-secondary rounded-lg text-xs font-medium transition-colors"
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-input-bg hover:bg-hover border border-b-input text-secondary text-xs rounded-lg transition-colors"
                                     title="Edit trade"
                                   >
                                     <Edit2 className="h-3 w-3" />
@@ -157,7 +157,7 @@ export function DeliveryMonthTable({
                                 {can("delete-hedge") && h.allocatedLots === 0 && (
                                   <button
                                     onClick={() => onDelete(h.hedgeTradeId)}
-                                    className="flex items-center gap-1 px-2.5 py-1 bg-hover/50 hover:bg-destructive/30 text-secondary hover:text-destructive rounded-lg text-xs font-medium transition-colors"
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-input-bg hover:bg-destructive/20 border border-b-input text-secondary hover:text-destructive text-xs rounded-lg transition-colors"
                                     title="Delete trade"
                                   >
                                     <Trash2 className="h-3 w-3" />

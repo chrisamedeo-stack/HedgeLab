@@ -182,7 +182,7 @@ export function BudgetMonthTable({
                   <span
                     role="button"
                     onClick={(e) => { e.stopPropagation(); openAllocForm(g.budgetMonth); }}
-                    className="flex items-center gap-1 px-2.5 py-1 bg-profit-20 hover:bg-profit-40 text-profit rounded-lg text-xs font-medium transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1 bg-input-bg hover:bg-hover border border-b-input text-secondary text-xs rounded-lg transition-colors"
                   >
                     <Plus className="h-3 w-3" /> Allocate
                   </span>
@@ -294,7 +294,7 @@ export function BudgetMonthTable({
                                 {can("undo-allocation") && (
                                   <button
                                     onClick={() => onUndoAllocation(a.allocationId, a.tradeRef)}
-                                    className="flex items-center gap-1 px-2.5 py-1 bg-hover/50 hover:bg-warning/20 text-secondary hover:text-warning rounded-lg text-xs font-medium transition-colors"
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-input-bg hover:bg-warning/20 border border-b-input text-secondary hover:text-warning text-xs rounded-lg transition-colors"
                                     title="Undo allocation"
                                   >
                                     <Undo2 className="h-3 w-3" />
@@ -348,7 +348,7 @@ export function BudgetMonthTable({
                           {can("undo-allocation") && (
                             <button
                               onClick={() => onUndoAllocation(a.allocationId, a.tradeRef)}
-                              className="flex items-center gap-1 px-2.5 py-1 bg-hover/50 hover:bg-warning/20 text-secondary hover:text-warning rounded-lg text-xs font-medium transition-colors"
+                              className="flex items-center gap-1 px-2.5 py-1 bg-input-bg hover:bg-warning/20 border border-b-input text-secondary hover:text-warning text-xs rounded-lg transition-colors"
                               title="Undo allocation"
                             >
                               <Undo2 className="h-3 w-3" />

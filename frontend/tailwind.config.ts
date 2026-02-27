@@ -27,6 +27,7 @@ const config: Config = {
         /* Surfaces */
         main:       "var(--bg-main)",
         surface:    "var(--bg-surface)",
+        sidebar:    "var(--bg-sidebar)",
         overlay:    "var(--bg-overlay)",
         "input-bg": "var(--bg-input)",
         hover:      "var(--bg-hover)",

@@ -5,22 +5,23 @@
 :root {
   /* ── StoneX Digital Style Guide V1.0 ─────────────────────────────────────── */
 
-  /* Surfaces — Midnight Blue + Saturated tints */
-  --bg-main:       #040C17;   /* Midnight Blue */
-  --bg-surface:    #0D1C30;   /* Sat 1000 */
+  /* Surfaces — lighter canvas, darker cards, darkest sidebar */
+  --bg-main:       #0D1C30;   /* Sat 1000 — lighter canvas */
+  --bg-surface:    #040C17;   /* Midnight Blue — dark cards/tables */
+  --bg-sidebar:    #020812;   /* Deepest — sidebar panel */
   --bg-overlay:    #1A2E49;   /* Sat 900 */
-  --bg-input:      #121F30;   /* Dark-theme container fill */
-  --bg-hover:      #1A2E49;   /* Sat 900 */
-  --bg-row-hover:  #1A2E4960; /* Sat 900 @ 38% */
+  --bg-input:      #0A1525;   /* Between surface & main — input fields */
+  --bg-hover:      #162842;   /* Sat 900 tint — hover on dark cards */
+  --bg-row-hover:  #162842A0; /* Hover @ 63% */
 
   /* Borders — Sat tints */
   --border-default: #2B4362;  /* Sat 800 */
   --border-input:   #425A7C;  /* Sat 700 */
 
-  /* Table — gray tones from chart palette */
-  --table-header:    #151D28;  /* Dark charcoal — subtle header bg */
-  --table-stripe:    #0F1822;  /* Near-black — alternating rows */
-  --table-border:    #2A3444;  /* Charcoal — table cell borders */
+  /* Table — sits inside dark surface cards */
+  --table-header:    #081220;  /* Darkest — header bg */
+  --table-stripe:    #060E1B;  /* Near-black — alternating rows */
+  --table-border:    #1A2A40;  /* Subtle — table cell borders */
 
   /* Text — Sat tints (light end) */
   --text-primary:     #F3F8FE; /* Sat 50 */

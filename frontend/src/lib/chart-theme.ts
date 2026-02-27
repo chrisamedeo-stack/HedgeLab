@@ -10,12 +10,12 @@ export const chartTheme = {
   tooltipBorder: "#1565c0",
   tooltipText:   "#e1f5fe",
 
-  // Data series — blue gradient
-  primary:   "#1e88e5",       // Blue 600 — main bar
-  accent:    "#64b5f6",       // Blue 300 — secondary / EFP
-  hedged:    "#1e88e5",       // Blue 600 — hedged volume
-  committed: "#0d47a1",       // Blue 900 — committed
-  unhedged:  "#42a5f5",       // Blue 400 — gap
+  // Data series — blue gradient (wide spread for contrast)
+  primary:   "#1565c0",       // Blue 800 — main bar
+  accent:    "#90caf9",       // Blue 200 — secondary / EFP
+  hedged:    "#1565c0",       // Blue 800 — hedged volume (dark)
+  committed: "#0d47a1",       // Blue 900 — committed (darkest)
+  unhedged:  "#90caf9",       // Blue 200 — gap (light, clearly different)
 
   // Semantic — warm accents that pop against the blue family
   profit:  "#4caf50",         // Green 500 — positive P&L
@@ -25,11 +25,11 @@ export const chartTheme = {
   budget:  "#A66B17",         // Burnt Amber — budget target line
 } as const;
 
-// Ordered palette for multi-series charts
+// Ordered palette for multi-series charts (max contrast between neighbours)
 export const chartPalette = [
-  "#1e88e5", // 1 — Blue 600 (vibrant)
-  "#0d47a1", // 2 — Deep Navy
-  "#42a5f5", // 3 — Sky Blue
-  "#1565c0", // 4 — Blue 800
-  "#64b5f6", // 5 — Blue 300
+  "#1565c0", // 1 — Blue 800 (dark)
+  "#90caf9", // 2 — Blue 200 (light)
+  "#0d47a1", // 3 — Deep Navy
+  "#42a5f5", // 4 — Sky Blue
+  "#1e88e5", // 5 — Blue 600
 ] as const;

@@ -529,13 +529,13 @@ function SiteAllocationsTable({
                         <>
                           <button
                             onClick={() => { setEfpAllocId(isEfp ? null : a.allocationId); setOffsetAllocId(null); }}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-hover/50 hover:bg-hover text-secondary rounded-lg text-xs font-medium transition-colors"
+                            className="flex items-center gap-1 px-2.5 py-1 bg-input-bg hover:bg-hover border border-b-input text-secondary text-xs rounded-lg transition-colors"
                           >
                             <Zap className="h-3 w-3" /> EFP
                           </button>
                           <button
                             onClick={() => { setOffsetAllocId(isOffset ? null : a.allocationId); setEfpAllocId(null); }}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-hover/50 hover:bg-hover text-secondary rounded-lg text-xs font-medium transition-colors"
+                            className="flex items-center gap-1 px-2.5 py-1 bg-input-bg hover:bg-hover border border-b-input text-secondary text-xs rounded-lg transition-colors"
                           >
                             <X className="h-3 w-3" /> Offset
                           </button>
@@ -1388,7 +1388,7 @@ export default function SitesPage() {
           </div>
           <button
             onClick={() => setNewPurchaseOpen((o) => !o)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-hover/50 hover:bg-hover text-secondary rounded-lg text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-input-bg hover:bg-hover border border-b-input text-secondary rounded-lg text-xs font-medium transition-colors"
           >
             <Plus className="h-3.5 w-3.5" /> New Purchase
           </button>

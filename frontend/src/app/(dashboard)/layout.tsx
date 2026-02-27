@@ -115,7 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Sidebar */}
       <aside
         className={cn(
-          "bg-surface border-r border-b-default flex flex-col shrink-0 transition-all duration-200 ease-in-out",
+          "bg-sidebar border-r border-b-default flex flex-col shrink-0 transition-all duration-200 ease-in-out",
           collapsed ? "w-16" : "w-60"
         )}
       >
