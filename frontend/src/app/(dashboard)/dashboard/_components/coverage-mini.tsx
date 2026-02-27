@@ -12,15 +12,15 @@ interface CoverageMiniProps {
 }
 
 function barColor(pct: number) {
-  if (pct >= 80) return "bg-action";
-  if (pct >= 50) return "bg-warning";
-  return "bg-caution";
+  if (pct >= 80) return "bg-profit";
+  if (pct >= 40) return "bg-warning";
+  return "bg-loss";
 }
 
 function pctColor(pct: number) {
-  if (pct >= 80) return "text-action";
-  if (pct >= 50) return "text-warning";
-  return "text-caution";
+  if (pct >= 80) return "text-profit";
+  if (pct >= 40) return "text-warning";
+  return "text-loss";
 }
 
 export function CoverageMini({ coverage, filterCountry, sites }: CoverageMiniProps) {
