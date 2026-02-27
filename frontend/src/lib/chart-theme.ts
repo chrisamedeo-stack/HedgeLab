@@ -17,6 +17,10 @@ export const chartTheme = {
   committed: "#0d47a1",       // Blue 900 — committed (darkest)
   unhedged:  "#bbdefb",       // Blue 100 — gap (pale ice-blue, clearly lighter)
 
+  // Coverage series
+  board:     "#1565c0",       // Blue 800 — Board Price (futures + physical)
+  basis:     "#4caf50",       // Green 500 — Basis locked (EFP)
+
   // Semantic — warm accents that pop against the blue family
   profit:  "#4caf50",         // Green 500 — positive P&L
   loss:    "#e57373",         // Red 300 — soft red, negative P&L

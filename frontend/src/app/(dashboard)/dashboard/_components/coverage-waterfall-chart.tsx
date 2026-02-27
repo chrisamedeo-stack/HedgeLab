@@ -48,19 +48,17 @@ export function CoverageWaterfallChart({ coverage, filterSiteCodes }: Props) {
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
 
   const allData = useMemo(() => {
-    const buckets = new Map<string, { month: string; hedged: number; gap: number; budget: number }>();
+    const buckets = new Map<string, { month: string; board: number; basis: number; budget: number }>();
     const filtered = filterSiteCodes
       ? coverage.filter((c) => filterSiteCodes.includes(c.siteCode))
       : coverage;
 
     for (const site of filtered) {
       for (const m of site.months ?? []) {
-        const existing = buckets.get(m.month) ?? { month: m.month, hedged: 0, gap: 0, budget: 0 };
-        const budBu = (m.budgetedMt ?? 0) * BUSHELS_PER_MT;
-        const hedBu = (m.hedgedMt ?? 0) * BUSHELS_PER_MT;
-        existing.hedged += hedBu;
-        existing.budget += budBu;
-        existing.gap += Math.max(0, budBu - hedBu);
+        const existing = buckets.get(m.month) ?? { month: m.month, board: 0, basis: 0, budget: 0 };
+        existing.budget += (m.budgetedMt ?? 0) * BUSHELS_PER_MT;
+        existing.board += (m.hedgedMt ?? 0) * BUSHELS_PER_MT;
+        existing.basis += (m.efpdMt ?? 0) * BUSHELS_PER_MT;
         buckets.set(m.month, existing);
       }
     }
@@ -69,8 +67,9 @@ export function CoverageWaterfallChart({ coverage, filterSiteCodes }: Props) {
       .sort((a, b) => a.month.localeCompare(b.month))
       .map((d) => ({
         ...d,
+        open: Math.max(0, d.budget - d.board - d.basis),
         label: monthLabel(d.month),
-        coveragePct: d.budget > 0 ? Math.round((d.hedged / d.budget) * 100) : 0,
+        coveragePct: d.budget > 0 ? Math.round(((d.board + d.basis) / d.budget) * 100) : 0,
       }));
   }, [coverage, filterSiteCodes]);
 
@@ -154,8 +153,9 @@ export function CoverageWaterfallChart({ coverage, filterSiteCodes }: Props) {
               }}
             />
             <Legend wrapperStyle={{ fontSize: 10, color: chartTheme.tick }} />
-            <Bar yAxisId="volume" dataKey="hedged" name="Hedged" stackId="cov" fill={chartTheme.hedged} radius={[0, 0, 0, 0]} />
-            <Bar yAxisId="volume" dataKey="gap" name="Unhedged" stackId="cov" fill={chartTheme.unhedged} radius={[2, 2, 0, 0]} />
+            <Bar yAxisId="volume" dataKey="board" name="Board Price" stackId="cov" fill={chartTheme.board} />
+            <Bar yAxisId="volume" dataKey="basis" name="Basis" stackId="cov" fill={chartTheme.basis} />
+            <Bar yAxisId="volume" dataKey="open" name="Open" stackId="cov" fill={chartTheme.unhedged} fillOpacity={0.25} radius={[2, 2, 0, 0]} />
             <Line
               yAxisId="pct"
               dataKey="coveragePct"

@@ -2,9 +2,8 @@
 
 import { useMemo } from "react";
 import {
-  ComposedChart,
+  BarChart,
   Bar,
-  Line,
   XAxis,
   YAxis,
   Tooltip,
@@ -31,22 +30,25 @@ interface Props {
 
 export function CoverageStackedChart({ coverage }: Props) {
   const data = useMemo(() => {
-    const buckets = new Map<string, { month: string; budget: number; hedged: number; committed: number; efpd: number }>();
+    const buckets = new Map<string, { month: string; budget: number; board: number; basis: number }>();
 
     for (const site of coverage) {
       for (const m of site.months ?? []) {
-        const existing = buckets.get(m.month) ?? { month: m.month, budget: 0, hedged: 0, committed: 0, efpd: 0 };
+        const existing = buckets.get(m.month) ?? { month: m.month, budget: 0, board: 0, basis: 0 };
         existing.budget += (m.budgetedMt ?? 0) * BUSHELS_PER_MT;
-        existing.hedged += (m.hedgedMt ?? 0) * BUSHELS_PER_MT;
-        existing.committed += (m.committedMt ?? 0) * BUSHELS_PER_MT;
-        existing.efpd += (m.efpdMt ?? 0) * BUSHELS_PER_MT;
+        existing.board += (m.hedgedMt ?? 0) * BUSHELS_PER_MT;
+        existing.basis += (m.efpdMt ?? 0) * BUSHELS_PER_MT;
         buckets.set(m.month, existing);
       }
     }
 
     return Array.from(buckets.values())
       .sort((a, b) => a.month.localeCompare(b.month))
-      .map((d) => ({ ...d, label: monthLabel(d.month) }));
+      .map((d) => ({
+        ...d,
+        open: Math.max(0, d.budget - d.board - d.basis),
+        label: monthLabel(d.month),
+      }));
   }, [coverage]);
 
   if (data.length === 0) {
@@ -71,7 +73,7 @@ export function CoverageStackedChart({ coverage }: Props) {
       </h3>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+          <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
             <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" />
             <XAxis dataKey="label" tick={{ fontSize: 10, fill: chartTheme.tick }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 10, fill: chartTheme.tick }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
@@ -81,11 +83,10 @@ export function CoverageStackedChart({ coverage }: Props) {
               labelFormatter={(label: string) => label}
             />
             <Legend wrapperStyle={{ fontSize: 11, color: chartTheme.tick }} />
-            <Bar dataKey="hedged" name="Hedged" stackId="cov" fill={chartTheme.hedged} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="committed" name="Committed" stackId="cov" fill={chartTheme.committed} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="efpd" name="EFP" stackId="cov" fill={chartTheme.accent} radius={[2, 2, 0, 0]} />
-            <Line dataKey="budget" name="Budget Target" type="stepAfter" stroke={chartTheme.budget} strokeWidth={2} strokeDasharray="6 3" dot={false} />
-          </ComposedChart>
+            <Bar dataKey="board" name="Board Price" stackId="cov" fill={chartTheme.board} />
+            <Bar dataKey="basis" name="Basis" stackId="cov" fill={chartTheme.basis} />
+            <Bar dataKey="open" name="Open" stackId="cov" fill={chartTheme.unhedged} fillOpacity={0.25} radius={[2, 2, 0, 0]} />
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </div>
