@@ -15,9 +15,9 @@ interface CountryCardsProps {
 }
 
 function coverageColor(pct: number) {
-  if (pct >= 80) return "action";
-  if (pct >= 50) return "warning";
-  return "caution";
+  if (pct >= 80) return "profit";
+  if (pct >= 40) return "warning";
+  return "loss";
 }
 
 export function CountryCards({ coverage, sites, hedgeBook, onSelectCountry }: CountryCardsProps) {
@@ -40,9 +40,9 @@ export function CountryCards({ coverage, sites, hedgeBook, onSelectCountry }: Co
             onClick={() => onSelectCountry(country)}
             className={cn(
               "bg-surface border rounded-lg p-5 text-left hover:border-action-30 transition-colors group",
-              highlight === "action" && "border-action-30",
+              highlight === "profit" && "border-profit-30",
               highlight === "warning" && "border-warning-30",
-              highlight === "caution" && "border-caution-30",
+              highlight === "loss" && "border-loss/30",
             )}
           >
             <div className="flex items-center justify-between mb-4">
@@ -54,8 +54,8 @@ export function CountryCards({ coverage, sites, hedgeBook, onSelectCountry }: Co
               </div>
               <span className={cn(
                 "text-2xl font-bold tabular-nums",
-                highlight === "action" ? "text-action" :
-                highlight === "caution" ? "text-caution" : "text-warning"
+                highlight === "profit" ? "text-profit" :
+                highlight === "loss" ? "text-loss" : "text-warning"
               )}>
                 {formatPct(agg.coveragePct)}
               </span>
@@ -94,8 +94,8 @@ export function CountryCards({ coverage, sites, hedgeBook, onSelectCountry }: Co
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-500",
-                    highlight === "action" ? "bg-action" :
-                    highlight === "caution" ? "bg-caution" : "bg-warning"
+                    highlight === "profit" ? "bg-profit" :
+                    highlight === "loss" ? "bg-loss" : "bg-warning"
                   )}
                   style={{ width: `${Math.min(agg.coveragePct, 100)}%` }}
                 />

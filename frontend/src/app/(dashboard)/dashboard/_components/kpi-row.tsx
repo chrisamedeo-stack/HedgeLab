@@ -103,8 +103,8 @@ export function KpiRow(props: KpiRowProps) {
   // Legacy path
   const { totalBudgetBu, hedgeCoveragePct, openHedgeLots, activeContracts } = props;
   const coverageColor: Highlight =
-    hedgeCoveragePct >= 80 ? "action" :
-    hedgeCoveragePct >= 50 ? "warning" : "caution";
+    hedgeCoveragePct >= 80 ? "profit" :
+    hedgeCoveragePct >= 40 ? "warning" : "caution";
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
