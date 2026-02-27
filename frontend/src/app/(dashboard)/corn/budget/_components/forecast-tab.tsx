@@ -96,7 +96,7 @@ export function ForecastTab({
             <p className="text-xs text-faint uppercase tracking-wider mb-1">Forecast vs Budget</p>
             <p className={cn("text-2xl font-bold tabular-nums",
               totalVariance == null ? "text-primary"
-              : totalVariance < 0 ? "text-destructive"
+              : totalVariance < 0 ? "text-loss"
               : totalVariance > 0 ? "text-profit"
               : "text-primary")}>
               {totalVariance != null
@@ -194,7 +194,7 @@ export function ForecastTab({
                       </td>
                       <td className="px-4 py-2 text-right tabular-nums text-xs font-medium">
                         {hasVariance ? (
-                          <span className={siteVarianceMt < 0 ? "text-destructive" : siteVarianceMt > 0 ? "text-profit" : "text-faint"}>
+                          <span className={siteVarianceMt < 0 ? "text-loss" : siteVarianceMt > 0 ? "text-profit" : "text-faint"}>
                             {siteVarianceMt > 0 ? "+" : ""}{fmtVol(Math.round(siteVarianceMt * BUSHELS_PER_MT))}
                           </span>
                         ) : ""}

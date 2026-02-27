@@ -141,7 +141,7 @@ function OffsetForm({
         </div>
       </div>
       {pnlPreview != null && (
-        <div className={cn("text-xs mb-3 font-medium", pnlPreview >= 0 ? "text-profit" : "text-destructive")}>
+        <div className={cn("text-xs mb-3 font-medium", pnlPreview >= 0 ? "text-profit" : "text-loss")}>
           P&L Preview: {fmtPnl(pnlPreview)} ({lots} lots)
         </div>
       )}

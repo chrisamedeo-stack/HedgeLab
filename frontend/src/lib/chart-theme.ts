@@ -10,12 +10,12 @@ export const chartTheme = {
   tooltipBorder: "#1565c0",
   tooltipText:   "#e1f5fe",
 
-  // Data series — blue gradient (wide spread for contrast)
+  // Data series — blue scale (dark vs pale for max contrast)
   primary:   "#1565c0",       // Blue 800 — main bar
   accent:    "#90caf9",       // Blue 200 — secondary / EFP
-  hedged:    "#1565c0",       // Blue 800 — hedged volume (dark)
+  hedged:    "#1565c0",       // Blue 800 — hedged volume (dark, solid)
   committed: "#0d47a1",       // Blue 900 — committed (darkest)
-  unhedged:  "#90caf9",       // Blue 200 — gap (light, clearly different)
+  unhedged:  "#bbdefb",       // Blue 100 — gap (pale ice-blue, clearly lighter)
 
   // Semantic — warm accents that pop against the blue family
   profit:  "#4caf50",         // Green 500 — positive P&L

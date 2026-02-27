@@ -42,7 +42,7 @@ export function ForecastRow({ line, onUpdated }: {
         <td className="px-4 py-3 text-right">
           {line.forecastVarianceMt != null ? (
             <span className={cn("tabular-nums text-xs font-medium",
-              line.forecastVarianceMt < 0 ? "text-destructive" : line.forecastVarianceMt > 0 ? "text-profit" : "text-faint")}>
+              line.forecastVarianceMt < 0 ? "text-loss" : line.forecastVarianceMt > 0 ? "text-profit" : "text-faint")}>
               {line.forecastVarianceMt > 0 ? "+" : ""}{fmtVol(Math.round(line.forecastVarianceMt * BUSHELS_PER_MT))}
             </span>
           ) : <span className="text-ph text-xs">&mdash;</span>}
