@@ -1,5 +1,23 @@
+import { useCallback, useState } from "react";
 import useSWR from "swr";
 import { api } from "@/lib/api";
+
+export interface PriceIndex {
+  id: number;
+  indexCode: string;
+  displayName: string;
+  commodityCode: string;
+  currency: string;
+  active: boolean;
+}
+
+export function usePriceIndices() {
+  const { data, error } = useSWR<PriceIndex[]>(
+    "/api/v1/market-data/indices",
+    (url: string) => api.get<PriceIndex[]>(url),
+  );
+  return { indices: data ?? [], isLoading: !data && !error, error };
+}
 
 export interface DailyPrice {
   priceDate: string;
@@ -28,4 +46,36 @@ export function useForwardCurve(priceIndexId: number | null) {
     { refreshInterval: 300_000 }
   );
   return { curve: data ?? [], isLoading: !data && !error, error };
+}
+
+export interface PriceFetchResult {
+  status: string;
+  published?: number;
+  failures?: string[];
+  reason?: string;
+}
+
+export function usePriceFetch() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<PriceFetchResult | null>(null);
+
+  const fetchPrices = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await api.post<PriceFetchResult>("/api/v1/market-data/prices/fetch", {});
+      setResult(res);
+      return res;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to fetch prices";
+      setError(msg);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { fetchPrices, loading, error, result };
 }

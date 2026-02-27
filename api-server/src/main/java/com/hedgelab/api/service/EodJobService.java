@@ -23,6 +23,7 @@ public class EodJobService {
     private final ValuationService valuationService;
     private final RiskService riskService;
     private final AuditLogService auditLogService;
+    private final PriceFeedService priceFeedService;
 
     @Value("${hedgelab.scheduling.timezone:America/New_York}")
     private String timezone;
@@ -111,5 +112,28 @@ public class EodJobService {
                 "startedAt", start.toString(),
                 "status", "completed"
         );
+    }
+
+    /**
+     * Live price feed — runs at 16:30 ET Mon-Fri, before EOD valuation.
+     */
+    @Scheduled(cron = "${hedgelab.scheduling.price-feed-cron}", zone = "${hedgelab.scheduling.timezone}")
+    public Map<String, Object> runPriceFeed() {
+        log.info("[EOD] Starting scheduled price feed");
+        Instant start = Instant.now();
+        try {
+            Map<String, Object> result = priceFeedService.fetchAndPublishLatest();
+            int published = result.containsKey("published") ? (int) result.get("published") : 0;
+            log.info("[EOD] Price feed complete — {} prices published", published);
+            auditLogService.log("System", null, AuditAction.SCHEDULE_RUN, null, null,
+                    "Price feed — " + published + " prices published");
+            result = new java.util.HashMap<>(result);
+            result.put("jobName", "price-feed");
+            result.put("startedAt", start.toString());
+            return result;
+        } catch (Exception e) {
+            log.error("[EOD] Price feed failed: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 }

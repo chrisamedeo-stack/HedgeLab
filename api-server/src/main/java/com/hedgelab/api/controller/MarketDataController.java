@@ -6,6 +6,7 @@ import com.hedgelab.api.dto.response.DailyPriceResponse;
 import com.hedgelab.api.dto.response.ForwardCurveResponse;
 import com.hedgelab.api.dto.response.PriceIndexResponse;
 import com.hedgelab.api.service.MarketDataService;
+import com.hedgelab.api.service.PriceFeedService;
 import com.hedgelab.api.service.PriceIndexService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +31,7 @@ public class MarketDataController {
 
     private final MarketDataService marketDataService;
     private final PriceIndexService priceIndexService;
+    private final PriceFeedService priceFeedService;
 
     // --- Price Index endpoints ---
 
@@ -116,5 +118,21 @@ public class MarketDataController {
             @PathVariable String indexCode,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate curveDate) {
         return marketDataService.getForwardCurve(indexCode, curveDate);
+    }
+
+    // --- Price Feed endpoints ---
+
+    @PostMapping("/prices/fetch")
+    @Operation(summary = "Trigger immediate price fetch from external API")
+    public Map<String, Object> fetchPrices() {
+        return priceFeedService.fetchAndPublishLatest();
+    }
+
+    @PostMapping("/prices/backfill")
+    @Operation(summary = "Backfill historical prices from external API")
+    public Map<String, Object> backfillPrices(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return priceFeedService.backfillHistory(from, to);
     }
 }

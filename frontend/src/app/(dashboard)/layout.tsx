@@ -69,6 +69,12 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    label: "Market",
+    items: [
+      { href: "/market-data", label: "Market Data", icon: TrendingUp },
+    ],
+  },
+  {
     label: "Admin",
     items: [
       { href: "/settings", label: "Settings", icon: Settings },

@@ -1,22 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import { useDailyPrices, useForwardCurve } from "@/hooks/useMarketData";
+import { usePriceIndices, useDailyPrices, useForwardCurve, usePriceFetch } from "@/hooks/useMarketData";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, RefreshCw } from "lucide-react";
 import { chartTheme } from "@/lib/chart-theme";
-
-const PRICE_INDICES = [
-  { id: 1, name: "Brent Crude" },
-  { id: 2, name: "WTI Crude" },
-  { id: 3, name: "Henry Hub Gas" },
-  { id: 4, name: "EUA Carbon" },
-];
+import { useSWRConfig } from "swr";
 
 export default function MarketDataPage() {
-  const [selectedIndex, setSelectedIndex] = useState(1);
-  const { prices } = useDailyPrices(selectedIndex, 90);
-  const { curve }  = useForwardCurve(selectedIndex);
+  const { indices } = usePriceIndices();
+  const [selectedCode, setSelectedCode] = useState<string | null>(null);
+  const activeCode = selectedCode ?? indices[0]?.indexCode ?? null;
+  const activeId = indices.find((i) => i.indexCode === activeCode)?.id ?? null;
+
+  const { prices } = useDailyPrices(activeId, 90);
+  const { curve }  = useForwardCurve(activeId);
+  const { fetchPrices, loading: fetchLoading, error: fetchError } = usePriceFetch();
+  const { mutate } = useSWRConfig();
+  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+
+  const handleRefresh = async () => {
+    setFeedbackMsg(null);
+    try {
+      const res = await fetchPrices();
+      if (res?.status === "ok") {
+        setFeedbackMsg(`Fetched ${res.published} price(s)`);
+      } else if (res?.status === "skipped") {
+        setFeedbackMsg(res.reason ?? "Skipped");
+      }
+      mutate((key: string) => typeof key === "string" && key.includes("/market-data/"), undefined, { revalidate: true });
+    } catch {
+      setFeedbackMsg("Failed to fetch prices");
+    }
+  };
 
   const chartData = prices.map((p) => ({
     date: p.priceDate,
@@ -30,15 +46,28 @@ export default function MarketDataPage() {
           <TrendingUp className="h-6 w-6 text-action" />
           <h1 className="text-xl font-bold text-primary">Market Data</h1>
         </div>
-        <select
-          value={selectedIndex}
-          onChange={(e) => setSelectedIndex(Number(e.target.value))}
-          className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
-        >
-          {PRICE_INDICES.map((idx) => (
-            <option key={idx.id} value={idx.id}>{idx.name}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-3">
+          <select
+            value={activeCode ?? ""}
+            onChange={(e) => setSelectedCode(e.target.value)}
+            className="bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
+          >
+            {indices.map((idx) => (
+              <option key={idx.indexCode} value={idx.indexCode}>{idx.displayName}</option>
+            ))}
+          </select>
+          <button
+            onClick={handleRefresh}
+            disabled={fetchLoading}
+            className="inline-flex items-center gap-2 bg-action hover:bg-action-hover text-white rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${fetchLoading ? "animate-spin" : ""}`} />
+            {fetchLoading ? "Fetching..." : "Refresh Prices"}
+          </button>
+          {feedbackMsg && (
+            <span className={`text-xs ${fetchError ? "text-loss" : "text-gain"}`}>{feedbackMsg}</span>
+          )}
+        </div>
       </div>
 
       {/* Price chart */}

@@ -63,8 +63,18 @@ hedgelab:
   security:
     jwt-secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
     jwt-expiration-ms: 86400000
+  market-data:
+    api-key: ${COMMODITY_API_KEY:}
+    base-url: https://api.commoditypriceapi.com/v2
+    symbol-map:
+      ICE-BRENT-1M: BRENTOIL-FUT
+      NYMEX-WTI-1M: WTIOIL-FUT
+      HH-NG-1M: NG-FUT
+      LME-CU-CASH: HG-FUT
+      CBOT-CORN-1M: CORN
   scheduling:
     eod-cron: "0 0 17 * * MON-FRI"
     credit-recalc-cron: "0 30 17 * * MON-FRI"
     pnl-snapshot-cron: "0 0 18 * * MON-FRI"
+    price-feed-cron: "0 30 16 * * MON-FRI"
     timezone: "America/New_York"
