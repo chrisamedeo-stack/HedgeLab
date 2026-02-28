@@ -44,6 +44,14 @@ export interface SupplierResponse {
   active: boolean;
 }
 
+export interface UserResponse {
+  id: number;
+  username: string;
+  email: string | null;
+  role: "ADMIN" | "RISK_MANAGER" | "TRADER" | "READ_ONLY";
+  enabled: boolean;
+}
+
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
 export function useAdminSites() {
@@ -84,6 +92,14 @@ export function useSiteSuppliers(siteId: number | null) {
     (url: string) => api.get<SupplierResponse[]>(url)
   );
   return { suppliers: data ?? [], isLoading: !data && !error, error, mutate };
+}
+
+export function useUsers() {
+  const { data, error, mutate } = useSWR<UserResponse[]>(
+    "/api/v1/admin/users",
+    (url: string) => api.get<UserResponse[]>(url)
+  );
+  return { users: data ?? [], isLoading: !data && !error, error, mutate };
 }
 
 export function useSiteCommodities(siteId: number | null) {

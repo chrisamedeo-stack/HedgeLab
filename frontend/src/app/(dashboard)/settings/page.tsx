@@ -8,10 +8,14 @@ import {
   useSuppliers,
   useSiteSuppliers,
   useSiteCommodities,
+  useUsers,
   SiteResponse,
   CommodityResponse,
   SupplierResponse,
+  UserResponse,
 } from "@/hooks/useSettings";
+import { getUser } from "@/lib/auth";
+import type { AppRole } from "@/types/auth";
 import { api } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import { SkeletonTable } from "@/components/ui/Skeleton";
@@ -27,6 +31,8 @@ import {
   Calendar,
   ArrowLeftRight,
   Truck,
+  Shield,
+  Key,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
@@ -53,15 +59,32 @@ const CBOT_LETTERS: Record<string, string> = {
   H: "March", K: "May", N: "July", U: "September", Z: "December",
 };
 
-type Tab = "sites" | "suppliers" | "commodities" | "fiscal-year" | "futures-months";
+type Tab = "sites" | "suppliers" | "commodities" | "fiscal-year" | "futures-months" | "users";
 
-const TABS: { key: Tab; label: string; icon: typeof Settings }[] = [
+const TABS: { key: Tab; label: string; icon: typeof Settings; adminOnly?: boolean }[] = [
   { key: "sites", label: "Sites", icon: Building2 },
   { key: "suppliers", label: "Suppliers", icon: Truck },
   { key: "commodities", label: "Commodities", icon: Wheat },
   { key: "fiscal-year", label: "Fiscal Year", icon: Calendar },
   { key: "futures-months", label: "Futures Months", icon: ArrowLeftRight },
+  { key: "users", label: "Users", icon: Shield, adminOnly: true },
 ];
+
+const ROLES: AppRole[] = ["ADMIN", "RISK_MANAGER", "TRADER", "READ_ONLY"];
+
+const ROLE_LABELS: Record<AppRole, string> = {
+  ADMIN: "Admin",
+  RISK_MANAGER: "Risk Manager",
+  TRADER: "Trader",
+  READ_ONLY: "Read Only",
+};
+
+const ROLE_COLORS: Record<AppRole, string> = {
+  ADMIN: "bg-destructive/15 text-destructive",
+  RISK_MANAGER: "bg-action-20 text-action",
+  TRADER: "bg-profit-20 text-profit",
+  READ_ONLY: "bg-input-bg text-muted",
+};
 
 // ─── Site Linking Panel ──────────────────────────────────────────────────────
 
@@ -1066,10 +1089,331 @@ function FuturesMonthsTab() {
   );
 }
 
+// ─── Users Tab ───────────────────────────────────────────────────────────────
+
+function UsersTab() {
+  const { users, isLoading, mutate } = useUsers();
+  const { toast } = useToast();
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<UserResponse | null>(null);
+  const [changingPassword, setChangingPassword] = useState<UserResponse | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<UserResponse | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Create form
+  const createDefault = { username: "", password: "", email: "", role: "TRADER" as AppRole };
+  const [createForm, setCreateForm] = useState(createDefault);
+
+  // Edit form
+  const editDefault = { email: "", role: "TRADER" as AppRole, enabled: true };
+  const [editForm, setEditForm] = useState(editDefault);
+
+  // Password form
+  const [newPassword, setNewPassword] = useState("");
+
+  function startEdit(u: UserResponse) {
+    setEditing(u);
+    setEditForm({ email: u.email ?? "", role: u.role, enabled: u.enabled });
+    setShowForm(false);
+    setChangingPassword(null);
+  }
+
+  function startChangePassword(u: UserResponse) {
+    setChangingPassword(u);
+    setNewPassword("");
+    setShowForm(false);
+    setEditing(null);
+  }
+
+  function cancelAll() {
+    setShowForm(false);
+    setEditing(null);
+    setChangingPassword(null);
+    setCreateForm(createDefault);
+    setEditForm(editDefault);
+    setNewPassword("");
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await api.post("/api/v1/auth/register", {
+        username: createForm.username,
+        password: createForm.password,
+        email: createForm.email || null,
+        role: createForm.role,
+      });
+      toast("User created", "success");
+      cancelAll();
+      mutate();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Create failed", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editing) return;
+    setSubmitting(true);
+    try {
+      await api.put(`/api/v1/admin/users/${editing.id}`, {
+        email: editForm.email || null,
+        role: editForm.role,
+        enabled: editForm.enabled,
+      });
+      toast("User updated", "success");
+      cancelAll();
+      mutate();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Update failed", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!changingPassword) return;
+    setSubmitting(true);
+    try {
+      await api.put(`/api/v1/admin/users/${changingPassword.id}/password`, { newPassword });
+      toast("Password changed", "success");
+      cancelAll();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Password change failed", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await api.delete(`/api/v1/admin/users/${deleteTarget.id}`);
+      toast("User deleted", "success");
+      mutate();
+    } catch (err: unknown) {
+      toast((err as Error).message ?? "Delete failed", "error");
+    } finally {
+      setDeleteLoading(false);
+      setDeleteTarget(null);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted">{users.length} users</p>
+        <button
+          onClick={() => (showForm ? cancelAll() : (cancelAll(), setShowForm(true)))}
+          className={btnPrimary}
+        >
+          {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {showForm ? "Cancel" : "Add User"}
+        </button>
+      </div>
+
+      {/* Create form */}
+      {showForm && (
+        <form onSubmit={handleCreate} className="bg-surface border border-b-default rounded-lg p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-secondary">New User</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs text-muted">Username</label>
+              <input type="text" required maxLength={50}
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
+                placeholder="jsmith" value={createForm.username}
+                onChange={(e) => setCreateForm((f) => ({ ...f, username: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted">Password</label>
+              <input type="text" required
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
+                placeholder="initial password" value={createForm.password}
+                onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted">Email</label>
+              <input type="email" maxLength={150}
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
+                placeholder="j.smith@company.com" value={createForm.email}
+                onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted">Role</label>
+              <select
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
+                value={createForm.role}
+                onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value as AppRole }))}
+              >
+                {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={cancelAll} className={btnCancel}>Cancel</button>
+            <button type="submit" disabled={submitting} className={btnPrimary}>
+              {submitting ? "Creating..." : "Create User"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Edit form */}
+      {editing && (
+        <form onSubmit={handleEdit} className="bg-surface border border-b-default rounded-lg p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-secondary">
+            Edit <span className="text-action">{editing.username}</span>
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs text-muted">Email</label>
+              <input type="email" maxLength={150}
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
+                placeholder="email@company.com" value={editForm.email}
+                onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted">Role</label>
+              <select
+                className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus"
+                value={editForm.role}
+                onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value as AppRole }))}
+              >
+                {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted">Enabled</label>
+              <div className="flex items-center h-[38px]">
+                <button
+                  type="button"
+                  onClick={() => setEditForm((f) => ({ ...f, enabled: !f.enabled }))}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                    editForm.enabled ? "bg-action" : "bg-input-bg border border-b-input"
+                  )}
+                >
+                  <span className={cn(
+                    "inline-block h-4 w-4 rounded-full bg-white transition-transform",
+                    editForm.enabled ? "translate-x-6" : "translate-x-1"
+                  )} />
+                </button>
+                <span className="ml-2 text-sm text-secondary">{editForm.enabled ? "Active" : "Disabled"}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={cancelAll} className={btnCancel}>Cancel</button>
+            <button type="submit" disabled={submitting} className={btnPrimary}>
+              {submitting ? "Saving..." : "Update User"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Change password form */}
+      {changingPassword && (
+        <form onSubmit={handleChangePassword} className="bg-surface border border-b-default rounded-lg p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-secondary">
+            Change Password for <span className="text-action">{changingPassword.username}</span>
+          </h3>
+          <div className="max-w-xs space-y-1">
+            <label className="text-xs text-muted">New Password</label>
+            <input type="text" required
+              className="w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph"
+              placeholder="new password" value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)} />
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={cancelAll} className={btnCancel}>Cancel</button>
+            <button type="submit" disabled={submitting} className={btnPrimary}>
+              {submitting ? "Saving..." : "Change Password"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Users table */}
+      {isLoading ? (
+        <SkeletonTable rows={5} cols={5} />
+      ) : users.length === 0 ? (
+        <EmptyState icon={Shield} title="No users" description="Add your first user to get started." action={{ label: "Add User", onClick: () => setShowForm(true) }} />
+      ) : (
+        <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-input-bg/50 border-b border-b-default">
+                {["Username", "Email", "Role", "Status", ""].map((h) => (
+                  <th key={h} className="text-left px-3 py-3 text-xs font-medium text-muted uppercase tracking-wider">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-b-default">
+              {users.map((u) => (
+                <tr key={u.id} className="hover:bg-row-hover transition-colors">
+                  <td className="px-3 py-3 font-medium text-secondary">{u.username}</td>
+                  <td className="px-3 py-3 text-muted">{u.email ?? "\u2014"}</td>
+                  <td className="px-3 py-3">
+                    <span className={cn("inline-flex px-2 py-0.5 rounded-full text-xs font-medium", ROLE_COLORS[u.role])}>
+                      {ROLE_LABELS[u.role]}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3">
+                    <span className={cn(
+                      "inline-flex px-2 py-0.5 rounded-full text-xs font-medium",
+                      u.enabled ? "bg-profit-20 text-profit" : "bg-input-bg text-faint"
+                    )}>
+                      {u.enabled ? "Active" : "Disabled"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2 justify-end">
+                      <button onClick={() => startEdit(u)} className="text-ph hover:text-action transition-colors" title="Edit">
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => startChangePassword(u)} className="text-ph hover:text-action transition-colors" title="Change Password">
+                        <Key className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => setDeleteTarget(u)} className="text-ph hover:text-destructive transition-colors" title="Delete">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete User"
+        description={`Delete user "${deleteTarget?.username ?? ""}"? This cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleteLoading}
+      />
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("sites");
+  const currentUser = typeof window !== "undefined" ? getUser() : null;
+  const isAdmin = currentUser?.role === "ADMIN";
+
+  const visibleTabs = TABS.filter((t) => !t.adminOnly || isAdmin);
 
   return (
     <div className="space-y-5">
@@ -1081,7 +1425,7 @@ export default function SettingsPage() {
 
       {/* Tab bar */}
       <div className="flex gap-6 border-b border-b-default">
-        {TABS.map(({ key, label, icon: Icon }) => (
+        {visibleTabs.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -1104,6 +1448,7 @@ export default function SettingsPage() {
       {tab === "commodities" && <CommoditiesTab />}
       {tab === "fiscal-year" && <FiscalYearTab />}
       {tab === "futures-months" && <FuturesMonthsTab />}
+      {tab === "users" && isAdmin && <UsersTab />}
     </div>
   );
 }
