@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  ...(process.env.VERCEL ? {} : { output: "standalone" }),
+  ...(process.env.STANDALONE === "true" ? { output: "standalone" } : {}),
   async rewrites() {
     return [
       {
