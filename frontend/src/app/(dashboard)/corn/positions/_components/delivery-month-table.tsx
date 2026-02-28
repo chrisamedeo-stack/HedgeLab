@@ -7,7 +7,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  ArrowRightLeft,
+  Plus,
   Edit2,
   Trash2,
 } from "lucide-react";
@@ -59,7 +59,11 @@ export function DeliveryMonthTable({
         const sumWt = items.reduce((s, i) => s + i.openLots * (i.entryPrice ?? 0), 0);
         const sumLots = items.reduce((s, i) => s + i.openLots, 0);
         const wtdAvgEntry = sumLots > 0 ? sumWt / sumLots : 0;
-        return { futuresMonth: fm, items, totalBu, unallocBu, totalLots, wtdAvgEntry, totalMtm };
+        const settleItems = items.filter((i) => i.settlePrice != null);
+        const settleSumWt = settleItems.reduce((s, i) => s + i.openLots * (i.settlePrice ?? 0), 0);
+        const settleSumLots = settleItems.reduce((s, i) => s + i.openLots, 0);
+        const avgSettle = settleSumLots > 0 ? settleSumWt / settleSumLots : null;
+        return { futuresMonth: fm, items, totalBu, unallocBu, totalLots, wtdAvgEntry, totalMtm, avgSettle };
       })
       .sort((a, b) => a.futuresMonth.localeCompare(b.futuresMonth));
   }, [hedgeBook]);
@@ -80,18 +84,43 @@ export function DeliveryMonthTable({
           <Fragment key={g.futuresMonth}>
             <button
               onClick={() => setExpandedMonth(isExpanded ? null : g.futuresMonth)}
-              className="w-full flex items-center gap-4 px-5 py-3 hover:bg-row-hover transition-colors text-left"
+              className="w-full grid grid-cols-[24px_90px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] items-center gap-2 px-5 py-3 hover:bg-row-hover transition-colors text-left"
             >
               {isExpanded ? <ChevronDown className="h-4 w-4 text-faint" /> : <ChevronRight className="h-4 w-4 text-faint" />}
-              <span className="bg-action-10 text-action ring-1 ring-action-20 px-2 py-0.5 rounded text-xs font-mono font-semibold">
+              <span className="bg-action-10 text-action ring-1 ring-action-20 px-2 py-0.5 rounded text-xs font-mono font-semibold text-center">
                 {g.futuresMonth}
               </span>
-              <span className="text-sm text-secondary">{fmtVol(g.unallocBu)} bu unallocated</span>
-              <span className="text-sm text-muted font-mono">Avg {fmtPerBu(g.wtdAvgEntry)}</span>
-              <span className={cn("text-sm font-semibold", pnlColor(g.totalMtm))}>
-                {fmtPnl(g.totalMtm)}
-              </span>
-              <span className="text-xs text-ph ml-auto">{g.items.length} trades</span>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">Lots</span>
+                <span className="text-sm text-secondary tabular-nums">{g.totalLots}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">Bushels</span>
+                <span className="text-sm text-secondary tabular-nums">{fmtVol(g.totalBu)}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">Alloc Bu</span>
+                <span className="text-sm text-secondary tabular-nums">{fmtVol(g.totalBu - g.unallocBu)}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">Unalloc Bu</span>
+                <span className="text-sm text-profit tabular-nums font-semibold">{fmtVol(g.unallocBu)}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">VWAP</span>
+                <span className="text-sm text-secondary font-mono tabular-nums">{fmtPerBu(g.wtdAvgEntry)}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">Mkt Price</span>
+                <span className="text-sm text-secondary font-mono tabular-nums">{g.avgSettle != null ? fmtPerBu(g.avgSettle) : "\u2013"}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">MTM</span>
+                <span className={cn("text-sm font-semibold tabular-nums", pnlColor(g.totalMtm))}>{fmtPnl(g.totalMtm)}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="text-xs text-ph">{g.items.length} trades</span>
+              </div>
             </button>
 
             {isExpanded && (
@@ -140,9 +169,9 @@ export function DeliveryMonthTable({
                                 {can("allocate") && (
                                   <button
                                     onClick={() => setAllocTradeId(isAlloc ? null : h.hedgeTradeId)}
-                                    className="flex items-center gap-1 px-2.5 py-1 bg-profit-20 hover:bg-profit-40 text-profit rounded-lg text-xs font-medium transition-colors"
+                                    className="flex items-center gap-1 px-2.5 py-1 bg-input-bg hover:bg-hover border border-b-input text-secondary rounded-lg text-xs font-medium transition-colors"
                                   >
-                                    <ArrowRightLeft className="h-3 w-3" /> Allocate
+                                    <Plus className="h-3 w-3" /> Allocate
                                   </button>
                                 )}
                                 {can("edit-hedge") && (

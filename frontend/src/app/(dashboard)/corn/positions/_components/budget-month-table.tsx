@@ -79,7 +79,12 @@ export function BudgetMonthTable({
         const sumWt = allAllocs.reduce((s, a) => s + a.allocatedLots * a.entryPrice, 0);
         const sumLots = allAllocs.reduce((s, a) => s + a.allocatedLots, 0);
         const vwap = sumLots > 0 ? sumWt / sumLots : 0;
-        return { budgetMonth, monthOnly, siteAssigned, totalLots, totalBu, vwap };
+        const totalMtm = siteAssigned.reduce((s, a) => s + (a.mtmPnlUsd ?? 0), 0);
+        const settleItems = siteAssigned.filter((a) => a.settlePrice != null);
+        const settleSumWt = settleItems.reduce((s, a) => s + a.allocatedLots * (a.settlePrice ?? 0), 0);
+        const settleSumLots = settleItems.reduce((s, a) => s + a.allocatedLots, 0);
+        const avgSettle = settleSumLots > 0 ? settleSumWt / settleSumLots : null;
+        return { budgetMonth, monthOnly, siteAssigned, totalLots, totalBu, vwap, totalMtm, avgSettle };
       })
       .sort((a, b) => a.budgetMonth.localeCompare(b.budgetMonth));
   }, [monthAllocations, siteAllocations]);
@@ -160,24 +165,46 @@ export function BudgetMonthTable({
           <Fragment key={g.budgetMonth}>
             <button
               onClick={() => setExpandedMonth(isExpanded ? null : g.budgetMonth)}
-              className="w-full flex items-center gap-4 px-5 py-3 hover:bg-row-hover transition-colors text-left"
+              className="w-full grid grid-cols-[24px_90px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] items-center gap-2 px-5 py-3 hover:bg-row-hover transition-colors text-left"
             >
               {isExpanded ? <ChevronDown className="h-4 w-4 text-faint" /> : <ChevronRight className="h-4 w-4 text-faint" />}
-              <span className="bg-accent-10 text-accent ring-1 ring-accent-20 px-2 py-0.5 rounded text-xs font-semibold">
+              <span className="bg-accent-10 text-accent ring-1 ring-accent-20 px-2 py-0.5 rounded text-xs font-semibold text-center">
                 {fmtBudgetMonth(g.budgetMonth)}
               </span>
-              <span className="text-sm text-secondary tabular-nums">{g.totalLots} lots</span>
-              <span className="text-sm text-faint tabular-nums">&middot; {fmtVol(g.totalBu)} bu</span>
-              <span className="text-sm text-faint tabular-nums">&middot; ${g.vwap.toFixed(4)}/bu</span>
-              <span className="ml-auto flex items-center gap-2">
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">Lots</span>
+                <span className="text-sm text-secondary tabular-nums">{g.totalLots}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">Bushels</span>
+                <span className="text-sm text-secondary tabular-nums">{fmtVol(g.totalBu)}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">Alloc Bu</span>
+                <span className="text-sm text-secondary tabular-nums">{fmtVol(g.siteAssigned.reduce((s, a) => s + a.allocatedBushels, 0))}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">Unassigned Bu</span>
+                <span className="text-sm text-warning tabular-nums font-semibold">{fmtVol(g.monthOnly.reduce((s, a) => s + a.allocatedBushels, 0))}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">VWAP</span>
+                <span className="text-sm text-secondary font-mono tabular-nums">{fmtPerBu(g.vwap)}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">Mkt Price</span>
+                <span className="text-sm text-secondary font-mono tabular-nums">{g.avgSettle != null ? fmtPerBu(g.avgSettle) : "\u2013"}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-ph leading-tight">MTM</span>
+                <span className={cn("text-sm font-semibold tabular-nums", pnlColor(g.totalMtm))}>{fmtPnl(g.totalMtm)}</span>
+              </div>
+              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                 {unassignedCount > 0 && (
                   <span className="bg-warning-15 text-warning ring-1 ring-warning-25 px-2 py-0.5 rounded text-xs font-medium">
                     {unassignedCount} unassigned
                   </span>
                 )}
-                <span className="text-xs text-ph">
-                  {g.siteAssigned.length} site-assigned
-                </span>
                 {can("allocate") && unallocatedHedges.length > 0 && (
                   <span
                     role="button"
@@ -187,7 +214,7 @@ export function BudgetMonthTable({
                     <Plus className="h-3 w-3" /> Allocate
                   </span>
                 )}
-              </span>
+              </div>
             </button>
 
             {/* Inline allocate form (shows even when collapsed) */}

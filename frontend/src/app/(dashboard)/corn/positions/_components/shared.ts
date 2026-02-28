@@ -36,6 +36,7 @@ export interface FuturesMonthGroup {
   totalLots: number;
   wtdAvgEntry: number;
   totalMtm: number;
+  avgSettle: number | null;
 }
 
 export interface BudgetMonthGroup {
@@ -45,4 +46,6 @@ export interface BudgetMonthGroup {
   totalLots: number;
   totalBu: number;
   vwap: number;
+  totalMtm: number;
+  avgSettle: number | null;
 }
