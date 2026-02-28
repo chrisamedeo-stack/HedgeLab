@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   Activity,
   AlertCircle,
   Plus,
   X,
-  TrendingUp,
-  ChevronUp,
-  ChevronDown,
+  RefreshCw,
 } from "lucide-react";
 import {
   usePositions,
@@ -28,7 +26,6 @@ import { btnPrimary } from "@/lib/corn-format";
 
 import type { Book } from "./_components/shared";
 import { usePermissions } from "./_components/permissions";
-import { SettlePublisher } from "./_components/settle-publisher";
 import { BookHedgeForm } from "./_components/book-hedge-form";
 import { PortfolioSummary } from "./_components/portfolio-summary";
 import { MtmPnlChart } from "./_components/mtm-pnl-chart";
@@ -44,7 +41,7 @@ export default function PositionsPage() {
   const toast = useToast();
 
   // ─── UI state ──────────────────────────────────────────────────────────────
-  const [settleOpen, setSettleOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [hedgeFormOpen, setHedgeFormOpen] = useState(false);
   const [editing, setEditing] = useState<HedgeTradeResponse | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
@@ -56,18 +53,10 @@ export default function PositionsPage() {
   const hedgeBook   = positions?.hedgeBook        ?? [];
   const allocations = positions?.siteAllocations   ?? [];
   const monthAllocs = positions?.monthAllocations  ?? [];
-  const settles     = positions?.latestSettles     ?? {};
   const siteOptions = sites
     .filter((s) => book === "CANADA" ? s.country === "Canada" : s.country === "US")
     .map((s) => ({ code: s.code, name: s.name }));
   const bookLabel   = book === "CANADA" ? "Canada" : "US";
-
-  const allFuturesMonths = useMemo(() => {
-    const months = new Set<string>();
-    hedgeBook.forEach((h) => months.add(h.futuresMonth));
-    allocations.forEach((a) => months.add(a.futuresMonth));
-    return Array.from(months).sort();
-  }, [hedgeBook, allocations]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
   function handleHedgeFormDone() {
@@ -166,12 +155,27 @@ export default function PositionsPage() {
           )}
           {can("publish-settle") && (
             <button
-              onClick={() => setSettleOpen((o) => !o)}
-              className="flex items-center gap-2 px-4 py-2 bg-input-bg hover:bg-hover text-secondary text-sm rounded-lg font-medium border border-b-input transition-colors"
+              onClick={async () => {
+                setRefreshing(true);
+                try {
+                  const res = await api.post<{ status: string; price?: number; months?: number; reason?: string }>("/api/v1/corn/positions/refresh-prices", {});
+                  if (res.status === "ok") {
+                    toast.toast(`Prices refreshed — $${Number(res.price).toFixed(4)}/bu for ${res.months} months`, "success");
+                    mutate();
+                  } else {
+                    toast.toast(res.reason ?? "No prices returned", "error");
+                  }
+                } catch (e: unknown) {
+                  toast.toast((e as Error).message ?? "Failed to refresh prices", "error");
+                } finally {
+                  setRefreshing(false);
+                }
+              }}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-4 py-2 bg-input-bg hover:bg-hover text-secondary text-sm rounded-lg font-medium border border-b-input transition-colors disabled:opacity-50"
             >
-              <TrendingUp className="h-4 w-4 text-action" />
-              Publish Settle Prices
-              {settleOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              <RefreshCw className={cn("h-4 w-4 text-action", refreshing && "animate-spin")} />
+              {refreshing ? "Refreshing…" : "Refresh Prices"}
             </button>
           )}
         </div>
@@ -187,15 +191,6 @@ export default function PositionsPage() {
             onCancel={() => { setHedgeFormOpen(false); setEditing(null); }}
           />
         </div>
-      )}
-
-      {/* Settle publisher */}
-      {settleOpen && (
-        <SettlePublisher
-          futuresMonths={allFuturesMonths.length > 0 ? allFuturesMonths : ["ZCH26", "ZCK26", "ZCN26"]}
-          existingSettles={settles}
-          onDone={() => { setSettleOpen(false); mutate(); }}
-        />
       )}
 
       {/* Book toggle */}

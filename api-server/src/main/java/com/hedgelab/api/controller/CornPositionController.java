@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/corn/positions")
 @RequiredArgsConstructor
@@ -25,5 +27,11 @@ public class CornPositionController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void publishSettle(@RequestBody PublishSettleRequest req) {
         positionService.publishSettle(req);
+    }
+
+    /** Fetches the latest CORN price from the external API and saves it as settle for all active futures months. */
+    @PostMapping("/refresh-prices")
+    public Map<String, Object> refreshPrices() {
+        return positionService.refreshPrices();
     }
 }

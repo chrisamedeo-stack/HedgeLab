@@ -7,6 +7,7 @@ import com.hedgelab.api.entity.*;
 import com.hedgelab.api.repository.*;
 import com.hedgelab.api.util.ZcMonthMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CornPositionService {
@@ -31,6 +33,7 @@ public class CornPositionService {
     private final HedgeAllocationRepository    allocationRepo;
     private final HedgeOffsetRepository        offsetRepo;
     private final ZcMonthMapper                zcMonthMapper;
+    private final CommodityPriceApiClient      priceApiClient;
 
     @Transactional(readOnly = true)
     public CornPositionResponse getPositions(String book) {
@@ -186,6 +189,49 @@ public class CornPositionService {
                     .build();
             settleRepo.save(ds);
         });
+    }
+
+    @Transactional
+    public Map<String, Object> refreshPrices() {
+        // Collect all active futures months from open hedges
+        List<HedgeTradeStatus> poolStatuses = List.of(
+                HedgeTradeStatus.OPEN, HedgeTradeStatus.PARTIALLY_ALLOCATED,
+                HedgeTradeStatus.FULLY_ALLOCATED);
+        List<HedgeTrade> openHedges = hedgeRepo.findByStatusInOrderByTradeDateDesc(poolStatuses);
+        Set<String> futuresMonths = openHedges.stream()
+                .map(HedgeTrade::getFuturesMonth)
+                .collect(Collectors.toSet());
+
+        if (futuresMonths.isEmpty()) {
+            return Map.of("status", "skipped", "reason", "No active futures months");
+        }
+
+        // Fetch the latest CORN price from the external API
+        Map<String, BigDecimal> prices = priceApiClient.fetchLatestPrices(List.of("CORN"));
+        BigDecimal cornPrice = prices.get("CORN");
+        if (cornPrice == null) {
+            log.warn("[RefreshPrices] No CORN price returned from API");
+            return Map.of("status", "error", "reason", "No CORN price returned from API");
+        }
+
+        // Save as settle for each active futures month
+        LocalDate today = LocalDate.now();
+        for (String fm : futuresMonths) {
+            CornDailySettle ds = CornDailySettle.builder()
+                    .futuresMonth(fm)
+                    .settleDate(today)
+                    .pricePerBushel(cornPrice)
+                    .build();
+            settleRepo.save(ds);
+        }
+
+        log.info("[RefreshPrices] Published CORN settle {} for {} months", cornPrice, futuresMonths.size());
+        return Map.of(
+                "status", "ok",
+                "price", cornPrice,
+                "months", futuresMonths.size(),
+                "date", today.toString()
+        );
     }
 
     // -------------------------------------------------------------------------

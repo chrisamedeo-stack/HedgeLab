@@ -168,7 +168,7 @@ export function BudgetMonthTable({
               className="w-full grid grid-cols-[24px_auto_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] items-center gap-4 px-5 py-3 hover:bg-row-hover transition-colors text-left"
             >
               {isExpanded ? <ChevronDown className="h-4 w-4 text-faint" /> : <ChevronRight className="h-4 w-4 text-faint" />}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-[120px]">
                 <span className="bg-accent-10 text-accent ring-1 ring-accent-20 px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap">
                   {fmtBudgetMonth(g.budgetMonth)}
                 </span>

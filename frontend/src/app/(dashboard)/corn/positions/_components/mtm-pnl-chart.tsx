@@ -79,7 +79,7 @@ export function MtmPnlChart({ hedgeBook, siteAllocations }: Props) {
         <div className="h-56 flex flex-col items-center justify-center text-ph">
           <BarChart3 className="h-10 w-10 mb-2" />
           <p className="text-sm">No MTM data available</p>
-          <p className="text-xs text-ph mt-1">Publish settle prices to calculate mark-to-market P&amp;L</p>
+          <p className="text-xs text-ph mt-1">Refresh prices to calculate mark-to-market P&amp;L</p>
         </div>
       </div>
     );
