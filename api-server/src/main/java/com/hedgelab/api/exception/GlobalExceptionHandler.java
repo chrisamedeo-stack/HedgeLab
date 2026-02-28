@@ -7,6 +7,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
 import java.time.Instant;
@@ -22,6 +23,18 @@ public class GlobalExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
         pd.setType(URI.create("https://hedgelab.com/errors/" + ex.getStatus().value()));
         pd.setProperty("timestamp", Instant.now());
+        pd.setProperty("message", ex.getMessage());
+        return pd;
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ProblemDetail handleResponseStatusException(ResponseStatusException ex) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        String reason = ex.getReason() != null ? ex.getReason() : status.getReasonPhrase();
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, reason);
+        pd.setType(URI.create("https://hedgelab.com/errors/" + status.value()));
+        pd.setProperty("timestamp", Instant.now());
+        pd.setProperty("message", reason);
         return pd;
     }
 
