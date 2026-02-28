@@ -84,7 +84,7 @@ export function DeliveryMonthTable({
           <Fragment key={g.futuresMonth}>
             <button
               onClick={() => setExpandedMonth(isExpanded ? null : g.futuresMonth)}
-              className="w-full grid grid-cols-[24px_90px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] items-center gap-2 px-5 py-3 hover:bg-row-hover transition-colors text-left"
+              className="w-full grid grid-cols-[24px_100px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] items-center gap-4 px-5 py-3 hover:bg-row-hover transition-colors text-left"
             >
               {isExpanded ? <ChevronDown className="h-4 w-4 text-faint" /> : <ChevronRight className="h-4 w-4 text-faint" />}
               <span className="bg-action-10 text-action ring-1 ring-action-20 px-2 py-0.5 rounded text-xs font-mono font-semibold text-center">

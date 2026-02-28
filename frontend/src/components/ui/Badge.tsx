@@ -168,6 +168,18 @@ const sideColors: Record<string, BadgeColor> = {
 };
 
 export function SideBadge({ side }: { side: string }) {
-  const color = sideColors[side] ?? "neutral";
-  return <StatusPill color={color} label={side} />;
+  const upper = side.toUpperCase();
+  const isLong = upper === "BUY" || upper === "LONG";
+  const borderCls = isLong ? "border-profit" : upper === "SELL" || upper === "SHORT" ? "border-destructive" : "border-b-input";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold border",
+        borderCls,
+        "bg-transparent text-secondary"
+      )}
+    >
+      {side}
+    </span>
+  );
 }
