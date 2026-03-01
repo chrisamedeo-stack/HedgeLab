@@ -4,15 +4,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { isAuthenticated, logout, getUser } from "@/lib/auth";
+import { isAuthenticated, logout, getUser, getTokenExpiry, refreshSession } from "@/lib/auth";
 import {
   LayoutDashboard,
   ArrowLeftRight,
-  Layers,
-  ShieldAlert,
   TrendingUp,
-  ScrollText,
-  Download,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -100,6 +96,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setMounted(true);
     if (!isAuthenticated()) {
       router.push("/login");
+    } else if (!getTokenExpiry()) {
+      // Backfill expiry for sessions created before the timeout feature
+      refreshSession();
     }
   }, [router]);
 
@@ -210,20 +209,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <p className="text-xs text-faint truncate">{user?.role}</p>
               </div>
             )}
-            <button
-              onClick={() => setShowPasswordDialog(true)}
-              title="Change password"
-              className="text-faint hover:text-primary transition-colors shrink-0"
-            >
-              <KeyRound className="h-4 w-4" />
-            </button>
-            <button
-              onClick={handleLogout}
-              title="Sign out"
-              className="text-faint hover:text-destructive transition-colors shrink-0"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
+            <div className={cn("flex items-center gap-2", collapsed && "flex-row")}>
+              <button
+                onClick={() => setShowPasswordDialog(true)}
+                title="Change password"
+                className="text-faint hover:text-primary transition-colors shrink-0"
+              >
+                <KeyRound className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handleLogout}
+                title="Sign out"
+                className="text-faint hover:text-destructive transition-colors shrink-0"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       </aside>
