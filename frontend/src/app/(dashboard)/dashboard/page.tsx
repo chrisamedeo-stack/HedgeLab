@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getUser } from "@/lib/auth";
 import { useSites, useBudget, useCoverage, usePositions, useContracts } from "@/hooks/useCorn";
 import { useAdminSites } from "@/hooks/useSettings";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -25,6 +26,10 @@ export default function DashboardPage() {
   const { coverage, isLoading: coverageLoading } = useCoverage();
   const { positions, isLoading: positionsLoading } = usePositions();
   const { contracts, isLoading: contractsLoading } = useContracts();
+
+  // Hydration-safe user read
+  const [user, setUser] = useState<ReturnType<typeof getUser>>(null);
+  useEffect(() => { setUser(getUser()); }, []);
 
   // Drill-down state
   const [viewLevel, setViewLevel] = useState<ViewLevel>("company");
@@ -104,7 +109,19 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-primary">Dashboard</h1>
+        <div>
+          <h1 className="text-xl font-bold text-primary">Dashboard</h1>
+          {user && (
+            <p className="text-sm text-muted mt-0.5">
+              Welcome back, {user.username}
+            </p>
+          )}
+        </div>
+        {hasSites && (
+          <p className="text-sm text-muted">
+            {sites.length} {sites.length === 1 ? "site" : "sites"} · {hedgeCoveragePct.toFixed(0)}% hedged
+          </p>
+        )}
       </div>
 
       {viewLevel !== "company" && (

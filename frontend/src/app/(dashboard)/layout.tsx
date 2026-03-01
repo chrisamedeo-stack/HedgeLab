@@ -16,7 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-
+  KeyRound,
   FileText,
   BarChart2,
   Package,
@@ -27,6 +27,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ChangePasswordDialog } from "@/components/ui/ChangePasswordDialog";
+import { SessionTimeoutWarning } from "@/components/SessionTimeoutWarning";
 
 interface NavItem {
   href: string;
@@ -90,6 +92,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser]           = useState<ReturnType<typeof getUser>>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted]     = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
 
   useEffect(() => {
     setUser(getUser());
@@ -147,7 +150,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {navSections.map((section) => (
             <div key={section.label}>
               {!collapsed && (
-                <p className="px-3 mb-1 text-xs font-semibold text-ph uppercase tracking-wider">
+                <p className="px-3 mb-1 text-xs font-semibold text-muted uppercase tracking-wider">
                   {section.label}
                 </p>
               )}
@@ -208,6 +211,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             )}
             <button
+              onClick={() => setShowPasswordDialog(true)}
+              title="Change password"
+              className="text-faint hover:text-primary transition-colors shrink-0"
+            >
+              <KeyRound className="h-4 w-4" />
+            </button>
+            <button
               onClick={handleLogout}
               title="Sign out"
               className="text-faint hover:text-destructive transition-colors shrink-0"
@@ -222,6 +232,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="flex-1 overflow-y-auto bg-main">
         <div className="page-fade p-6">{children}</div>
       </main>
+
+      <ChangePasswordDialog open={showPasswordDialog} onClose={() => setShowPasswordDialog(false)} />
+      <SessionTimeoutWarning />
     </div>
   );
 }
