@@ -349,15 +349,15 @@ public class DataInitializer implements ApplicationRunner {
     private void seedCornBudgetLines(Site gm1, Site vf1) {
         String cropYear = "2025/2026";
 
-        // Futures month mapping: budgetMonth -> futuresMonth
-        // ZCN25 for Jul-Aug, ZCU25 for Sep-Nov, ZCZ25 for Dec-Feb, ZCH26 for Mar-May, ZCN26 for Jun
+        // Futures month mapping: budgetMonth -> next available futures contract
+        // ZCU25 for Jul-Aug, ZCZ25 for Sep-Nov, ZCH26 for Dec-Feb, ZCK26 for Mar-Apr, ZCN26 for May-Jun
         Map<String, String> futuresMap = Map.ofEntries(
-            Map.entry("2025-07", "ZCN25"), Map.entry("2025-08", "ZCN25"),
-            Map.entry("2025-09", "ZCU25"), Map.entry("2025-10", "ZCU25"),
-            Map.entry("2025-11", "ZCU25"), Map.entry("2025-12", "ZCZ25"),
-            Map.entry("2026-01", "ZCZ25"), Map.entry("2026-02", "ZCZ25"),
-            Map.entry("2026-03", "ZCH26"), Map.entry("2026-04", "ZCH26"),
-            Map.entry("2026-05", "ZCH26"), Map.entry("2026-06", "ZCN26")
+            Map.entry("2025-07", "ZCU25"), Map.entry("2025-08", "ZCU25"),
+            Map.entry("2025-09", "ZCZ25"), Map.entry("2025-10", "ZCZ25"),
+            Map.entry("2025-11", "ZCZ25"), Map.entry("2025-12", "ZCH26"),
+            Map.entry("2026-01", "ZCH26"), Map.entry("2026-02", "ZCH26"),
+            Map.entry("2026-03", "ZCK26"), Map.entry("2026-04", "ZCK26"),
+            Map.entry("2026-05", "ZCN26"), Map.entry("2026-06", "ZCN26")
         );
 
         // GM1: ~650 MT/month → ~25,587 bu/month
