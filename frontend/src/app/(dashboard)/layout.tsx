@@ -163,8 +163,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         "flex items-center rounded-lg text-sm font-medium transition-colors",
                         collapsed ? "justify-center h-10 w-full px-0" : "px-3 py-2 gap-3",
                         active
-                          ? "bg-action-10 text-action border-l-2 border-action"
-                          : "text-faint hover:bg-input-bg hover:text-primary"
+                          ? "bg-action-10 text-secondary border-l-2 border-action"
+                          : "text-secondary hover:bg-input-bg hover:text-primary"
                       )}
                     >
                       <Icon className={cn("shrink-0", collapsed ? "h-5 w-5" : "h-4 w-4")} />
