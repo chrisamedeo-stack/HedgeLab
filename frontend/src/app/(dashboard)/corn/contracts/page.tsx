@@ -381,13 +381,15 @@ function ContractRow({ contract, onRefresh, onEdit, onDelete }: {
           <p className="text-sm tabular-nums text-secondary">{fmtBu(contract.quantityBu)} bu</p>
         </div>
 
-        <div className="w-48 min-w-0 hidden md:block">
+        <div className="w-56 min-w-0 hidden md:block">
           {contract.tradeType === "INDEX" ? (
             <p className="text-sm text-warning italic">Index pricing</p>
           ) : (
             <div className="space-y-0.5">
               {contract.basisPerBu != null ? (
-                <p className="text-sm tabular-nums text-profit">Basis: {fmtPrice(contract.basisPerBu)}/bu vs {contract.futuresRef ?? "?"}</p>
+                <p className="text-sm tabular-nums text-profit truncate">
+                  Basis: {fmtPrice(contract.basisPerBu)}/bu{contract.futuresRef ? ` vs ${contract.futuresRef}` : ""}
+                </p>
               ) : (
                 <p className="text-sm text-ph italic">Basis: open</p>
               )}

@@ -54,16 +54,22 @@ export function MultiMonthContractGrid({ onSaved, onCancel }: { onSaved: () => v
     return [];
   }, [config.startMonth, config.endMonth, isAllIn]);
 
-  // Sync rows when months change — preserve existing data, add defaults for new months
+  // Sync rows when months or trade type change — preserve existing data, add defaults for new months
   useEffect(() => {
     setRows((prev) => {
+      const isIndex = config.tradeType === "INDEX";
       const next: Record<string, MRow> = {};
       for (const m of months) {
-        next[m] = prev[m] ?? { volume: defaultVolume, futuresRef: suggestFuturesMonth(m), notes: "" };
+        const fr = isIndex ? "" : suggestFuturesMonth(m);
+        if (prev[m]) {
+          next[m] = { ...prev[m], futuresRef: isIndex ? "" : prev[m].futuresRef || fr };
+        } else {
+          next[m] = { volume: defaultVolume, futuresRef: fr, notes: "" };
+        }
       }
       return next;
     });
-  }, [months]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [months, config.tradeType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function updateRow(m: string, f: keyof MRow, v: string) {
     setRows((r) => ({ ...r, [m]: { ...r[m], [f]: v } }));
@@ -308,7 +314,7 @@ export function MultiMonthContractGrid({ onSaved, onCancel }: { onSaved: () => v
         <button type="button" onClick={onCancel} className={btnCancel}>Cancel</button>
         <button type="submit" disabled={submitting || months.length === 0}
           className={btnPrimary}>
-          {submitting ? "Saving\u2026" : `Create ${filledCount} Contract${filledCount !== 1 ? "s" : ""}`}
+          {submitting ? "Saving\u2026" : filledCount > 0 ? `Create ${filledCount} Contract${filledCount !== 1 ? "s" : ""}` : "Create Contracts"}
         </button>
       </div>
     </form>
