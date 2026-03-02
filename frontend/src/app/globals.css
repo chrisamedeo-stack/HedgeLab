@@ -33,14 +33,14 @@
   /* Semantic — StoneX core + functional colours */
   --color-primary:          #1383F4; /* Light Blue */
   --color-primary-hover:    #4A9DF7;
-  --color-profit:           #4caf50; /* Green 500 */
-  --color-profit-hover:     #66bb6a; /* Green 400 */
-  --color-loss:             #e57373; /* Red 300 — soft red */
-  --color-destructive:      #E8880A; /* Amber — caution, not P&L */
-  --color-destructive-hover:#F29E1A; /* Amber hover */
-  --color-caution:          #D97706; /* Burnt Amber — low coverage */
-  --color-warning:          #F29E1A; /* Orange 500 */
-  --color-warning-hover:    #F5B148; /* Orange 400 */
+  --color-profit:           #4AAD8B; /* Jade green */
+  --color-profit-hover:     #5CBFA0; /* Jade green lighter */
+  --color-loss:             #D4645C; /* Terra cotta coral */
+  --color-destructive:      #D49A4E; /* Sandy gold — caution */
+  --color-destructive-hover:#DDA95F; /* Sandy gold lighter */
+  --color-caution:          #C48B3F; /* Sandy gold darker — low coverage */
+  --color-warning:          #D49A4E; /* Sandy gold */
+  --color-warning-hover:    #DDA95F; /* Sandy gold lighter */
   --color-accent:           #7B90AE; /* Sat 500 — visible on dark bg */
   --color-neutral:          #7B90AE; /* Sat 500 */
   --color-focus:            #1383F4; /* Light Blue */
@@ -50,25 +50,25 @@
   --color-primary-15: #1383F426;  --color-primary-20: #1383F433;
   --color-primary-30: #1383F44D;
 
-  /* Opacity variants — profit #4caf50 */
-  --color-profit-5:  #4caf500D;   --color-profit-10: #4caf501A;
-  --color-profit-15: #4caf5026;   --color-profit-20: #4caf5033;
-  --color-profit-25: #4caf5040;   --color-profit-30: #4caf504D;
-  --color-profit-40: #4caf5066;
+  /* Opacity variants — profit #4AAD8B */
+  --color-profit-5:  #4AAD8B0D;   --color-profit-10: #4AAD8B1A;
+  --color-profit-15: #4AAD8B26;   --color-profit-20: #4AAD8B33;
+  --color-profit-25: #4AAD8B40;   --color-profit-30: #4AAD8B4D;
+  --color-profit-40: #4AAD8B66;
 
-  /* Opacity variants — destructive #E8880A */
-  --color-destructive-5:  #E8880A0D;  --color-destructive-10: #E8880A1A;
-  --color-destructive-15: #E8880A26;  --color-destructive-20: #E8880A33;
-  --color-destructive-30: #E8880A4D;
+  /* Opacity variants — destructive #D49A4E */
+  --color-destructive-5:  #D49A4E0D;  --color-destructive-10: #D49A4E1A;
+  --color-destructive-15: #D49A4E26;  --color-destructive-20: #D49A4E33;
+  --color-destructive-30: #D49A4E4D;
 
-  /* Opacity variants — caution #D97706 */
-  --color-caution-5:  #D977060D;   --color-caution-10: #D977061A;
-  --color-caution-20: #D9770633;   --color-caution-30: #D977064D;
+  /* Opacity variants — caution #C48B3F */
+  --color-caution-5:  #C48B3F0D;   --color-caution-10: #C48B3F1A;
+  --color-caution-20: #C48B3F33;   --color-caution-30: #C48B3F4D;
 
-  /* Opacity variants — warning #F29E1A */
-  --color-warning-5:  #F29E1A0D;   --color-warning-10: #F29E1A1A;
-  --color-warning-15: #F29E1A26;   --color-warning-20: #F29E1A33;
-  --color-warning-25: #F29E1A40;   --color-warning-30: #F29E1A4D;
+  /* Opacity variants — warning #D49A4E */
+  --color-warning-5:  #D49A4E0D;   --color-warning-10: #D49A4E1A;
+  --color-warning-15: #D49A4E26;   --color-warning-20: #D49A4E33;
+  --color-warning-25: #D49A4E40;   --color-warning-30: #D49A4E4D;
 
   /* Opacity variants — accent #7B90AE */
   --color-accent-10: #7B90AE1A;   --color-accent-15: #7B90AE26;
@@ -77,9 +77,9 @@
   /* Opacity variants — neutral #7B90AE */
   --color-neutral-15: #7B90AE26;   --color-neutral-20: #7B90AE33;
 
-  /* Chart — Blue/Gray palette */
-  --chart-1: #7089A5;  --chart-2: #7B8290;  --chart-3: #565C68;
-  --chart-4: #4A6585;  --chart-5: #8A9DB5;  --chart-6: #A66B17;
+  /* Chart — Corporate Blues palette */
+  --chart-1: #00509e;  --chart-2: #007acc;  --chart-3: #66a3ff;
+  --chart-4: #cce0ff;  --chart-5: #003366;  --chart-6: #D49A4E;
 }
 
 @layer base {
