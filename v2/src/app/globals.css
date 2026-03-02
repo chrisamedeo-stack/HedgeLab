@@ -1,0 +1,206 @@
+@import "tailwindcss";
+
+:root {
+  /* ── HedgeLab Design Tokens ─────────────────────────────────────── */
+
+  /* Surfaces — lighter canvas, darker cards, darkest sidebar */
+  --bg-main:       #0D1C30;
+  --bg-surface:    #040C17;
+  --bg-sidebar:    #020812;
+  --bg-overlay:    #1A2E49;
+  --bg-input:      #0A1525;
+  --bg-hover:      #162842;
+  --bg-row-hover:  #162842A0;
+
+  /* Borders */
+  --border-default: #2B4362;
+  --border-input:   #425A7C;
+
+  /* Table */
+  --table-header:    #081220;
+  --table-stripe:    #060E1B;
+  --table-border:    #1A2A40;
+
+  /* Text */
+  --text-primary:     #F3F8FE;
+  --text-secondary:   #B3C0D3;
+  --text-muted:       #7B90AE;
+  --text-faint:       #5C7495;
+  --text-placeholder: #425A7C;
+
+  /* Semantic */
+  --color-action:           #1383F4;
+  --color-action-hover:     #4A9DF7;
+  --color-profit:           #4AAD8B;
+  --color-profit-hover:     #5CBFA0;
+  --color-loss:             #D4645C;
+  --color-destructive:      #D49A4E;
+  --color-destructive-hover:#DDA95F;
+  --color-caution:          #C48B3F;
+  --color-warning:          #D49A4E;
+  --color-warning-hover:    #DDA95F;
+  --color-accent:           #7B90AE;
+  --color-neutral:          #7B90AE;
+  --color-focus:            #1383F4;
+
+  /* Chart — Corporate Blues */
+  --chart-1: #00509e;  --chart-2: #007acc;  --chart-3: #66a3ff;
+  --chart-4: #cce0ff;  --chart-5: #003366;  --chart-6: #D49A4E;
+}
+
+/* ── Tailwind v4 Theme ──────────────────────────────────────────── */
+@theme inline {
+  /* Surfaces */
+  --color-main:       #0D1C30;
+  --color-surface:    #040C17;
+  --color-sidebar:    #020812;
+  --color-overlay:    #1A2E49;
+  --color-input-bg:   #0A1525;
+  --color-hover:      #162842;
+  --color-row-hover:  #162842A0;
+
+  /* Borders */
+  --color-b-default:  #2B4362;
+  --color-b-input:    #425A7C;
+
+  /* Table */
+  --color-tbl-header: #081220;
+  --color-tbl-stripe: #060E1B;
+  --color-tbl-border: #1A2A40;
+
+  /* Text */
+  --color-primary:    #F3F8FE;
+  --color-secondary:  #B3C0D3;
+  --color-muted:      #7B90AE;
+  --color-faint:      #5C7495;
+  --color-ph:         #425A7C;
+
+  /* Action (blue) + opacity variants */
+  --color-action:       #1383F4;
+  --color-action-hover: #4A9DF7;
+  --color-action-5:     #1383F40D;
+  --color-action-10:    #1383F41A;
+  --color-action-15:    #1383F426;
+  --color-action-20:    #1383F433;
+  --color-action-30:    #1383F44D;
+
+  /* Profit (jade green) + opacity variants */
+  --color-profit:       #4AAD8B;
+  --color-profit-hover: #5CBFA0;
+  --color-profit-5:     #4AAD8B0D;
+  --color-profit-10:    #4AAD8B1A;
+  --color-profit-15:    #4AAD8B26;
+  --color-profit-20:    #4AAD8B33;
+  --color-profit-25:    #4AAD8B40;
+  --color-profit-30:    #4AAD8B4D;
+  --color-profit-40:    #4AAD8B66;
+
+  /* Loss */
+  --color-loss: #D4645C;
+
+  /* Destructive (sandy gold) + opacity variants */
+  --color-destructive:       #D49A4E;
+  --color-destructive-hover: #DDA95F;
+  --color-destructive-5:     #D49A4E0D;
+  --color-destructive-10:    #D49A4E1A;
+  --color-destructive-15:    #D49A4E26;
+  --color-destructive-20:    #D49A4E33;
+  --color-destructive-30:    #D49A4E4D;
+
+  /* Caution + opacity variants */
+  --color-caution:     #C48B3F;
+  --color-caution-5:   #C48B3F0D;
+  --color-caution-10:  #C48B3F1A;
+  --color-caution-20:  #C48B3F33;
+  --color-caution-30:  #C48B3F4D;
+
+  /* Warning + opacity variants */
+  --color-warning:       #D49A4E;
+  --color-warning-hover: #DDA95F;
+  --color-warning-5:     #D49A4E0D;
+  --color-warning-10:    #D49A4E1A;
+  --color-warning-15:    #D49A4E26;
+  --color-warning-20:    #D49A4E33;
+  --color-warning-25:    #D49A4E40;
+  --color-warning-30:    #D49A4E4D;
+
+  /* Accent + opacity variants */
+  --color-accent:     #7B90AE;
+  --color-accent-10:  #7B90AE1A;
+  --color-accent-15:  #7B90AE26;
+  --color-accent-20:  #7B90AE33;
+  --color-accent-40:  #7B90AE66;
+
+  /* Neutral + opacity variants */
+  --color-neutral:     #7B90AE;
+  --color-neutral-15:  #7B90AE26;
+  --color-neutral-20:  #7B90AE33;
+
+  /* Focus + chart */
+  --color-focus:   #1383F4;
+  --color-chart-1: #00509e;
+  --color-chart-2: #007acc;
+  --color-chart-3: #66a3ff;
+  --color-chart-4: #cce0ff;
+  --color-chart-5: #003366;
+  --color-chart-6: #D49A4E;
+
+  /* Fonts */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Tight border radius */
+  --radius-none: 0px;
+  --radius-sm: 2px;
+  --radius: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 2px;
+  --radius-2xl: 2px;
+  --radius-3xl: 2px;
+  --radius-full: 9999px;
+
+  /* Animations */
+  --animate-fade-in: fadeIn 0.2s ease-out;
+  --animate-slide-down: slideDown 0.15s ease-out;
+  --animate-shimmer: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Base Styles ────────────────────────────────────────────────── */
+* {
+  border-color: var(--border-default);
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background-color: var(--bg-main); }
+::-webkit-scrollbar-thumb { background-color: var(--bg-hover); border-radius: 9999px; }
+
+.page-fade { animation: fadeIn 0.2s ease-out; }
+.toast-slide { animation: slideIn 0.2s ease-out; }

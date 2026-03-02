@@ -1,0 +1,182 @@
+"use client";
+
+import { useEffect, useCallback, useState } from "react";
+import { usePositionStore } from "@/store/positionStore";
+
+// ─── Shared fetch hook pattern ───────────────────────────────────────────────
+
+function useFetch<T>(
+  fetcher: () => Promise<T>,
+  deps: unknown[] = []
+) {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await fetcher();
+      setData(result);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  return { data, loading, error, refetch };
+}
+
+// ─── Hedge Book ──────────────────────────────────────────────────────────────
+
+export function useHedgeBook(orgId: string, commodityId?: string, regionGroupId?: string) {
+  const { hedgeBook, loading, error, fetchHedgeBook } = usePositionStore();
+
+  useEffect(() => {
+    if (orgId) fetchHedgeBook(orgId, commodityId, regionGroupId);
+  }, [orgId, commodityId, regionGroupId, fetchHedgeBook]);
+
+  return {
+    data: hedgeBook,
+    loading,
+    error,
+    refetch: () => fetchHedgeBook(orgId, commodityId, regionGroupId),
+  };
+}
+
+// ─── Site View ───────────────────────────────────────────────────────────────
+
+export function useSiteView(siteId: string | null, commodityId?: string) {
+  const { siteView, loading, error, fetchSiteView } = usePositionStore();
+
+  useEffect(() => {
+    if (siteId) fetchSiteView(siteId, commodityId);
+  }, [siteId, commodityId, fetchSiteView]);
+
+  return {
+    data: siteView,
+    loading,
+    error,
+    refetch: () => siteId ? fetchSiteView(siteId, commodityId) : undefined,
+  };
+}
+
+// ─── Allocations ─────────────────────────────────────────────────────────────
+
+export function useAllocations(params?: Record<string, string>) {
+  const { allocations, loading, error, fetchAllocations } = usePositionStore();
+
+  useEffect(() => {
+    fetchAllocations(params);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(params), fetchAllocations]);
+
+  return {
+    data: allocations,
+    loading,
+    error,
+    refetch: () => fetchAllocations(params),
+  };
+}
+
+// ─── Physicals ───────────────────────────────────────────────────────────────
+
+export function usePhysicals(params?: Record<string, string>) {
+  const { physicals, loading, error, fetchPhysicals } = usePositionStore();
+
+  useEffect(() => {
+    fetchPhysicals(params);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(params), fetchPhysicals]);
+
+  return {
+    data: physicals,
+    loading,
+    error,
+    refetch: () => fetchPhysicals(params),
+  };
+}
+
+// ─── Roll Candidates ─────────────────────────────────────────────────────────
+
+export function useRollCandidates(orgId: string, commodityId?: string) {
+  const { rollCandidates, loading, error, fetchRollCandidates } = usePositionStore();
+
+  useEffect(() => {
+    if (orgId) fetchRollCandidates(orgId, commodityId);
+  }, [orgId, commodityId, fetchRollCandidates]);
+
+  return {
+    data: rollCandidates,
+    loading,
+    error,
+    refetch: () => fetchRollCandidates(orgId, commodityId),
+  };
+}
+
+// ─── Site Groups (data-driven regions) ───────────────────────────────────────
+
+interface SiteGroup {
+  id: string;
+  name: string;
+  group_type: string;
+  sites: { id: string; name: string; code: string; region: string }[];
+}
+
+export function useSiteGroups(orgId?: string, groupType?: string) {
+  return useFetch<SiteGroup[]>(async () => {
+    const params = new URLSearchParams();
+    if (orgId) params.set("orgId", orgId);
+    if (groupType) params.set("type", groupType);
+    const res = await fetch(`/api/kernel/site-groups?${params}`);
+    if (!res.ok) throw new Error((await res.json()).error);
+    return res.json();
+  }, [orgId, groupType]);
+}
+
+// ─── Commodities ─────────────────────────────────────────────────────────────
+
+interface Commodity {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  currency: string;
+  exchange: string;
+}
+
+export function useCommodities() {
+  return useFetch<Commodity[]>(async () => {
+    const res = await fetch("/api/kernel/commodities");
+    if (!res.ok) throw new Error((await res.json()).error);
+    return res.json();
+  }, []);
+}
+
+// ─── Sites ───────────────────────────────────────────────────────────────────
+
+interface Site {
+  id: string;
+  name: string;
+  code: string;
+  region: string;
+  site_type_name: string;
+  operating_model: string;
+}
+
+export function useSites(orgId?: string) {
+  return useFetch<Site[]>(async () => {
+    const params = new URLSearchParams();
+    if (orgId) params.set("orgId", orgId);
+    const res = await fetch(`/api/kernel/sites?${params}`);
+    if (!res.ok) throw new Error((await res.json()).error);
+    return res.json();
+  }, [orgId]);
+}
