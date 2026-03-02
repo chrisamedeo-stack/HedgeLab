@@ -27,6 +27,13 @@ export const chartTheme = {
   warning: "#A66B17",         // Burnt Amber — alert
   orange:  "#A66B17",         // Burnt Amber
   budget:  "#A66B17",         // Burnt Amber — budget target line
+
+  // Coverage chart specific
+  basisRatio: "#42a5f5",       // Blue 400 — basis/ratio bar
+  forecast:   "#0d47a1",       // Blue 900 — unfixed forecast
+  fixed:      "#26a69a",       // Teal 400 — fixed price fill
+  options:    "#ff8a65",       // Deep Orange 300 — options overlay
+  budgetLine: "#90caf9",       // Blue 200 — budget dashed line
 } as const;
 
 // Ordered palette for multi-series charts (max contrast between neighbours)

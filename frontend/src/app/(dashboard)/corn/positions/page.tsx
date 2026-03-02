@@ -11,6 +11,7 @@ import {
 import {
   usePositions,
   useSites,
+  useCoverage,
   useHedgesByBook,
   HedgeTradeResponse,
 } from "@/hooks/useCorn";
@@ -29,6 +30,7 @@ import { usePermissions } from "./_components/permissions";
 import { BookHedgeForm } from "./_components/book-hedge-form";
 import { PortfolioSummary } from "./_components/portfolio-summary";
 import { MtmPnlChart } from "./_components/mtm-pnl-chart";
+import { CoverageChart } from "./_components/coverage-chart";
 import { DeliveryMonthTable } from "./_components/delivery-month-table";
 import { BudgetMonthTable } from "./_components/budget-month-table";
 
@@ -38,6 +40,7 @@ export default function PositionsPage() {
   const { positions, isLoading, error, mutate } = usePositions(book);
   const { sites } = useSites();
   const { hedges, mutate: hedgesMutate } = useHedgesByBook(book);
+  const { coverage } = useCoverage();
   const toast = useToast();
 
   // ─── UI state ──────────────────────────────────────────────────────────────
@@ -57,6 +60,7 @@ export default function PositionsPage() {
     .filter((s) => book === "CANADA" ? s.country === "Canada" : s.country === "US")
     .map((s) => ({ code: s.code, name: s.name }));
   const bookLabel   = book === "CANADA" ? "Canada" : "US";
+  const bookCoverage = coverage.filter((c) => siteOptions.some((s) => s.code === c.siteCode));
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
   function handleHedgeFormDone() {
@@ -221,6 +225,9 @@ export default function PositionsPage() {
 
       {/* MTM P&L Chart */}
       <MtmPnlChart hedgeBook={hedgeBook} siteAllocations={allocations} />
+
+      {/* Coverage Chart */}
+      <CoverageChart coverage={bookCoverage} />
 
       {/* ═══════════════ DELIVERY MONTH SECTION ═══════════════ */}
       <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
