@@ -90,7 +90,7 @@ export function BudgetVsCommittedChart({ lines, coverage }: Props) {
               formatter={(value: number, name: string) => [formatNumber(Math.round(value)) + " bu", name]}
               labelFormatter={(label: string) => label}
             />
-            <Legend wrapperStyle={{ fontSize: 11, color: "#94a3b8" }} />
+            <Legend wrapperStyle={{ fontSize: 11, color: chartTheme.tick }} />
             <Bar dataKey="budget" name="Budget" fill={chartTheme.primary} radius={[4, 4, 0, 0]} />
             <Bar dataKey="committed" name="Committed" fill={chartTheme.committed} radius={[4, 4, 0, 0]} />
           </BarChart>
