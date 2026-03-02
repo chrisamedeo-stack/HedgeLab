@@ -7,17 +7,17 @@ import { api } from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { ContractStatusBadge, TradeTypeBadge } from "@/components/ui/Badge";
+import { ContractStatusBadge } from "@/components/ui/Badge";
 import { FormField } from "@/components/ui/FormField";
 import { formatNumber } from "@/lib/format";
-import { FileText, Plus, ChevronDown, ChevronRight, Lock, X, Edit2, Trash2, Calendar } from "lucide-react";
+import { FileText, Plus, ChevronDown, ChevronRight, Lock, X, Edit2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BUSHELS_PER_MT } from "@/lib/corn-utils";
 import { btnPrimary, btnCancel } from "@/lib/corn-format";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { toCsv, downloadCsv } from "@/lib/csv-export";
-import { FiscalYearContractGrid } from "./_components/fiscal-year-contract-grid";
+import { MultiMonthContractGrid } from "./_components/fiscal-year-contract-grid";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -368,12 +368,7 @@ function ContractRow({ contract, onRefresh, onEdit, onDelete }: {
         </button>
 
         <div className="w-44 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-mono font-medium text-secondary truncate">{contract.contractRef}</p>
-            {contract.tradeType && (
-              <TradeTypeBadge type={contract.tradeType} />
-            )}
-          </div>
+          <p className="text-sm font-mono font-medium text-secondary truncate">{contract.contractRef}</p>
           <p className="text-xs text-faint truncate">{contract.supplierName ?? "—"}</p>
         </div>
 
@@ -386,22 +381,25 @@ function ContractRow({ contract, onRefresh, onEdit, onDelete }: {
           <p className="text-sm tabular-nums text-secondary">{fmtBu(contract.quantityBu)} bu</p>
         </div>
 
-        <div className="w-36 min-w-0 hidden md:block">
-          {(contract.basisPerBu != null) ? (
-            <>
-              <p className="text-sm tabular-nums text-secondary">{fmtPrice(contract.basisPerBu)}/bu</p>
-              <p className="text-xs text-faint">{contract.futuresRef ?? "—"}</p>
-            </>
+        <div className="w-48 min-w-0 hidden md:block">
+          {contract.tradeType === "INDEX" ? (
+            <p className="text-sm text-warning italic">Index pricing</p>
           ) : (
-            <p className="text-sm text-ph italic">Basis open</p>
-          )}
-        </div>
-
-        <div className="w-36 min-w-0 hidden lg:block">
-          {isFullyPriced ? (
-            <p className="text-sm tabular-nums font-semibold text-profit">{fmtPrice(contract.allInPerBu)}/bu</p>
-          ) : (
-            <p className="text-sm text-ph italic">Board open</p>
+            <div className="space-y-0.5">
+              {contract.basisPerBu != null ? (
+                <p className="text-sm tabular-nums text-profit">Basis: {fmtPrice(contract.basisPerBu)}/bu vs {contract.futuresRef ?? "?"}</p>
+              ) : (
+                <p className="text-sm text-ph italic">Basis: open</p>
+              )}
+              {contract.boardPricePerBu != null ? (
+                <p className="text-sm tabular-nums text-profit">Board: ${contract.boardPricePerBu.toFixed(4)}/bu</p>
+              ) : (
+                <p className="text-sm text-ph italic">Board: open</p>
+              )}
+              {isFullyPriced && (
+                <p className="text-sm tabular-nums text-profit font-bold">All-in: {fmtPrice(contract.allInPerBu)}/bu</p>
+              )}
+            </div>
           )}
         </div>
 
@@ -490,7 +488,7 @@ export default function ContractsPage() {
   const { toast } = useToast();
   const [filterSite, setFilterSite]     = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [formMode, setFormMode]         = useState<"none" | "single" | "fiscal-year">("none");
+  const [formMode, setFormMode]         = useState<"none" | "new" | "edit">("none");
   const [editing, setEditing]           = useState<PhysicalContractResponse | undefined>();
   const [deleteTarget, setDeleteTarget] = useState<PhysicalContractResponse | null>(null);
   const [deleting, setDeleting]         = useState(false);
@@ -505,7 +503,7 @@ export default function ContractsPage() {
 
   function handleEdit(c: PhysicalContractResponse) {
     setEditing(c);
-    setFormMode("single");
+    setFormMode("edit");
   }
 
   function handleFormClose() {
@@ -555,20 +553,10 @@ export default function ContractsPage() {
             }}
             disabled={filtered.length === 0}
           />
-          <button onClick={() => { setEditing(undefined); setFormMode((m) => m === "fiscal-year" ? "none" : "fiscal-year"); }}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-              formMode === "fiscal-year"
-                ? "bg-hover text-secondary hover:bg-hover"
-                : "bg-input-bg border border-b-input text-secondary hover:bg-hover"
-            )}>
-            {formMode === "fiscal-year" ? <X className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
-            {formMode === "fiscal-year" ? "Cancel" : "Full Year"}
-          </button>
-          <button onClick={() => { setEditing(undefined); setFormMode((m) => m === "single" ? "none" : "single"); }}
+          <button onClick={() => { setEditing(undefined); setFormMode((m) => m === "new" ? "none" : "new"); }}
             className={btnPrimary}>
-            {formMode === "single" && !editing ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {formMode === "single" && !editing ? "Cancel" : "New Contract"}
+            {formMode === "new" ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {formMode === "new" ? "Cancel" : "New Contract"}
           </button>
         </div>
       </div>
@@ -588,14 +576,14 @@ export default function ContractsPage() {
         </select>
       </div>
 
-      {formMode === "single" && (
+      {formMode === "new" && (
         <div className="animate-fade-in">
-          <ContractForm editing={editing} onSaved={handleFormSaved} onCancel={handleFormClose} />
+          <MultiMonthContractGrid onSaved={handleFormSaved} onCancel={handleFormClose} />
         </div>
       )}
-      {formMode === "fiscal-year" && (
+      {formMode === "edit" && (
         <div className="animate-fade-in">
-          <FiscalYearContractGrid onSaved={handleFormSaved} onCancel={handleFormClose} />
+          <ContractForm editing={editing} onSaved={handleFormSaved} onCancel={handleFormClose} />
         </div>
       )}
 
@@ -623,7 +611,7 @@ export default function ContractsPage() {
           icon={FileText}
           title="No physical contracts"
           description="Create a contract to begin the basis and board pricing workflow."
-          action={{ label: "New Contract", onClick: () => setFormMode("single") }}
+          action={{ label: "New Contract", onClick: () => setFormMode("new") }}
         />
       ) : (
         <div className="space-y-3">

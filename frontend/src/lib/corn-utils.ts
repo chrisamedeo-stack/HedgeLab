@@ -71,6 +71,21 @@ export function currentFiscalYear(fyStartMonth: number): string {
   return `${y}/${y + 1}`;
 }
 
+/** Generate all YYYY-MM strings from start to end inclusive */
+export function generateMonthRange(start: string, end: string): string[] {
+  if (!start || !end || start.length < 7 || end.length < 7) return [];
+  const [sy, sm] = start.split("-").map(Number);
+  const [ey, em] = end.split("-").map(Number);
+  const months: string[] = [];
+  let y = sy, m = sm;
+  while (y < ey || (y === ey && m <= em)) {
+    months.push(`${y}-${String(m).padStart(2, "0")}`);
+    m++;
+    if (m > 12) { m = 1; y++; }
+  }
+  return months;
+}
+
 /** Format YYYY-MM as a short label like "Jan '26" */
 export function monthLabel(ym: string): string {
   if (!ym || ym.length < 7) return ym;
