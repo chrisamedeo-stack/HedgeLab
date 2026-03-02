@@ -135,7 +135,7 @@ function ViewToggle({ view, onChange }: { view: View; onChange: (v: View) => voi
           onClick={() => onChange(opt.key)}
           className={cn(
             "px-3 py-1 rounded text-xs font-medium transition-colors",
-            view === opt.key ? "bg-action text-white shadow-sm" : "text-muted hover:text-secondary"
+            view === opt.key ? "bg-[#00509e] text-white shadow-sm" : "text-muted hover:text-secondary"
           )}
         >
           {opt.label}

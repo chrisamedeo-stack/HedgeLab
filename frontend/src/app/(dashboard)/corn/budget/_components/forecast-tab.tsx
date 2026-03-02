@@ -126,7 +126,7 @@ export function ForecastTab({
 
       {/* Table grouped by site */}
       {isLoading ? (
-        <SkeletonTable rows={6} cols={9} />
+        <SkeletonTable rows={6} cols={10} />
       ) : lines.length === 0 ? (
         <EmptyState
           icon={TrendingUp}
@@ -172,6 +172,7 @@ export function ForecastTab({
                       <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Budget Bu</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Forecast Bu</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Variance</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-faint uppercase tracking-wider">Trend</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Hedged Bu</th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-faint uppercase tracking-wider">Coverage %</th>
                       <th className="px-4 py-2 text-center text-xs font-medium text-faint uppercase tracking-wider">Status</th>
@@ -199,6 +200,7 @@ export function ForecastTab({
                           </span>
                         ) : ""}
                       </td>
+                      <td />
                       <td className="px-4 py-2 text-right tabular-nums text-muted text-xs">{siteHedgedMt > 0 ? fmtVol(Math.round(siteHedgedMt * BUSHELS_PER_MT)) : ""}</td>
                       <td className="px-4 py-2 text-right tabular-nums text-xs font-medium">
                         {siteCoverage != null ? (

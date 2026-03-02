@@ -972,7 +972,7 @@ export default function HedgesPage() {
             className={cn(
               "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
               book === b
-                ? "bg-action text-white shadow"
+                ? "bg-[#00509e] text-white shadow"
                 : "text-muted hover:text-secondary"
             )}
           >

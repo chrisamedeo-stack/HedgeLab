@@ -109,7 +109,7 @@ export default function BudgetPage() {
               className={cn(
                 "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
                 book === b
-                  ? "bg-action text-white shadow"
+                  ? "bg-[#00509e] text-white shadow"
                   : "text-muted hover:text-secondary"
               )}
             >
@@ -128,7 +128,7 @@ export default function BudgetPage() {
             className={cn(
               "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
               activeTab === tab
-                ? "bg-hover text-white shadow"
+                ? "bg-[#00509e] text-white shadow"
                 : "text-muted hover:text-secondary"
             )}
           >

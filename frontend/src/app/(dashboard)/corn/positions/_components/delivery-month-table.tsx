@@ -87,7 +87,7 @@ export function DeliveryMonthTable({
               className="w-full grid grid-cols-[24px_120px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] items-center gap-4 px-5 py-3 hover:bg-row-hover transition-colors text-left"
             >
               {isExpanded ? <ChevronDown className="h-4 w-4 text-faint" /> : <ChevronRight className="h-4 w-4 text-faint" />}
-              <span className="bg-action-10 text-action ring-1 ring-action-20 px-2 py-0.5 rounded text-xs font-mono font-semibold text-center">
+              <span className="bg-input-bg text-secondary ring-1 ring-b-input px-2 py-0.5 rounded text-xs font-mono font-semibold text-center">
                 {g.futuresMonth}
               </span>
               <div className="flex flex-col">

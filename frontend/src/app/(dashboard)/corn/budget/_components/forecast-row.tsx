@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { CornBudgetLineResponse } from "@/hooks/useCorn";
+import { LineChart, Line, ResponsiveContainer } from "recharts";
+import { CornBudgetLineResponse, useForecastHistory } from "@/hooks/useCorn";
 import { BUSHELS_PER_MT, monthLabel } from "@/lib/corn-utils";
+import { chartTheme } from "@/lib/chart-theme";
 import { cn } from "@/lib/utils";
 import { fmtVol } from "./shared";
 import { InlineForecastEdit } from "./inline-forecast-edit";
@@ -14,8 +16,32 @@ export function ForecastRow({ line, onUpdated }: {
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editingForecast, setEditingForecast] = useState(false);
+  const [benchmarkId, setBenchmarkId] = useState<number | null>(null);
+
+  const { history } = useForecastHistory(line.id);
+
+  // Sparkline data: reverse so oldest is leftmost
+  const sparkData = history.length >= 2
+    ? [...history].reverse().map((h) => ({ v: h.forecastBu }))
+    : null;
+
+  // Resolve benchmark for variance override
+  const benchmarkEntry = benchmarkId != null
+    ? history.find((h) => h.id === benchmarkId)
+    : null;
 
   const forecastMt = line.forecastVolumeMt ?? line.budgetVolumeMt;
+  const forecastBu = line.forecastVolumeBu ?? (line.forecastVolumeMt != null
+    ? line.forecastVolumeMt * BUSHELS_PER_MT
+    : line.budgetVolumeMt * BUSHELS_PER_MT);
+
+  // If a benchmark is selected, override the variance display
+  const varianceBu = benchmarkEntry
+    ? forecastBu - benchmarkEntry.forecastBu
+    : line.forecastVarianceMt != null
+      ? line.forecastVarianceMt * BUSHELS_PER_MT
+      : null;
+
   const coveragePct = forecastMt > 0 && line.hedgedVolumeMt != null
     ? (line.hedgedVolumeMt / forecastMt) * 100
     : null;
@@ -40,12 +66,32 @@ export function ForecastRow({ line, onUpdated }: {
           )}
         </td>
         <td className="px-4 py-3 text-right">
-          {line.forecastVarianceMt != null ? (
+          {varianceBu != null ? (
             <span className={cn("tabular-nums text-xs font-medium",
-              line.forecastVarianceMt < 0 ? "text-loss" : line.forecastVarianceMt > 0 ? "text-profit" : "text-faint")}>
-              {line.forecastVarianceMt > 0 ? "+" : ""}{fmtVol(Math.round(line.forecastVarianceMt * BUSHELS_PER_MT))}
+              varianceBu < 0 ? "text-loss" : varianceBu > 0 ? "text-profit" : "text-faint")}>
+              {varianceBu > 0 ? "+" : ""}{fmtVol(Math.round(varianceBu))}
             </span>
           ) : <span className="text-ph text-xs">&mdash;</span>}
+        </td>
+        <td className="px-4 py-3 w-[96px]">
+          {sparkData ? (
+            <div className="w-20 h-6 mx-auto">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={sparkData}>
+                  <Line
+                    type="monotone"
+                    dataKey="v"
+                    stroke={chartTheme.accent}
+                    strokeWidth={1.5}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <span className="text-ph text-xs block text-center">&mdash;</span>
+          )}
         </td>
         <td className="px-4 py-3 tabular-nums text-muted text-right text-xs">
           {line.hedgedVolumeMt != null ? fmtVol(Math.round(line.hedgedVolumeMt * BUSHELS_PER_MT)) : "\u2014"}
@@ -69,8 +115,13 @@ export function ForecastRow({ line, onUpdated }: {
       </tr>
       {expanded && (
         <tr>
-          <td colSpan={9} className="px-8 py-3 bg-main/40 border-t border-b-default/50">
-            <ForecastHistoryTimeline budgetLineId={line.id} />
+          <td colSpan={10} className="px-8 py-3 bg-main/40 border-t border-b-default/50">
+            <ForecastHistoryTimeline
+              budgetLineId={line.id}
+              history={history}
+              benchmarkId={benchmarkId}
+              onBenchmarkChange={setBenchmarkId}
+            />
           </td>
         </tr>
       )}

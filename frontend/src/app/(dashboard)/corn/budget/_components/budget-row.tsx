@@ -39,7 +39,7 @@ export function BudgetRow({ line, onEdit, onDeleted }: {
           </button>
         </td>
         <td className="px-4 py-3 text-secondary">{monthLabel(line.budgetMonth)}</td>
-        <td className="px-4 py-3 text-muted font-mono text-xs">{line.futuresMonth ?? "\u2014"}</td>
+        <td className="px-4 py-3 text-xs">{line.futuresMonth ? <span className="bg-input-bg text-secondary ring-1 ring-b-input px-2 py-0.5 rounded text-xs font-mono font-semibold">{line.futuresMonth}</span> : "\u2014"}</td>
         <td className="px-4 py-3 tabular-nums text-secondary text-right">{fmtVol(buVal)}</td>
         <td className="px-4 py-3 text-right">
           {line.targetAllInPerMt != null

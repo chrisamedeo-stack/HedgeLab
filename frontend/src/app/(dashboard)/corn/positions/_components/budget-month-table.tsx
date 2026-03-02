@@ -173,7 +173,7 @@ export function BudgetMonthTable({
                   {fmtBudgetMonth(g.budgetMonth)}
                 </span>
                 {Array.from(new Set([...g.monthOnly, ...g.siteAssigned].map((a) => a.futuresMonth))).sort().map((fm) => (
-                  <span key={fm} className="bg-action-10 text-action ring-1 ring-action-20 px-2 py-0.5 rounded text-xs font-mono font-semibold whitespace-nowrap">
+                  <span key={fm} className="bg-input-bg text-secondary ring-1 ring-b-input px-2 py-0.5 rounded text-xs font-mono font-semibold whitespace-nowrap">
                     {fm}
                   </span>
                 ))}
@@ -305,7 +305,7 @@ export function BudgetMonthTable({
                             <td className="px-4 py-2 font-mono text-secondary text-xs">{a.tradeRef}</td>
                             <td className="px-4 py-2"><SideBadge side={a.side || "LONG"} /></td>
                             <td className="px-4 py-2">
-                              <span className="bg-action-10 text-action ring-1 ring-action-20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
+                              <span className="bg-input-bg text-secondary ring-1 ring-b-input px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
                             </td>
                             <td className="px-4 py-2 text-secondary tabular-nums">{a.allocatedLots}</td>
                             <td className="px-4 py-2 text-secondary tabular-nums">{fmtVol(a.allocatedBushels)}</td>
@@ -368,7 +368,7 @@ export function BudgetMonthTable({
                         <td className="px-4 py-2 font-mono text-secondary text-xs">{a.tradeRef}</td>
                         <td className="px-4 py-2"><SideBadge side={a.side || "LONG"} /></td>
                         <td className="px-4 py-2">
-                          <span className="bg-action-10 text-action ring-1 ring-action-20 px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
+                          <span className="bg-input-bg text-secondary ring-1 ring-b-input px-2 py-0.5 rounded text-xs font-mono font-semibold">{a.futuresMonth}</span>
                         </td>
                         <td className="px-4 py-2 text-secondary tabular-nums">{a.allocatedLots}</td>
                         <td className="px-4 py-2 text-secondary tabular-nums">{fmtVol(a.allocatedBushels)}</td>

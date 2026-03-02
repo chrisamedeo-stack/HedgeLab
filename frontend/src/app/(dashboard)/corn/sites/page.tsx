@@ -1219,7 +1219,7 @@ export default function SitesPage() {
               onClick={() => { setBook(b); setSiteFilter(""); setBudgetMonth(null); }}
               className={cn(
                 "px-5 py-2 rounded-lg text-sm font-medium transition-colors",
-                book === b ? "bg-action text-white shadow" : "text-muted hover:text-secondary"
+                book === b ? "bg-[#00509e] text-white shadow" : "text-muted hover:text-secondary"
               )}
             >
               {b === "CANADA" ? "\ud83c\udde8\ud83c\udde6 Canada" : "\ud83c\uddfa\ud83c\uddf8 United States"}
@@ -1239,7 +1239,7 @@ export default function SitesPage() {
                 onClick={() => { setSiteFilter(s.code); setBudgetMonth(null); }}
                 className={cn(
                   "px-4 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                  siteFilter === s.code ? "bg-action text-white shadow" : "text-muted hover:text-secondary"
+                  siteFilter === s.code ? "bg-[#00509e] text-white shadow" : "text-muted hover:text-secondary"
                 )}
               >
                 {s.code} &middot; {s.name}
