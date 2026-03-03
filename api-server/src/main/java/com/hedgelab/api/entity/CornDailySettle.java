@@ -30,5 +30,5 @@ public class CornDailySettle {
     private LocalDate settleDate;
 
     @Column(name = "price_per_bushel", nullable = false, precision = 10, scale = 4)
-    private BigDecimal pricePerBushel;  // ¢/bushel
+    private BigDecimal pricePerBushel;  // $/bushel
 }

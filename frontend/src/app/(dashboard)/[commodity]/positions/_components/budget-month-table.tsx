@@ -54,7 +54,6 @@ export function BudgetMonthTable({
   // Allocate-from-budget-month state
   const [allocMonth, setAllocMonth] = useState<string | null>(null);
   const [allocHedgeId, setAllocHedgeId] = useState<string>("");
-  const [allocSite, setAllocSite] = useState("");
   const [allocBushels, setAllocBushels] = useState("");
   const [allocSaving, setAllocSaving] = useState(false);
 
@@ -116,21 +115,18 @@ export function BudgetMonthTable({
   function openAllocForm(budgetMonth: string) {
     setAllocMonth(budgetMonth);
     setAllocHedgeId("");
-    setAllocSite("");
     setAllocBushels("");
   }
 
   function closeAllocForm() {
     setAllocMonth(null);
     setAllocHedgeId("");
-    setAllocSite("");
     setAllocBushels("");
   }
 
   async function handleAllocate(budgetMonth: string) {
     const hedge = unallocatedHedges.find((h) => String(h.hedgeTradeId) === allocHedgeId);
     if (!hedge) { toast.toast("Select a hedge trade", "error"); return; }
-    if (!allocSite) { toast.toast("Select a site", "error"); return; }
     const bu = parseInt(allocBushels);
     if (!bu || bu <= 0) { toast.toast("Enter bushels", "error"); return; }
     if (bu > hedge.unallocatedBushels) {
@@ -142,11 +138,10 @@ export function BudgetMonthTable({
     setAllocSaving(true);
     try {
       await api.post(`${apiBase}/hedges/${hedge.hedgeTradeId}/allocations`, {
-        siteCode: allocSite,
         budgetMonth,
         allocatedLots: lots,
       });
-      toast.toast(`Allocated ${fmtBu(lots * config.contractSizeBu)} bu → ${allocSite} · ${fmtBudgetMonth(budgetMonth)}`, "success");
+      toast.toast(`Allocated ${fmtBu(lots * config.contractSizeBu)} bu → ${fmtBudgetMonth(budgetMonth)}`, "success");
       closeAllocForm();
       onRefresh();
     } catch (e: unknown) {
@@ -249,15 +244,6 @@ export function BudgetMonthTable({
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-xs text-faint">Site</label>
-                    <select value={allocSite} onChange={(e) => setAllocSite(e.target.value)} className={inputCls}>
-                      <option value="">Select site&hellip;</option>
-                      {sites.map((s) => (
-                        <option key={s.code} value={s.code}>{s.code} &middot; {s.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1">
                     <label className="text-xs text-faint">Bushels</label>
                     <input
                       type="number"
@@ -273,7 +259,7 @@ export function BudgetMonthTable({
                   <div className="text-xs text-faint pb-1.5">
                     {allocBushels ? `${Math.round(parseInt(allocBushels) / config.contractSizeBu)} lots` : ""}
                   </div>
-                  <button onClick={() => handleAllocate(g.budgetMonth)} disabled={allocSaving || !allocHedgeId || !allocSite || !allocBushels} className={btnPrimary}>
+                  <button onClick={() => handleAllocate(g.budgetMonth)} disabled={allocSaving || !allocHedgeId || !allocBushels} className={btnPrimary}>
                     {allocSaving ? "Allocating\u2026" : "Allocate"}
                   </button>
                   <button onClick={closeAllocForm} className={btnCancel}>Cancel</button>

@@ -75,8 +75,8 @@ public class CornPositionResponse {
         private Integer allocatedLots;
         private Integer allocatedBushels;
         private BigDecimal allocatedMt;
-        private BigDecimal entryPrice;      // ¢/bu
-        private BigDecimal settlePrice;     // ¢/bu
+        private BigDecimal entryPrice;      // $/bu
+        private BigDecimal settlePrice;     // $/bu
         private BigDecimal mtmPnlUsd;
         private Integer efpdLots;
         private Integer offsetLots;

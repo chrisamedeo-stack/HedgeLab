@@ -247,21 +247,26 @@ public class CornPositionService {
             return Map.of("status", "error", "reason", "No " + spec.code() + " price returned from API");
         }
 
+        // API returns cents/bushel (e.g. 438.75); convert to $/bushel for consistency
+        // with manual settle entry and hedge trade prices which are all in $/bu.
+        BigDecimal pricePerBu = price.divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP);
+        log.info("[RefreshPrices] {} API price {} ¢/bu → {} $/bu", spec.code(), price, pricePerBu);
+
         // Save as settle for each active futures month
         LocalDate today = LocalDate.now();
         for (String fm : futuresMonths) {
             CornDailySettle ds = CornDailySettle.builder()
                     .futuresMonth(fm)
                     .settleDate(today)
-                    .pricePerBushel(price)
+                    .pricePerBushel(pricePerBu)
                     .build();
             settleRepo.save(ds);
         }
 
-        log.info("[RefreshPrices] Published {} settle {} for {} months", spec.code(), price, futuresMonths.size());
+        log.info("[RefreshPrices] Published {} settle {} $/bu for {} months", spec.code(), pricePerBu, futuresMonths.size());
         return Map.of(
                 "status", "ok",
-                "price", price,
+                "price", pricePerBu,
                 "months", futuresMonths.size(),
                 "date", today.toString()
         );

@@ -10,6 +10,6 @@ import java.util.Map;
 public class PublishSettleRequest {
     /** Settle date (defaults to today if omitted) */
     private LocalDate settleDate;
-    /** futures month → ¢/bushel  e.g. { "ZCN26": 438.75 } */
+    /** futures month → $/bushel  e.g. { "ZCN26": 4.3875 } */
     private Map<String, BigDecimal> prices;
 }
