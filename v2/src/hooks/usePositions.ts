@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
+import { API_BASE } from "@/lib/api";
 import { usePositionStore } from "@/store/positionStore";
 
 // ─── Shared fetch hook pattern ───────────────────────────────────────────────
@@ -135,7 +136,7 @@ export function useSiteGroups(orgId?: string, groupType?: string) {
     const params = new URLSearchParams();
     if (orgId) params.set("orgId", orgId);
     if (groupType) params.set("type", groupType);
-    const res = await fetch(`/api/kernel/site-groups?${params}`);
+    const res = await fetch(`${API_BASE}/api/v2/kernel/site-groups?${params}`);
     if (!res.ok) throw new Error((await res.json()).error);
     return res.json();
   }, [orgId, groupType]);
@@ -154,7 +155,7 @@ interface Commodity {
 
 export function useCommodities() {
   return useFetch<Commodity[]>(async () => {
-    const res = await fetch("/api/kernel/commodities");
+    const res = await fetch(`${API_BASE}/api/v2/kernel/commodities`);
     if (!res.ok) throw new Error((await res.json()).error);
     return res.json();
   }, []);
@@ -175,7 +176,7 @@ export function useSites(orgId?: string) {
   return useFetch<Site[]>(async () => {
     const params = new URLSearchParams();
     if (orgId) params.set("orgId", orgId);
-    const res = await fetch(`/api/kernel/sites?${params}`);
+    const res = await fetch(`${API_BASE}/api/v2/kernel/sites?${params}`);
     if (!res.ok) throw new Error((await res.json()).error);
     return res.json();
   }, [orgId]);

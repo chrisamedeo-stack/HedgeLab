@@ -43,8 +43,11 @@ export default function SitesIndexPage() {
   }, [filteredSites]);
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-xl font-bold text-primary">Sites</h1>
+    <div className="space-y-6 page-fade">
+      <div>
+        <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Sites</h1>
+        <p className="mt-0.5 text-xs text-faint">Operating locations grouped by region</p>
+      </div>
 
       <RegionTabs
         regions={regionTabs}

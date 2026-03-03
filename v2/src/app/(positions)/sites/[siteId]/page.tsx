@@ -133,16 +133,15 @@ export default function SiteViewPage({ params }: { params: Promise<{ siteId: str
   const totalLocked = siteView?.hedges.filter((h) => h.status === "efp_closed").length ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-fade">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-primary">
+          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Site Position</h1>
+          <p className="mt-0.5 text-lg font-semibold text-primary">
             {siteView?.siteName ?? "Loading..."}
-          </h1>
-          {siteView && (
-            <p className="text-sm text-faint">{siteView.siteCode}</p>
-          )}
+            {siteView && <span className="ml-2 text-sm font-normal text-faint">{siteView.siteCode}</span>}
+          </p>
         </div>
         <div className="flex gap-2">
           {commodities && (
@@ -162,11 +161,27 @@ export default function SiteViewPage({ params }: { params: Promise<{ siteId: str
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-4 gap-3">
-        <KPICard label="Open Hedges" value={totalOpen} />
-        <KPICard label="Locked Hedges" value={totalLocked} />
-        <KPICard label="Physical Positions" value={siteView?.physicals.length ?? 0} />
-        <KPICard label="All-In Months" value={siteView?.allInSummary.length ?? 0} />
+      <div className="grid grid-cols-4 gap-4">
+        <KPICard
+          label="Open Hedges"
+          value={totalOpen}
+          icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>}
+        />
+        <KPICard
+          label="Locked Hedges"
+          value={totalLocked}
+          icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>}
+        />
+        <KPICard
+          label="Physical Positions"
+          value={siteView?.physicals.length ?? 0}
+          icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" /></svg>}
+        />
+        <KPICard
+          label="All-In Months"
+          value={siteView?.allInSummary.length ?? 0}
+          icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>}
+        />
       </div>
 
       {loading ? (

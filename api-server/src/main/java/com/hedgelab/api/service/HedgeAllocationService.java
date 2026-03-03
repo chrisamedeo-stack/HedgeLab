@@ -1,5 +1,6 @@
 package com.hedgelab.api.service;
 
+import com.hedgelab.api.dto.CommoditySpec;
 import com.hedgelab.api.dto.request.CreateHedgeAllocationRequest;
 import com.hedgelab.api.dto.response.HedgeAllocationResponse;
 import com.hedgelab.api.entity.HedgeAllocation;
@@ -21,12 +22,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class HedgeAllocationService {
 
-    private static final double BUSHELS_PER_LOT = 5_000.0;
-    private static final double BUSHELS_PER_MT  = 39.3683;
-
     private final HedgeAllocationRepository allocationRepo;
     private final HedgeTradeRepository      hedgeRepo;
     private final SiteRepository            siteRepo;
+    private final CommoditySpecService      specService;
 
     @Transactional(readOnly = true)
     public List<HedgeAllocationResponse> getAllocationsForTrade(Long tradeId) {
@@ -70,23 +69,19 @@ public class HedgeAllocationService {
 
     @Transactional
     public HedgeAllocationResponse assignSite(Long monthAllocationId, String siteCode, Integer lots) {
-        // 1. Find the month-only allocation
         HedgeAllocation monthAlloc = allocationRepo.findById(monthAllocationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Allocation not found: " + monthAllocationId));
 
-        // 2. Validate it IS a month-only allocation (site == null)
         if (monthAlloc.getSite() != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Allocation " + monthAllocationId + " already has a site assigned");
         }
 
-        // 3. Look up the Site
         Site site = siteRepo.findByCode(siteCode)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Site not found: " + siteCode));
 
-        // 4. Validate lots
         if (lots == null || lots <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lots must be greater than 0");
         }
@@ -96,7 +91,6 @@ public class HedgeAllocationService {
                             lots, monthAlloc.getAllocatedLots()));
         }
 
-        // 5. Create new site allocation
         HedgeAllocation siteAlloc = HedgeAllocation.builder()
                 .hedgeTrade(monthAlloc.getHedgeTrade())
                 .site(site)
@@ -106,7 +100,6 @@ public class HedgeAllocationService {
                 .build();
         HedgeAllocation saved = allocationRepo.save(siteAlloc);
 
-        // 6. Reduce or delete month-only allocation
         int remaining = monthAlloc.getAllocatedLots() - lots;
         if (remaining <= 0) {
             allocationRepo.delete(monthAlloc);
@@ -115,7 +108,6 @@ public class HedgeAllocationService {
             allocationRepo.save(monthAlloc);
         }
 
-        // 7. Return the new site allocation
         return toResponse(saved);
     }
 
@@ -128,7 +120,10 @@ public class HedgeAllocationService {
     }
 
     private HedgeAllocationResponse toResponse(HedgeAllocation a) {
-        double mt = (a.getAllocatedLots() * BUSHELS_PER_LOT) / BUSHELS_PER_MT;
+        CommoditySpec spec = specService.getSpecByFuturesPrefix(a.getHedgeTrade().getFuturesMonth());
+        double bushelsPerLot = spec.contractSizeBu();
+        double bushelsPerMt = spec.bushelsPerMt().doubleValue();
+        double mt = (a.getAllocatedLots() * bushelsPerLot) / bushelsPerMt;
         return HedgeAllocationResponse.builder()
                 .id(a.getId())
                 .hedgeTradeId(a.getHedgeTrade().getId())

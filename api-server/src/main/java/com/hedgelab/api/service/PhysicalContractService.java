@@ -1,5 +1,6 @@
 package com.hedgelab.api.service;
 
+import com.hedgelab.api.dto.CommoditySpec;
 import com.hedgelab.api.dto.request.CreatePhysicalContractRequest;
 import com.hedgelab.api.dto.request.LockBasisRequest;
 import com.hedgelab.api.dto.request.UpdatePhysicalContractRequest;
@@ -28,31 +29,43 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PhysicalContractService {
 
-    private static final BigDecimal BUSHELS_PER_MT   = new BigDecimal("39.3683");
-
     private final PhysicalContractRepository contractRepository;
     private final SiteRepository             siteRepository;
     private final EFPTicketRepository        efpTicketRepository;
     private final ReceiptTicketRepository    receiptTicketRepository;
+    private final CommoditySpecService       specService;
 
     @Transactional(readOnly = true)
-    public List<PhysicalContractResponse> getAllContracts() {
-        return contractRepository.findAll().stream().map(this::toResponse).collect(Collectors.toList());
+    public List<PhysicalContractResponse> getAllContracts(String commodityCode) {
+        CommoditySpec spec = specService.getSpec(commodityCode);
+        return contractRepository.findAll().stream()
+                .filter(c -> c.getCommodityCode() != null && c.getCommodityCode().startsWith(spec.code()))
+                .map(c -> toResponse(c, spec))
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<PhysicalContractResponse> getBySite(String siteCode) {
+    public List<PhysicalContractResponse> getBySite(String commodityCode, String siteCode) {
+        CommoditySpec spec = specService.getSpec(commodityCode);
         return contractRepository.findBySiteCodeOrderByContractDateDesc(siteCode)
-                .stream().map(this::toResponse).collect(Collectors.toList());
+                .stream()
+                .filter(c -> c.getCommodityCode() != null && c.getCommodityCode().startsWith(spec.code()))
+                .map(c -> toResponse(c, spec))
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public PhysicalContractResponse getById(Long id) {
-        return toResponse(findOrThrow(id));
+        PhysicalContract contract = findOrThrow(id);
+        CommoditySpec spec = resolveSpec(contract);
+        return toResponse(contract, spec);
     }
 
     @Transactional
-    public PhysicalContractResponse create(CreatePhysicalContractRequest req) {
+    public PhysicalContractResponse create(String commodityCode, CreatePhysicalContractRequest req) {
+        CommoditySpec spec = specService.getSpec(commodityCode);
+        BigDecimal bushelsPerMt = spec.bushelsPerMt();
+
         var site = siteRepository.findByCode(req.getSiteCode())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Site not found: " + req.getSiteCode()));
@@ -61,9 +74,9 @@ public class PhysicalContractService {
         BigDecimal mt = req.getQuantityMt();
         BigDecimal bu = req.getQuantityBu();
         if (mt == null && bu != null) {
-            mt = bu.divide(BUSHELS_PER_MT, 4, RoundingMode.HALF_UP);
+            mt = bu.divide(bushelsPerMt, 4, RoundingMode.HALF_UP);
         } else if (bu == null && mt != null) {
-            bu = mt.multiply(BUSHELS_PER_MT).setScale(2, RoundingMode.HALF_UP);
+            bu = mt.multiply(bushelsPerMt).setScale(2, RoundingMode.HALF_UP);
         }
         if (mt == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "Provide quantityMt or quantityBu");
@@ -90,7 +103,7 @@ public class PhysicalContractService {
                 .contractRef(ref)
                 .site(site)
                 .supplierName(req.getSupplierName())
-                .commodityCode(req.getCommodityCode() != null ? req.getCommodityCode() : "CORN-ZC")
+                .commodityCode(req.getCommodityCode() != null ? req.getCommodityCode() : spec.code())
                 .quantityMt(mt)
                 .deliveryMonth(req.getDeliveryMonth())
                 .basisPerBu(req.getBasisPerBu())
@@ -105,12 +118,12 @@ public class PhysicalContractService {
                 .tradeType(tt)
                 .build();
 
-        return toResponse(contractRepository.save(contract));
+        return toResponse(contractRepository.save(contract), spec);
     }
 
     @Transactional
-    public List<PhysicalContractResponse> createBulk(List<CreatePhysicalContractRequest> requests) {
-        return requests.stream().map(this::create).collect(Collectors.toList());
+    public List<PhysicalContractResponse> createBulk(String commodityCode, List<CreatePhysicalContractRequest> requests) {
+        return requests.stream().map(r -> create(commodityCode, r)).collect(Collectors.toList());
     }
 
     @Transactional
@@ -128,7 +141,8 @@ public class PhysicalContractService {
         contract.setBasisLockedDate(req.getLockedDate() != null ? req.getLockedDate() : LocalDate.now());
         contract.setStatus(PhysicalContractStatus.BASIS_LOCKED);
         if (req.getNotes() != null) contract.setNotes(req.getNotes());
-        return toResponse(contractRepository.save(contract));
+        CommoditySpec spec = resolveSpec(contract);
+        return toResponse(contractRepository.save(contract), spec);
     }
 
     @Transactional
@@ -140,7 +154,8 @@ public class PhysicalContractService {
                             + contract.getStatus() + ")");
         }
         contract.setStatus(PhysicalContractStatus.PO_ISSUED);
-        return toResponse(contractRepository.save(contract));
+        CommoditySpec spec = resolveSpec(contract);
+        return toResponse(contractRepository.save(contract), spec);
     }
 
     @Transactional
@@ -150,7 +165,8 @@ public class PhysicalContractService {
             throw new InvalidStateException("Cannot cancel a closed contract");
         }
         contract.setStatus(PhysicalContractStatus.CANCELLED);
-        return toResponse(contractRepository.save(contract));
+        CommoditySpec spec = resolveSpec(contract);
+        return toResponse(contractRepository.save(contract), spec);
     }
 
     @Transactional
@@ -179,10 +195,12 @@ public class PhysicalContractService {
         if (req.getBoardPricePerBu() != null) contract.setBoardPricePerBu(req.getBoardPricePerBu());
 
         // Update quantity
+        CommoditySpec spec = resolveSpec(contract);
+        BigDecimal bushelsPerMt = spec.bushelsPerMt();
         BigDecimal mt = req.getQuantityMt();
         BigDecimal bu = req.getQuantityBu();
         if (mt == null && bu != null) {
-            mt = bu.divide(BUSHELS_PER_MT, 4, RoundingMode.HALF_UP);
+            mt = bu.divide(bushelsPerMt, 4, RoundingMode.HALF_UP);
         }
         if (mt != null) contract.setQuantityMt(mt);
 
@@ -191,21 +209,19 @@ public class PhysicalContractService {
             contract.setTradeType(parseTradeType(req.getTradeType()));
         }
 
-        return toResponse(contractRepository.save(contract));
+        return toResponse(contractRepository.save(contract), spec);
     }
 
     @Transactional
     public void deleteContract(Long id) {
         var contract = findOrThrow(id);
 
-        // Check for linked EFP tickets
         var efps = efpTicketRepository.findByPhysicalContractIdOrderByEfpDateDesc(id);
         if (!efps.isEmpty()) {
             throw new InvalidStateException(
                     "Cannot delete: contract has " + efps.size() + " linked EFP ticket(s). Delete them first.");
         }
 
-        // Check for linked receipt tickets
         var receipts = receiptTicketRepository.findByPhysicalContractIdOrderByReceiptDateDesc(id);
         if (!receipts.isEmpty()) {
             throw new InvalidStateException(
@@ -216,6 +232,13 @@ public class PhysicalContractService {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private CommoditySpec resolveSpec(PhysicalContract contract) {
+        String code = contract.getCommodityCode();
+        if (code == null || code.isBlank()) code = "CORN";
+        if (code.contains("-")) code = code.split("-")[0];
+        return specService.getSpec(code);
+    }
 
     private PhysicalContractTradeType parseTradeType(String tradeType) {
         if (tradeType == null || tradeType.isBlank()) return PhysicalContractTradeType.BASIS;
@@ -232,9 +255,10 @@ public class PhysicalContractService {
                         "Contract not found: " + id));
     }
 
-    private PhysicalContractResponse toResponse(PhysicalContract c) {
+    private PhysicalContractResponse toResponse(PhysicalContract c, CommoditySpec spec) {
+        BigDecimal bushelsPerMt = spec.bushelsPerMt();
         BigDecimal bu = c.getQuantityMt() != null
-                ? c.getQuantityMt().multiply(BUSHELS_PER_MT).setScale(2, RoundingMode.HALF_UP)
+                ? c.getQuantityMt().multiply(bushelsPerMt).setScale(2, RoundingMode.HALF_UP)
                 : null;
 
         BigDecimal allInPerBu = null;
@@ -244,7 +268,7 @@ public class PhysicalContractService {
             BigDecimal freight = c.getFreightPerMt()  != null ? c.getFreightPerMt()  : BigDecimal.ZERO;
             allInPerBu = c.getBoardPricePerBu().add(basis);
             allInPerMt = allInPerBu
-                    .multiply(BUSHELS_PER_MT)
+                    .multiply(bushelsPerMt)
                     .add(freight)
                     .setScale(2, RoundingMode.HALF_UP);
         }

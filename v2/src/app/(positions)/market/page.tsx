@@ -61,12 +61,12 @@ export default function MarketDataPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-fade">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-primary">Market Data</h1>
-          <p className="text-sm text-faint">Settlement prices and market data</p>
+          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Market Data</h1>
+          <p className="mt-0.5 text-xs text-faint">Settlement prices and market data</p>
         </div>
         <button
           onClick={() => setShowEntryForm(true)}

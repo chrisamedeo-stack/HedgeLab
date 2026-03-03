@@ -90,9 +90,12 @@ export default function HedgeBookPage() {
   const kpis = hedgeBook?.kpis;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 page-fade">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-primary">Hedge Book</h1>
+        <div>
+          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Hedge Book</h1>
+          <p className="mt-0.5 text-xs text-faint">Allocation positions by contract month</p>
+        </div>
         <button
           onClick={() => setShowAllocate(true)}
           className="rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
@@ -119,11 +122,27 @@ export default function HedgeBookPage() {
 
       {/* KPIs */}
       {kpis && (
-        <div className="grid grid-cols-4 gap-3">
-          <KPICard label="Total Allocations" value={kpis.totalAllocations} />
-          <KPICard label="Open Volume" value={fmtVol(kpis.openVolume)} />
-          <KPICard label="Locked Volume" value={fmtVol(kpis.lockedVolume)} />
-          <KPICard label="Offset Volume" value={fmtVol(kpis.offsetVolume)} />
+        <div className="grid grid-cols-4 gap-4">
+          <KPICard
+            label="Total Allocations"
+            value={kpis.totalAllocations}
+            icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" /></svg>}
+          />
+          <KPICard
+            label="Open Volume"
+            value={fmtVol(kpis.openVolume)}
+            icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>}
+          />
+          <KPICard
+            label="Locked Volume"
+            value={fmtVol(kpis.lockedVolume)}
+            icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>}
+          />
+          <KPICard
+            label="Offset Volume"
+            value={fmtVol(kpis.offsetVolume)}
+            icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>}
+          />
         </div>
       )}
 

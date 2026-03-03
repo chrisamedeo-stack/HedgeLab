@@ -1,5 +1,6 @@
 package com.hedgelab.api.service;
 
+import com.hedgelab.api.dto.CommoditySpec;
 import com.hedgelab.api.dto.request.CreateEFPRequest;
 import com.hedgelab.api.dto.response.EFPTicketResponse;
 import com.hedgelab.api.entity.*;
@@ -17,16 +18,18 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class EFPService {
-    private static final BigDecimal BUSHELS_PER_MT = new BigDecimal("39.3683");
-    private static final int BUSHELS_PER_LOT = 5000;
     private final EFPTicketRepository efpRepository;
     private final HedgeTradeRepository hedgeRepository;
     private final PhysicalContractRepository contractRepository;
     private final HedgeOffsetRepository offsetRepository;
+    private final CommoditySpecService specService;
 
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public List<EFPTicketResponse> getAllEFPs() {
+    @Transactional(readOnly = true)
+    public List<EFPTicketResponse> getAllEFPs(String commodityCode) {
+        CommoditySpec spec = specService.getSpec(commodityCode);
+        String prefix = spec.futuresPrefix();
         return efpRepository.findAllByOrderByEfpDateDesc().stream()
+                .filter(e -> e.getFuturesMonth() != null && e.getFuturesMonth().startsWith(prefix))
                 .map(this::toResponse).collect(Collectors.toList());
     }
 
@@ -34,10 +37,15 @@ public class EFPService {
     public EFPTicketResponse create(CreateEFPRequest req) {
         var hedge = hedgeRepository.findById(req.getHedgeTradeId()).orElseThrow();
         var contract = contractRepository.findById(req.getPhysicalContractId()).orElseThrow();
+
+        CommoditySpec spec = specService.getSpecByFuturesPrefix(hedge.getFuturesMonth());
+        BigDecimal bushelsPerMt = spec.bushelsPerMt();
+        int bushelsPerLot = spec.contractSizeBu();
+
         long nextNum = efpRepository.findMaxId() + 1;
         String ref = String.format("EFP-%d-%03d", req.getEfpDate().getYear(), nextNum);
-        BigDecimal qtyMt = BigDecimal.valueOf((long) req.getLots() * BUSHELS_PER_LOT)
-                .divide(BUSHELS_PER_MT, 4, RoundingMode.HALF_UP);
+        BigDecimal qtyMt = BigDecimal.valueOf((long) req.getLots() * bushelsPerLot)
+                .divide(bushelsPerMt, 4, RoundingMode.HALF_UP);
         var efp = EFPTicket.builder()
                 .ticketRef(ref).hedgeTrade(hedge).physicalContract(contract)
                 .lots(req.getLots()).futuresMonth(hedge.getFuturesMonth())

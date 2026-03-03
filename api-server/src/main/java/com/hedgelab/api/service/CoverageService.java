@@ -1,5 +1,6 @@
 package com.hedgelab.api.service;
 
+import com.hedgelab.api.dto.CommoditySpec;
 import com.hedgelab.api.dto.response.CoverageResponse;
 import com.hedgelab.api.dto.response.CoverageResponse.MonthDetail;
 import com.hedgelab.api.entity.CornBudgetLine;
@@ -19,46 +20,56 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CoverageService {
 
-    private static final BigDecimal BUSHELS_PER_MT = new BigDecimal("39.3683");
-    private static final int        BUSHELS_PER_LOT = 5000;
-
     private final SiteRepository             siteRepository;
     private final CornBudgetLineRepository   budgetRepository;
     private final PhysicalContractRepository contractRepository;
     private final HedgeAllocationRepository  allocationRepository;
     private final EFPTicketRepository        efpRepository;
     private final ReceiptTicketRepository    receiptRepository;
+    private final CommoditySpecService       specService;
 
     @Transactional(readOnly = true)
-    public List<CoverageResponse> getCoverage() {
+    public List<CoverageResponse> getCoverage(String commodityCode) {
+        CommoditySpec spec = specService.getSpec(commodityCode);
+        BigDecimal bushelsPerMt = spec.bushelsPerMt();
+        int bushelsPerLot = spec.contractSizeBu();
+        String prefix = spec.futuresPrefix();
+
         return siteRepository.findAll().stream().map(site -> {
             String code = site.getCode();
 
             // ── Load all data for this site once ─────────────────────────────
 
             List<CornBudgetLine> budgetLines =
-                    budgetRepository.findBySiteCodeOrderByBudgetMonthAsc(code);
+                    budgetRepository.findBySiteCodeOrderByBudgetMonthAsc(code).stream()
+                            .filter(b -> b.getCommodityCode() != null && b.getCommodityCode().startsWith(spec.code()))
+                            .collect(Collectors.toList());
 
             BigDecimal budgetedMt = budgetLines.stream()
                     .map(b -> b.getBudgetVolumeMt() != null ? b.getBudgetVolumeMt() : BigDecimal.ZERO)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             BigDecimal committedMt = contractRepository.findBySiteCodeOrderByContractDateDesc(code).stream()
+                    .filter(c -> c.getCommodityCode() != null && c.getCommodityCode().startsWith(spec.code()))
                     .map(c -> c.getQuantityMt() != null ? c.getQuantityMt() : BigDecimal.ZERO)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            // Hedged MT via allocations (per site)
+            // Hedged MT via allocations (per site), filtered by commodity
             List<com.hedgelab.api.entity.HedgeAllocation> siteAllocations =
-                    allocationRepository.findBySite_CodeOrderByBudgetMonthAsc(code);
+                    allocationRepository.findBySite_CodeOrderByBudgetMonthAsc(code).stream()
+                            .filter(a -> a.getHedgeTrade().getFuturesMonth() != null
+                                    && a.getHedgeTrade().getFuturesMonth().startsWith(prefix))
+                            .collect(Collectors.toList());
 
             BigDecimal hedgedMt = siteAllocations.stream()
-                    .map(a -> BigDecimal.valueOf((long) a.getAllocatedLots() * BUSHELS_PER_LOT)
-                            .divide(BUSHELS_PER_MT, 4, RoundingMode.HALF_UP))
+                    .map(a -> BigDecimal.valueOf((long) a.getAllocatedLots() * bushelsPerLot)
+                            .divide(bushelsPerMt, 4, RoundingMode.HALF_UP))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            // EFP tickets for this site (via physical contract → site)
+            // EFP tickets for this site (via physical contract → site), filtered by commodity
             List<EFPTicket> siteEfps = efpRepository.findAll().stream()
                     .filter(e -> e.getPhysicalContract().getSite().getCode().equals(code))
+                    .filter(e -> e.getFuturesMonth() != null && e.getFuturesMonth().startsWith(prefix))
                     .collect(Collectors.toList());
 
             BigDecimal efpdMt = siteEfps.stream()
@@ -66,6 +77,8 @@ public class CoverageService {
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             BigDecimal receivedMt = receiptRepository.findBySiteCodeOrderByReceiptDateDesc(code).stream()
+                    .filter(r -> r.getPhysicalContract().getCommodityCode() != null
+                            && r.getPhysicalContract().getCommodityCode().startsWith(spec.code()))
                     .map(r -> r.getNetMt() != null ? r.getNetMt() : BigDecimal.ZERO)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -87,8 +100,8 @@ public class CoverageService {
                     .collect(Collectors.groupingBy(
                             com.hedgelab.api.entity.HedgeAllocation::getBudgetMonth,
                             Collectors.reducing(BigDecimal.ZERO,
-                                    a -> BigDecimal.valueOf((long) a.getAllocatedLots() * BUSHELS_PER_LOT)
-                                            .divide(BUSHELS_PER_MT, 4, RoundingMode.HALF_UP),
+                                    a -> BigDecimal.valueOf((long) a.getAllocatedLots() * bushelsPerLot)
+                                            .divide(bushelsPerMt, 4, RoundingMode.HALF_UP),
                                     BigDecimal::add)));
 
             // Group EFPs by physical contract deliveryMonth
@@ -104,6 +117,8 @@ public class CoverageService {
             Map<String, BigDecimal> receiptByMonth = receiptRepository
                     .findBySiteCodeOrderByReceiptDateDesc(code).stream()
                     .filter(r -> r.getReceiptDate() != null)
+                    .filter(r -> r.getPhysicalContract().getCommodityCode() != null
+                            && r.getPhysicalContract().getCommodityCode().startsWith(spec.code()))
                     .collect(Collectors.groupingBy(
                             r -> String.format("%d-%02d",
                                     r.getReceiptDate().getYear(),
@@ -116,6 +131,7 @@ public class CoverageService {
             Map<String, BigDecimal> committedByMonth = contractRepository
                     .findBySiteCodeOrderByContractDateDesc(code).stream()
                     .filter(c -> c.getDeliveryMonth() != null)
+                    .filter(c -> c.getCommodityCode() != null && c.getCommodityCode().startsWith(spec.code()))
                     .collect(Collectors.groupingBy(
                             com.hedgelab.api.entity.PhysicalContract::getDeliveryMonth,
                             Collectors.reducing(BigDecimal.ZERO,

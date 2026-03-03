@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useTrade } from "@/hooks/useTrades";
 import { useTradeStore } from "@/store/tradeStore";
 import { KPICard } from "@/components/ui/KPICard";
@@ -146,6 +147,12 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
               </button>
             </>
           )}
+          <Link
+            href={`/trades/${tradeId}`}
+            className="rounded-md border border-b-input px-3 py-1.5 text-xs text-muted hover:text-secondary hover:bg-hover"
+          >
+            Full Detail
+          </Link>
           <button onClick={onClose} className="text-faint hover:text-secondary">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

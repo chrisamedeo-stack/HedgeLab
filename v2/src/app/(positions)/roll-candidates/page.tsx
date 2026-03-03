@@ -77,9 +77,12 @@ export default function RollCandidatesPage() {
   const grouped = data?.grouped ?? {};
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 page-fade">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-primary">Roll Candidates</h1>
+        <div>
+          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Roll Candidates</h1>
+          <p className="mt-0.5 text-xs text-faint">Positions approaching contract expiry</p>
+        </div>
         {commodities && (
           <CommodityFilter
             commodities={commodities}
@@ -90,23 +93,26 @@ export default function RollCandidatesPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-4">
         <KPICard
           label="Critical"
           value={grouped.CRITICAL?.length ?? 0}
           subtitle="3 days or less"
           trend={(grouped.CRITICAL?.length ?? 0) > 0 ? "down" : "neutral"}
+          icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>}
         />
         <KPICard
           label="Urgent"
           value={grouped.URGENT?.length ?? 0}
           subtitle="4-7 days"
           trend={(grouped.URGENT?.length ?? 0) > 0 ? "down" : "neutral"}
+          icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
         />
         <KPICard
           label="Upcoming"
           value={grouped.UPCOMING?.length ?? 0}
           subtitle="8-21 days"
+          icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>}
         />
       </div>
 

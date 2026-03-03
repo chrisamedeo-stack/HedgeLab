@@ -73,11 +73,12 @@ export default function BudgetDetailPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-primary">
+          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Budget Period</h1>
+          <p className="mt-0.5 text-lg font-semibold text-primary">
             {period.site_name} · {period.budget_year}
-          </h1>
+          </p>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-sm text-muted">{period.commodity_name}</span>
+            <span className="text-xs text-faint">{period.commodity_name}</span>
             <StatusBadge status={isLocked ? "locked" : period.status} />
           </div>
         </div>

@@ -20,12 +20,13 @@ import { aggregateMtm, SiteWithCountry } from "@/lib/dashboard-aggregation";
 const BUSHELS_PER_MT = 39.3683;
 
 export default function DashboardPage() {
-  const { sites, isLoading: sitesLoading } = useSites();
+  const defaultSlug = "corn";
+  const { sites, isLoading: sitesLoading } = useSites(defaultSlug);
   const { sites: adminSites, isLoading: adminSitesLoading } = useAdminSites();
-  const { budget, isLoading: budgetLoading } = useBudget();
-  const { coverage, isLoading: coverageLoading } = useCoverage();
-  const { positions, isLoading: positionsLoading } = usePositions();
-  const { contracts, isLoading: contractsLoading } = useContracts();
+  const { budget, isLoading: budgetLoading } = useBudget(defaultSlug);
+  const { coverage, isLoading: coverageLoading } = useCoverage(defaultSlug);
+  const { positions, isLoading: positionsLoading } = usePositions(defaultSlug);
+  const { contracts, isLoading: contractsLoading } = useContracts(defaultSlug);
 
   // Hydration-safe user read
   const [user, setUser] = useState<ReturnType<typeof getUser>>(null);

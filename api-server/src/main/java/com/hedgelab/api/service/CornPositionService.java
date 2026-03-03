@@ -1,11 +1,12 @@
 package com.hedgelab.api.service;
 
+import com.hedgelab.api.dto.CommoditySpec;
 import com.hedgelab.api.dto.request.PublishSettleRequest;
 import com.hedgelab.api.dto.response.CornPositionResponse;
 import com.hedgelab.api.dto.response.CornPositionResponse.*;
 import com.hedgelab.api.entity.*;
 import com.hedgelab.api.repository.*;
-import com.hedgelab.api.util.ZcMonthMapper;
+import com.hedgelab.api.util.FuturesMonthMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,21 +23,23 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CornPositionService {
 
-    private static final BigDecimal BUSHELS_PER_MT  = new BigDecimal("39.3683");
-    private static final BigDecimal BUSHELS_PER_LOT = new BigDecimal("5000");
-    private static final int BUSHELS_PER_LOT_INT = 5000;
-
     private final HedgeTradeRepository         hedgeRepo;
     private final PhysicalContractRepository   contractRepo;
     private final EFPTicketRepository          efpRepo;
     private final CornDailySettleRepository    settleRepo;
     private final HedgeAllocationRepository    allocationRepo;
     private final HedgeOffsetRepository        offsetRepo;
-    private final ZcMonthMapper                zcMonthMapper;
+    private final FuturesMonthMapper           futuresMonthMapper;
     private final CommodityPriceApiClient      priceApiClient;
+    private final CommoditySpecService         specService;
 
     @Transactional(readOnly = true)
-    public CornPositionResponse getPositions(String book) {
+    public CornPositionResponse getPositions(String commodityCode, String book) {
+        CommoditySpec spec = specService.getSpec(commodityCode);
+        String prefix = spec.futuresPrefix();
+        BigDecimal bushelsPerMt = spec.bushelsPerMt();
+        BigDecimal bushelsPerLot = BigDecimal.valueOf(spec.contractSizeBu());
+        int bushelsPerLotInt = spec.contractSizeBu();
 
         // Map book to country for physical/locked filtering
         String country = null;
@@ -59,6 +62,11 @@ public class CornPositionService {
             openHedges = hedgeRepo.findByStatusInOrderByTradeDateDesc(poolStatuses);
         }
 
+        // Filter by commodity prefix
+        openHedges = openHedges.stream()
+                .filter(h -> h.getFuturesMonth() != null && h.getFuturesMonth().startsWith(prefix))
+                .collect(Collectors.toList());
+
         // Populate settles
         for (HedgeTrade h : openHedges) {
             settles.computeIfAbsent(h.getFuturesMonth(), fm ->
@@ -68,7 +76,7 @@ public class CornPositionService {
         }
 
         List<HedgeBookItem> hedgeBook = openHedges.stream()
-                .map(h -> buildHedgeBookItem(h, settles))
+                .map(h -> buildHedgeBookItem(h, settles, bushelsPerMt, bushelsPerLot, bushelsPerLotInt))
                 .collect(Collectors.toList());
 
         // ---- 2. Site Allocations: all allocations ---------------------------
@@ -76,17 +84,21 @@ public class CornPositionService {
         if (book != null && !book.isBlank()) {
             final String bookUpper = book.toUpperCase();
             allAllocations = allocationRepo.findAll().stream()
-                    .filter(a -> a.getSite() != null) // exclude month-only allocations
+                    .filter(a -> a.getSite() != null)
                     .filter(a -> bookUpper.equalsIgnoreCase(a.getHedgeTrade().getBook()))
+                    .filter(a -> a.getHedgeTrade().getFuturesMonth() != null
+                            && a.getHedgeTrade().getFuturesMonth().startsWith(prefix))
                     .collect(Collectors.toList());
         } else {
             allAllocations = allocationRepo.findAll().stream()
-                    .filter(a -> a.getSite() != null) // exclude month-only allocations
+                    .filter(a -> a.getSite() != null)
+                    .filter(a -> a.getHedgeTrade().getFuturesMonth() != null
+                            && a.getHedgeTrade().getFuturesMonth().startsWith(prefix))
                     .collect(Collectors.toList());
         }
 
         List<SiteAllocationItem> siteAllocations = allAllocations.stream()
-                .map(a -> buildSiteAllocationItem(a, settles))
+                .map(a -> buildSiteAllocationItem(a, settles, bushelsPerMt, bushelsPerLot, bushelsPerLotInt))
                 .collect(Collectors.toList());
 
         // ---- 2b. Month-only Allocations: site IS NULL ----------------------------
@@ -96,15 +108,19 @@ public class CornPositionService {
             monthOnlyAllocs = allocationRepo.findAll().stream()
                     .filter(a -> a.getSite() == null)
                     .filter(a -> bookUpper.equalsIgnoreCase(a.getHedgeTrade().getBook()))
+                    .filter(a -> a.getHedgeTrade().getFuturesMonth() != null
+                            && a.getHedgeTrade().getFuturesMonth().startsWith(prefix))
                     .collect(Collectors.toList());
         } else {
             monthOnlyAllocs = allocationRepo.findAll().stream()
                     .filter(a -> a.getSite() == null)
+                    .filter(a -> a.getHedgeTrade().getFuturesMonth() != null
+                            && a.getHedgeTrade().getFuturesMonth().startsWith(prefix))
                     .collect(Collectors.toList());
         }
 
         List<MonthAllocationItem> monthAllocations = monthOnlyAllocs.stream()
-                .map(this::buildMonthAllocationItem)
+                .map(a -> buildMonthAllocationItem(a, bushelsPerMt, bushelsPerLot, bushelsPerLotInt))
                 .collect(Collectors.toList());
 
         // ---- 3. Physical positions: all non-terminal contracts --------------
@@ -120,6 +136,11 @@ public class CornPositionService {
                                      .thenComparing(c -> c.getSite().getCode()));
         }
 
+        // Filter by commodity
+        contracts = contracts.stream()
+                .filter(c -> c.getCommodityCode() != null && c.getCommodityCode().startsWith(spec.code()))
+                .collect(Collectors.toList());
+
         // Ensure settles are populated for physical contract futures months
         for (PhysicalContract c : contracts) {
             if (c.getFuturesRef() != null) {
@@ -131,22 +152,24 @@ public class CornPositionService {
         }
 
         List<PhysicalPositionItem> physical = contracts.stream()
-                .map(this::buildPhysicalItem)
+                .map(c -> buildPhysicalItem(c, bushelsPerMt))
                 .collect(Collectors.toList());
 
         // ---- 4. Locked positions: all EFPs with gain/loss -------------------
-        List<EFPTicket> efps = efpRepo.findAllByOrderByEfpDateDesc();
+        List<EFPTicket> efps = efpRepo.findAllByOrderByEfpDateDesc().stream()
+                .filter(e -> e.getFuturesMonth() != null && e.getFuturesMonth().startsWith(prefix))
+                .collect(Collectors.toList());
         List<LockedPositionItem> locked;
         if (country != null) {
             final String filterCountry = country;
             locked = efps.stream()
                     .filter(e -> filterCountry.equalsIgnoreCase(
                             e.getPhysicalContract().getSite().getCountry()))
-                    .map(this::buildLockedItem)
+                    .map(e -> buildLockedItem(e, bushelsPerMt, bushelsPerLot))
                     .collect(Collectors.toList());
         } else {
             locked = efps.stream()
-                    .map(this::buildLockedItem)
+                    .map(e -> buildLockedItem(e, bushelsPerMt, bushelsPerLot))
                     .collect(Collectors.toList());
         }
 
@@ -159,8 +182,14 @@ public class CornPositionService {
             offsetEntities = offsetRepo.findAll();
         }
 
+        // Filter by commodity prefix
+        offsetEntities = offsetEntities.stream()
+                .filter(o -> o.getHedgeTrade().getFuturesMonth() != null
+                        && o.getHedgeTrade().getFuturesMonth().startsWith(prefix))
+                .collect(Collectors.toList());
+
         List<OffsetItem> offsets = offsetEntities.stream()
-                .map(this::buildOffsetItem)
+                .map(o -> buildOffsetItem(o, bushelsPerLot, bushelsPerLotInt))
                 .collect(Collectors.toList());
 
         // Remove nulls from settles map
@@ -192,13 +221,17 @@ public class CornPositionService {
     }
 
     @Transactional
-    public Map<String, Object> refreshPrices() {
+    public Map<String, Object> refreshPrices(String commodityCode) {
+        CommoditySpec spec = specService.getSpec(commodityCode);
+        String prefix = spec.futuresPrefix();
+
         // Collect all active futures months from open hedges
         List<HedgeTradeStatus> poolStatuses = List.of(
                 HedgeTradeStatus.OPEN, HedgeTradeStatus.PARTIALLY_ALLOCATED,
                 HedgeTradeStatus.FULLY_ALLOCATED);
         List<HedgeTrade> openHedges = hedgeRepo.findByStatusInOrderByTradeDateDesc(poolStatuses);
         Set<String> futuresMonths = openHedges.stream()
+                .filter(h -> h.getFuturesMonth() != null && h.getFuturesMonth().startsWith(prefix))
                 .map(HedgeTrade::getFuturesMonth)
                 .collect(Collectors.toSet());
 
@@ -206,12 +239,12 @@ public class CornPositionService {
             return Map.of("status", "skipped", "reason", "No active futures months");
         }
 
-        // Fetch the latest CORN price from the external API
-        Map<String, BigDecimal> prices = priceApiClient.fetchLatestPrices(List.of("CORN"));
-        BigDecimal cornPrice = prices.get("CORN");
-        if (cornPrice == null) {
-            log.warn("[RefreshPrices] No CORN price returned from API");
-            return Map.of("status", "error", "reason", "No CORN price returned from API");
+        // Fetch the latest price from the external API
+        Map<String, BigDecimal> prices = priceApiClient.fetchLatestPrices(List.of(spec.code()));
+        BigDecimal price = prices.get(spec.code());
+        if (price == null) {
+            log.warn("[RefreshPrices] No {} price returned from API", spec.code());
+            return Map.of("status", "error", "reason", "No " + spec.code() + " price returned from API");
         }
 
         // Save as settle for each active futures month
@@ -220,15 +253,15 @@ public class CornPositionService {
             CornDailySettle ds = CornDailySettle.builder()
                     .futuresMonth(fm)
                     .settleDate(today)
-                    .pricePerBushel(cornPrice)
+                    .pricePerBushel(price)
                     .build();
             settleRepo.save(ds);
         }
 
-        log.info("[RefreshPrices] Published CORN settle {} for {} months", cornPrice, futuresMonths.size());
+        log.info("[RefreshPrices] Published {} settle {} for {} months", spec.code(), price, futuresMonths.size());
         return Map.of(
                 "status", "ok",
-                "price", cornPrice,
+                "price", price,
                 "months", futuresMonths.size(),
                 "date", today.toString()
         );
@@ -238,11 +271,12 @@ public class CornPositionService {
     // Private builders
     // -------------------------------------------------------------------------
 
-    private HedgeBookItem buildHedgeBookItem(HedgeTrade h, Map<String, BigDecimal> settles) {
+    private HedgeBookItem buildHedgeBookItem(HedgeTrade h, Map<String, BigDecimal> settles,
+                                              BigDecimal bushelsPerMt, BigDecimal bushelsPerLot, int bushelsPerLotInt) {
         int allocatedLots = allocationRepo.sumAllocatedLotsByTradeId(h.getId());
         int unallocatedLots = Math.max(0, h.getOpenLots() - allocatedLots);
-        int unallocatedBushels = unallocatedLots * BUSHELS_PER_LOT_INT;
-        int allocatedBushels = allocatedLots * BUSHELS_PER_LOT_INT;
+        int unallocatedBushels = unallocatedLots * bushelsPerLotInt;
+        int allocatedBushels = allocatedLots * bushelsPerLotInt;
 
         BigDecimal settle = settles.get(h.getFuturesMonth());
         BigDecimal mtmPnl = null;
@@ -250,20 +284,20 @@ public class CornPositionService {
             BigDecimal priceDiff = settle.subtract(h.getPricePerBushel());
             mtmPnl = priceDiff
                     .multiply(BigDecimal.valueOf(unallocatedLots))
-                    .multiply(BUSHELS_PER_LOT)
+                    .multiply(bushelsPerLot)
                     .setScale(2, RoundingMode.HALF_UP);
         }
 
-        BigDecimal unallocMt = BUSHELS_PER_LOT
+        BigDecimal unallocMt = bushelsPerLot
                 .multiply(BigDecimal.valueOf(unallocatedLots))
-                .divide(BUSHELS_PER_MT, 2, RoundingMode.HALF_UP);
+                .divide(bushelsPerMt, 2, RoundingMode.HALF_UP);
 
         return HedgeBookItem.builder()
                 .hedgeTradeId(h.getId())
                 .tradeRef(h.getTradeRef())
                 .futuresMonth(h.getFuturesMonth())
                 .lots(h.getLots())
-                .bushels(h.getLots() * BUSHELS_PER_LOT_INT)
+                .bushels(h.getLots() * bushelsPerLotInt)
                 .openLots(h.getOpenLots())
                 .allocatedLots(allocatedLots)
                 .allocatedBushels(allocatedBushels)
@@ -273,7 +307,7 @@ public class CornPositionService {
                 .settlePrice(settle)
                 .mtmPnlUsd(mtmPnl)
                 .unallocatedMt(unallocMt)
-                .validDeliveryMonths(zcMonthMapper.getValidDeliveryMonths(h.getFuturesMonth()))
+                .validDeliveryMonths(futuresMonthMapper.getValidDeliveryMonths(h.getFuturesMonth()))
                 .status(h.getStatus().name())
                 .brokerAccount(h.getBrokerAccount())
                 .side(h.getSide())
@@ -281,7 +315,8 @@ public class CornPositionService {
     }
 
     private SiteAllocationItem buildSiteAllocationItem(HedgeAllocation a,
-                                                        Map<String, BigDecimal> settles) {
+                                                        Map<String, BigDecimal> settles,
+                                                        BigDecimal bushelsPerMt, BigDecimal bushelsPerLot, int bushelsPerLotInt) {
         HedgeTrade h = a.getHedgeTrade();
         // Ensure settle is populated for this futures month
         settles.computeIfAbsent(h.getFuturesMonth(), fm ->
@@ -290,17 +325,17 @@ public class CornPositionService {
                           .orElse(null));
 
         BigDecimal settle = settles.get(h.getFuturesMonth());
-        int allocBushels = a.getAllocatedLots() * BUSHELS_PER_LOT_INT;
-        BigDecimal allocMt = BUSHELS_PER_LOT
+        int allocBushels = a.getAllocatedLots() * bushelsPerLotInt;
+        BigDecimal allocMt = bushelsPerLot
                 .multiply(BigDecimal.valueOf(a.getAllocatedLots()))
-                .divide(BUSHELS_PER_MT, 2, RoundingMode.HALF_UP);
+                .divide(bushelsPerMt, 2, RoundingMode.HALF_UP);
 
         BigDecimal mtmPnl = null;
         if (settle != null && a.getAllocatedLots() > 0) {
             BigDecimal priceDiff = settle.subtract(h.getPricePerBushel());
             mtmPnl = priceDiff
                     .multiply(BigDecimal.valueOf(a.getAllocatedLots()))
-                    .multiply(BUSHELS_PER_LOT)
+                    .multiply(bushelsPerLot)
                     .setScale(2, RoundingMode.HALF_UP);
         }
 
@@ -337,12 +372,13 @@ public class CornPositionService {
                 .build();
     }
 
-    private MonthAllocationItem buildMonthAllocationItem(HedgeAllocation a) {
+    private MonthAllocationItem buildMonthAllocationItem(HedgeAllocation a,
+                                                          BigDecimal bushelsPerMt, BigDecimal bushelsPerLot, int bushelsPerLotInt) {
         HedgeTrade h = a.getHedgeTrade();
-        int allocBushels = a.getAllocatedLots() * BUSHELS_PER_LOT_INT;
-        BigDecimal allocMt = BUSHELS_PER_LOT
+        int allocBushels = a.getAllocatedLots() * bushelsPerLotInt;
+        BigDecimal allocMt = bushelsPerLot
                 .multiply(BigDecimal.valueOf(a.getAllocatedLots()))
-                .divide(BUSHELS_PER_MT, 2, RoundingMode.HALF_UP);
+                .divide(bushelsPerMt, 2, RoundingMode.HALF_UP);
         return MonthAllocationItem.builder()
                 .allocationId(a.getId())
                 .hedgeTradeId(h.getId())
@@ -358,10 +394,10 @@ public class CornPositionService {
                 .build();
     }
 
-    private PhysicalPositionItem buildPhysicalItem(PhysicalContract c) {
+    private PhysicalPositionItem buildPhysicalItem(PhysicalContract c, BigDecimal bushelsPerMt) {
         boolean basisLocked  = c.getBasisLockedDate() != null;
         boolean efpExecuted  = c.getBoardPricePerBu() != null;
-        BigDecimal allIn     = calcAllIn(c.getBoardPricePerBu(), c.getBasisPerBu(), c.getFreightPerMt());
+        BigDecimal allIn     = calcAllIn(c.getBoardPricePerBu(), c.getBasisPerBu(), c.getFreightPerMt(), bushelsPerMt);
         return PhysicalPositionItem.builder()
                 .contractId(c.getId())
                 .contractRef(c.getContractRef())
@@ -381,9 +417,9 @@ public class CornPositionService {
                 .build();
     }
 
-    private LockedPositionItem buildLockedItem(EFPTicket e) {
+    private LockedPositionItem buildLockedItem(EFPTicket e, BigDecimal bushelsPerMt, BigDecimal bushelsPerLot) {
         PhysicalContract c = e.getPhysicalContract();
-        BigDecimal allIn = calcAllIn(e.getBoardPrice(), c.getBasisPerBu(), c.getFreightPerMt());
+        BigDecimal allIn = calcAllIn(e.getBoardPrice(), c.getBasisPerBu(), c.getFreightPerMt(), bushelsPerMt);
 
         // Gain/loss: entryPrice = snapshot from EFP (fallback to hedge for pre-migration)
         BigDecimal entryPrice = e.getEntryPrice() != null
@@ -401,10 +437,10 @@ public class CornPositionService {
             gainLossPerBu = futuresSell.subtract(futuresBuy);
             gainLossUsd = gainLossPerBu
                     .multiply(BigDecimal.valueOf(e.getLots()))
-                    .multiply(BUSHELS_PER_LOT)
+                    .multiply(bushelsPerLot)
                     .setScale(2, RoundingMode.HALF_UP);
             gainLossPerMt = gainLossPerBu
-                    .multiply(BUSHELS_PER_MT)
+                    .multiply(bushelsPerMt)
                     .setScale(2, RoundingMode.HALF_UP);
             if (allIn != null) {
                 effectiveAllIn = allIn.subtract(gainLossPerMt);
@@ -438,13 +474,13 @@ public class CornPositionService {
                 .build();
     }
 
-    private OffsetItem buildOffsetItem(HedgeOffset o) {
+    private OffsetItem buildOffsetItem(HedgeOffset o, BigDecimal bushelsPerLot, int bushelsPerLotInt) {
         HedgeTrade h = o.getHedgeTrade();
         BigDecimal entryPrice = h.getPricePerBushel();
         BigDecimal pnlPerBu = o.getExitPrice().subtract(entryPrice);
         BigDecimal pnlUsd = pnlPerBu
                 .multiply(BigDecimal.valueOf(o.getLots()))
-                .multiply(BUSHELS_PER_LOT)
+                .multiply(bushelsPerLot)
                 .setScale(2, RoundingMode.HALF_UP);
 
         return OffsetItem.builder()
@@ -454,7 +490,7 @@ public class CornPositionService {
                 .siteCode(o.getSite() != null ? o.getSite().getCode() : null)
                 .siteName(o.getSite() != null ? o.getSite().getName() : null)
                 .lots(o.getLots())
-                .bushels(o.getLots() * BUSHELS_PER_LOT_INT)
+                .bushels(o.getLots() * bushelsPerLotInt)
                 .entryPrice(entryPrice)
                 .exitPrice(o.getExitPrice())
                 .pnlPerBu(pnlPerBu)
@@ -465,13 +501,14 @@ public class CornPositionService {
     }
 
     /**
-     * all-in $/MT = (board $/bu + basis $/bu) × 39.3683 bu/MT + freight $/MT
+     * all-in $/MT = (board $/bu + basis $/bu) × bushelsPerMt + freight $/MT
      * Returns null if any required component is missing.
      */
-    private BigDecimal calcAllIn(BigDecimal boardPerBu, BigDecimal basisPerBu, BigDecimal freightPerMt) {
+    private BigDecimal calcAllIn(BigDecimal boardPerBu, BigDecimal basisPerBu, BigDecimal freightPerMt,
+                                  BigDecimal bushelsPerMt) {
         if (boardPerBu == null || basisPerBu == null || freightPerMt == null) return null;
         return boardPerBu.add(basisPerBu)
-                         .multiply(BUSHELS_PER_MT)
+                         .multiply(bushelsPerMt)
                          .add(freightPerMt)
                          .setScale(2, RoundingMode.HALF_UP);
     }

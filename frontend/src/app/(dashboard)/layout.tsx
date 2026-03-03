@@ -11,6 +11,7 @@ import {
   TrendingUp,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
   KeyRound,
   FileText,
@@ -25,6 +26,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ChangePasswordDialog } from "@/components/ui/ChangePasswordDialog";
 import { SessionTimeoutWarning } from "@/components/SessionTimeoutWarning";
+import { COMMODITY_SLUGS, getCommodityConfig } from "@/lib/commodity-config";
 
 interface NavItem {
   href: string;
@@ -37,58 +39,71 @@ interface NavSection {
   items: NavItem[];
 }
 
-const navSections: NavSection[] = [
-  {
-    label: "Overview",
-    items: [
-      { href: "/dashboard",     label: "Dashboard",   icon: LayoutDashboard },
-      { href: "/corn/coverage", label: "Coverage",    icon: BarChart2 },
-    ],
-  },
-  {
-    label: "Planning",
-    items: [
-      { href: "/corn/budget", label: "Budgets & Forecasts", icon: BookOpen },
-    ],
-  },
-  {
-    label: "Execution",
-    items: [
-      { href: "/corn/positions", label: "Position Manager", icon: Activity },
-      { href: "/corn/contracts", label: "Contracts",        icon: FileText },
-    ],
-  },
-  {
-    label: "Operations",
-    items: [
-      { href: "/corn/sites",    label: "Sites",    icon: MapPin },
-      { href: "/corn/efp",      label: "EFP",      icon: ArrowLeftRight },
-      { href: "/corn/receipts", label: "Receipts", icon: Package },
-    ],
-  },
-  {
-    label: "Market",
-    items: [
-      { href: "/market-data", label: "Market Data", icon: TrendingUp },
-    ],
-  },
-  {
-    label: "Admin",
-    items: [
-      { href: "/settings", label: "Settings", icon: Settings },
-    ],
-  },
-];
+function buildNavSections(commodity: string): NavSection[] {
+  return [
+    {
+      label: "Overview",
+      items: [
+        { href: "/dashboard",               label: "Dashboard",   icon: LayoutDashboard },
+        { href: `/${commodity}/coverage`,    label: "Coverage",    icon: BarChart2 },
+      ],
+    },
+    {
+      label: "Planning",
+      items: [
+        { href: `/${commodity}/budget`, label: "Budgets & Forecasts", icon: BookOpen },
+      ],
+    },
+    {
+      label: "Execution",
+      items: [
+        { href: `/${commodity}/positions`, label: "Position Manager", icon: Activity },
+        { href: `/${commodity}/contracts`, label: "Contracts",        icon: FileText },
+      ],
+    },
+    {
+      label: "Operations",
+      items: [
+        { href: `/${commodity}/sites`,    label: "Sites",    icon: MapPin },
+        { href: `/${commodity}/efp`,      label: "EFP",      icon: ArrowLeftRight },
+        { href: `/${commodity}/receipts`, label: "Receipts", icon: Package },
+      ],
+    },
+    {
+      label: "Market",
+      items: [
+        { href: "/market-data", label: "Market Data", icon: TrendingUp },
+      ],
+    },
+    {
+      label: "Admin",
+      items: [
+        { href: "/settings", label: "Settings", icon: Settings },
+      ],
+    },
+  ];
+}
+
+/** Extract the commodity slug from the pathname, e.g. "/corn/positions" → "corn" */
+function detectCommodity(pathname: string): string {
+  const seg = pathname.split("/")[1]; // first segment after leading /
+  if (seg && COMMODITY_SLUGS.includes(seg)) return seg;
+  return COMMODITY_SLUGS[0]; // default to first commodity (corn)
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router   = useRouter();
+
+  const activeCommodity = detectCommodity(pathname);
+  const navSections = buildNavSections(activeCommodity);
 
   // Initialize from safe defaults — read localStorage in useEffect to avoid hydration mismatch
   const [user, setUser]           = useState<ReturnType<typeof getUser>>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted]     = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [commodityOpen, setCommodityOpen] = useState(false);
 
   useEffect(() => {
     setUser(getUser());
@@ -101,6 +116,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       refreshSession();
     }
   }, [router]);
+
+  /** Switch commodity — navigate to the same sub-page under the new slug */
+  function switchCommodity(slug: string) {
+    setCommodityOpen(false);
+    if (slug === activeCommodity) return;
+    // Try to preserve the current sub-path (e.g. /corn/positions → /soybeans/positions)
+    const segments = pathname.split("/");
+    if (segments.length >= 3 && COMMODITY_SLUGS.includes(segments[1])) {
+      segments[1] = slug;
+      router.push(segments.join("/"));
+    } else {
+      router.push(`/${slug}/coverage`);
+    }
+  }
 
   function toggleCollapsed() {
     setCollapsed((prev) => {
@@ -142,6 +171,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {!collapsed && (
             <span className="text-sm font-semibold text-primary tracking-tight">HedgeLab</span>
           )}
+        </div>
+
+        {/* Commodity switcher */}
+        <div className="px-2 pt-2">
+          <div className="relative">
+            <button
+              onClick={() => setCommodityOpen((p) => !p)}
+              className={cn(
+                "flex items-center w-full rounded-lg text-sm font-medium transition-colors bg-input-bg hover:bg-hover border border-b-input",
+                collapsed ? "justify-center h-10 px-0" : "px-3 py-2 gap-2"
+              )}
+              title={collapsed ? getCommodityConfig(activeCommodity).label : undefined}
+            >
+              <span className={cn("font-semibold text-primary", collapsed && "text-xs")}>
+                {collapsed
+                  ? getCommodityConfig(activeCommodity).label.slice(0, 2).toUpperCase()
+                  : getCommodityConfig(activeCommodity).label}
+              </span>
+              {!collapsed && <ChevronDown className="h-3.5 w-3.5 text-faint ml-auto" />}
+            </button>
+            {commodityOpen && (
+              <div className="absolute z-50 mt-1 left-0 w-full bg-surface border border-b-input rounded-lg shadow-lg overflow-hidden">
+                {COMMODITY_SLUGS.map((slug) => {
+                  const cfg = getCommodityConfig(slug);
+                  return (
+                    <button
+                      key={slug}
+                      onClick={() => switchCommodity(slug)}
+                      className={cn(
+                        "flex items-center w-full px-3 py-2 text-sm transition-colors",
+                        slug === activeCommodity
+                          ? "bg-action-10 text-secondary font-medium"
+                          : "text-secondary hover:bg-hover"
+                      )}
+                    >
+                      {collapsed ? cfg.label.slice(0, 2).toUpperCase() : cfg.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Nav */}

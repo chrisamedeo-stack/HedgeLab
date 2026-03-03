@@ -24,13 +24,13 @@ export default function TradesPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 page-fade">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-primary">Trade Blotter</h1>
-          <p className="text-xs text-faint">
-            {trades.length} trade{trades.length !== 1 ? "s" : ""}
+          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Trade Blotter</h1>
+          <p className="mt-0.5 text-xs text-faint">
+            {trades.length} trade{trades.length !== 1 ? "s" : ""} — book and manage financial trades
           </p>
         </div>
         <button

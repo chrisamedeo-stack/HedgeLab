@@ -127,17 +127,17 @@ export interface SiteResponse {
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
-export function useCoverage() {
+export function useCoverage(slug: string) {
   const { data, error, mutate } = useSWR<CoverageResponse[]>(
-    "/api/v1/corn/coverage",
+    `/api/v1/${slug}/coverage`,
     (url: string) => api.get<CoverageResponse[]>(url),
     { refreshInterval: 30_000 }
   );
   return { coverage: data ?? [], isLoading: !data && !error, error, mutate };
 }
 
-export function useContracts(site?: string) {
-  const url = site ? `/api/v1/corn/contracts?site=${site}` : "/api/v1/corn/contracts";
+export function useContracts(slug: string, site?: string) {
+  const url = site ? `/api/v1/${slug}/contracts?site=${site}` : `/api/v1/${slug}/contracts`;
   const { data, error, mutate } = useSWR<PhysicalContractResponse[]>(
     url,
     (u: string) => api.get<PhysicalContractResponse[]>(u),
@@ -146,26 +146,26 @@ export function useContracts(site?: string) {
   return { contracts: data ?? [], isLoading: !data && !error, error, mutate };
 }
 
-export function useHedges() {
+export function useHedges(slug: string) {
   const { data, error, mutate } = useSWR<HedgeTradeResponse[]>(
-    "/api/v1/corn/hedges",
+    `/api/v1/${slug}/hedges`,
     (url: string) => api.get<HedgeTradeResponse[]>(url),
     { refreshInterval: 15_000 }
   );
   return { hedges: data ?? [], isLoading: !data && !error, error, mutate };
 }
 
-export function useEFPs() {
+export function useEFPs(slug: string) {
   const { data, error, mutate } = useSWR<EFPTicketResponse[]>(
-    "/api/v1/corn/efp",
+    `/api/v1/${slug}/efp`,
     (url: string) => api.get<EFPTicketResponse[]>(url),
     { refreshInterval: 15_000 }
   );
   return { efps: data ?? [], isLoading: !data && !error, error, mutate };
 }
 
-export function useReceipts(site?: string) {
-  const url = site ? `/api/v1/corn/receipts?site=${site}` : "/api/v1/corn/receipts";
+export function useReceipts(slug: string, site?: string) {
+  const url = site ? `/api/v1/${slug}/receipts?site=${site}` : `/api/v1/${slug}/receipts`;
   const { data, error, mutate } = useSWR<ReceiptResponse[]>(
     url,
     (u: string) => api.get<ReceiptResponse[]>(u),
@@ -174,9 +174,9 @@ export function useReceipts(site?: string) {
   return { receipts: data ?? [], isLoading: !data && !error, error, mutate };
 }
 
-export function useSites() {
+export function useSites(slug: string) {
   const { data, error } = useSWR<SiteResponse[]>(
-    "/api/v1/corn/sites",
+    `/api/v1/${slug}/sites`,
     (url: string) => api.get<SiteResponse[]>(url)
   );
   return { sites: data ?? [], isLoading: !data && !error, error };
@@ -353,11 +353,11 @@ export interface ForecastHistoryDto {
   notes: string | null;
 }
 
-export function useBudget(site?: string, fiscalYear?: string) {
+export function useBudget(slug: string, site?: string, fiscalYear?: string) {
   const params = new URLSearchParams();
   if (site)        params.set("site", site);
   if (fiscalYear)  params.set("fiscalYear", fiscalYear);
-  const url = `/api/v1/corn/budget?${params.toString()}`;
+  const url = `/api/v1/${slug}/budget?${params.toString()}`;
   const { data, error, mutate } = useSWR<CornBudgetLineResponse[]>(
     url,
     (u: string) => api.get<CornBudgetLineResponse[]>(u),
@@ -366,16 +366,16 @@ export function useBudget(site?: string, fiscalYear?: string) {
   return { budget: data ?? [], isLoading: !data && !error, error, mutate };
 }
 
-export function useForecastHistory(budgetLineId: number | null) {
+export function useForecastHistory(slug: string, budgetLineId: number | null) {
   const { data, error, mutate } = useSWR<ForecastHistoryDto[]>(
-    budgetLineId ? `/api/v1/corn/budget/${budgetLineId}/forecast-history` : null,
+    budgetLineId ? `/api/v1/${slug}/budget/${budgetLineId}/forecast-history` : null,
     (url: string) => api.get<ForecastHistoryDto[]>(url)
   );
   return { history: data ?? [], isLoading: !data && !error, error, mutate };
 }
 
-export function usePositions(book?: string) {
-  const url = book ? `/api/v1/corn/positions?book=${book}` : "/api/v1/corn/positions";
+export function usePositions(slug: string, book?: string) {
+  const url = book ? `/api/v1/${slug}/positions?book=${book}` : `/api/v1/${slug}/positions`;
   const { data, error, mutate } = useSWR<CornPositionResponse>(
     url,
     (u: string) => api.get<CornPositionResponse>(u),
@@ -384,18 +384,18 @@ export function usePositions(book?: string) {
   return { positions: data, isLoading: !data && !error, error, mutate };
 }
 
-export function useHedgesByBook(book: "CANADA" | "US") {
+export function useHedgesByBook(slug: string, book: "CANADA" | "US") {
   const { data, error, mutate } = useSWR<HedgeTradeResponse[]>(
-    `/api/v1/corn/hedges?book=${book}`,
+    `/api/v1/${slug}/hedges?book=${book}`,
     (url: string) => api.get<HedgeTradeResponse[]>(url),
     { refreshInterval: 15_000 }
   );
   return { hedges: data ?? [], isLoading: !data && !error, error, mutate };
 }
 
-export function useHedgeAllocations(tradeId: number | null) {
+export function useHedgeAllocations(slug: string, tradeId: number | null) {
   const { data, error, mutate } = useSWR<HedgeAllocationResponse[]>(
-    tradeId ? `/api/v1/corn/hedges/${tradeId}/allocations` : null,
+    tradeId ? `/api/v1/${slug}/hedges/${tradeId}/allocations` : null,
     (url: string) => api.get<HedgeAllocationResponse[]>(url)
   );
   return { allocations: data ?? [], isLoading: !data && !error, error, mutate };

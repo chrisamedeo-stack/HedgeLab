@@ -1,5 +1,6 @@
 package com.hedgelab.api.service;
 
+import com.hedgelab.api.dto.CommoditySpec;
 import com.hedgelab.api.dto.request.CreateHedgeTradeRequest;
 import com.hedgelab.api.dto.response.HedgeTradeResponse;
 import com.hedgelab.api.entity.HedgeTrade;
@@ -23,20 +24,29 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class HedgeService {
-    private static final BigDecimal BUSHELS_PER_MT = new BigDecimal("39.3683");
-    private static final int BUSHELS_PER_LOT = 5000;
     private final HedgeTradeRepository      hedgeRepository;
     private final HedgeAllocationRepository allocationRepository;
     private final EFPTicketRepository       efpRepository;
     private final HedgeOffsetRepository     offsetRepository;
+    private final CommoditySpecService      specService;
 
-    public List<HedgeTradeResponse> getAllHedges() {
-        return toResponses(hedgeRepository.findAllByOrderByTradeDateDesc());
+    public List<HedgeTradeResponse> getAllHedges(String commodityCode) {
+        CommoditySpec spec = specService.getSpec(commodityCode);
+        String prefix = spec.futuresPrefix();
+        List<HedgeTrade> hedges = hedgeRepository.findAllByOrderByTradeDateDesc().stream()
+                .filter(h -> h.getFuturesMonth() != null && h.getFuturesMonth().startsWith(prefix))
+                .collect(Collectors.toList());
+        return toResponses(hedges, spec);
     }
 
-    public List<HedgeTradeResponse> getAllHedgesByBook(String book) {
+    public List<HedgeTradeResponse> getAllHedgesByBook(String commodityCode, String book) {
+        CommoditySpec spec = specService.getSpec(commodityCode);
+        String prefix = spec.futuresPrefix();
         String resolved = book != null ? book.toUpperCase() : "CANADA";
-        return toResponses(hedgeRepository.findByBookOrderByTradeDateDesc(resolved));
+        List<HedgeTrade> hedges = hedgeRepository.findByBookOrderByTradeDateDesc(resolved).stream()
+                .filter(h -> h.getFuturesMonth() != null && h.getFuturesMonth().startsWith(prefix))
+                .collect(Collectors.toList());
+        return toResponses(hedges, spec);
     }
 
     public HedgeTradeResponse create(CreateHedgeTradeRequest req) {
@@ -48,7 +58,10 @@ public class HedgeService {
                 .pricePerBushel(req.getPricePerBushel()).brokerAccount(req.getBrokerAccount())
                 .tradeDate(req.getTradeDate()).status(HedgeTradeStatus.OPEN)
                 .openLots(req.getLots()).book(book).notes(req.getNotes()).build();
-        return toResponse(hedgeRepository.save(hedge));
+        HedgeTrade saved = hedgeRepository.save(hedge);
+        // Derive spec from the hedge's futures month
+        CommoditySpec spec = specService.getSpecByFuturesPrefix(saved.getFuturesMonth());
+        return toResponse(saved, spec);
     }
 
     @Transactional
@@ -94,7 +107,9 @@ public class HedgeService {
         if (req.getBook() != null) hedge.setBook(req.getBook().toUpperCase());
 
         hedge.setStatus(computeStatus(hedge));
-        return toResponse(hedgeRepository.save(hedge));
+        HedgeTrade saved = hedgeRepository.save(hedge);
+        CommoditySpec spec = specService.getSpecByFuturesPrefix(saved.getFuturesMonth());
+        return toResponse(saved, spec);
     }
 
     @Transactional
@@ -133,22 +148,24 @@ public class HedgeService {
         return computeStatus(totalLots, openLots, offsetLots);
     }
 
-    private List<HedgeTradeResponse> toResponses(List<HedgeTrade> hedges) {
+    private List<HedgeTradeResponse> toResponses(List<HedgeTrade> hedges, CommoditySpec spec) {
         if (hedges.isEmpty()) return Collections.emptyList();
         List<Long> ids = hedges.stream().map(HedgeTrade::getId).collect(Collectors.toList());
         Map<Long, Integer> allocMap = allocationRepository.sumAllocatedLotsByTradeIds(ids)
                 .stream().collect(Collectors.toMap(r -> (Long) r[0], r -> ((Number) r[1]).intValue()));
-        return hedges.stream().map(h -> toResponse(h, allocMap.getOrDefault(h.getId(), 0)))
+        return hedges.stream().map(h -> toResponse(h, allocMap.getOrDefault(h.getId(), 0), spec))
                 .collect(Collectors.toList());
     }
 
-    private HedgeTradeResponse toResponse(HedgeTrade h) {
-        return toResponse(h, allocationRepository.sumAllocatedLotsByTradeId(h.getId()));
+    private HedgeTradeResponse toResponse(HedgeTrade h, CommoditySpec spec) {
+        return toResponse(h, allocationRepository.sumAllocatedLotsByTradeId(h.getId()), spec);
     }
 
-    private HedgeTradeResponse toResponse(HedgeTrade h, int allocated) {
-        BigDecimal equivMt = BigDecimal.valueOf((long) h.getLots() * BUSHELS_PER_LOT)
-                .divide(BUSHELS_PER_MT, 4, RoundingMode.HALF_UP);
+    private HedgeTradeResponse toResponse(HedgeTrade h, int allocated, CommoditySpec spec) {
+        BigDecimal bushelsPerMt = spec.bushelsPerMt();
+        int bushelsPerLot = spec.contractSizeBu();
+        BigDecimal equivMt = BigDecimal.valueOf((long) h.getLots() * bushelsPerLot)
+                .divide(bushelsPerMt, 4, RoundingMode.HALF_UP);
         int unallocated = Math.max(0, (h.getLots() != null ? h.getLots() : 0) - allocated);
         return HedgeTradeResponse.builder()
                 .id(h.getId()).tradeRef(h.getTradeRef()).futuresMonth(h.getFuturesMonth())

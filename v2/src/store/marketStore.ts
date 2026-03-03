@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { API_BASE } from "@/lib/api";
 import type {
   MarketPrice,
   CreatePriceParams,
@@ -31,7 +32,7 @@ export const useMarketStore = create<MarketState>((set) => ({
   fetchPrices: async (filters) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`/api/market/prices${qs({
+      const res = await fetch(`${API_BASE}/api/v2/market/prices${qs({
         commodityId: filters?.commodityId,
         contractMonth: filters?.contractMonth,
         dateFrom: filters?.dateFrom,
@@ -49,7 +50,7 @@ export const useMarketStore = create<MarketState>((set) => ({
   fetchLatestPrices: async (commodityId) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`/api/market/prices/latest?commodityId=${commodityId}`);
+      const res = await fetch(`${API_BASE}/api/v2/market/prices/latest?commodityId=${commodityId}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const latestPrices = await res.json();
       set({ latestPrices, loading: false });
@@ -61,7 +62,7 @@ export const useMarketStore = create<MarketState>((set) => ({
   createPrices: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch("/api/market/prices", {
+      const res = await fetch(`${API_BASE}/api/v2/market/prices`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),

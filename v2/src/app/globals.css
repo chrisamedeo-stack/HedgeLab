@@ -149,21 +149,17 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  /* Tight border radius */
-  --radius-none: 0px;
-  --radius-sm: 2px;
-  --radius: 2px;
-  --radius-md: 2px;
-  --radius-lg: 2px;
-  --radius-xl: 2px;
-  --radius-2xl: 2px;
-  --radius-3xl: 2px;
-  --radius-full: 9999px;
+  /* Border radius — defined in @theme block below */
 
   /* Animations */
   --animate-fade-in: fadeIn 0.2s ease-out;
   --animate-slide-down: slideDown 0.15s ease-out;
   --animate-shimmer: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Border radius — sharp corporate style matching v1 */
+.rounded, .rounded-sm, .rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-3xl {
+  border-radius: 2px;
 }
 
 @keyframes fadeIn {

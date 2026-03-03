@@ -78,7 +78,7 @@ export function DataTable<T extends object>({
                   {sortKey === col.key ? (
                     <span className="text-action">{sortDir === "asc" ? "\u25B2" : "\u25BC"}</span>
                   ) : col.sortable !== false ? (
-                    <span className="text-ph">\u25B4\u25BE</span>
+                    <span className="text-ph">{"▴▾"}</span>
                   ) : null}
                 </span>
               </th>
@@ -109,7 +109,7 @@ export function DataTable<T extends object>({
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`px-3 py-2 ${alignCls(col.align)}`}
+                    className={`px-3 py-3 tabular-nums ${alignCls(col.align)}`}
                   >
                     {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? "\u2014")}
                   </td>

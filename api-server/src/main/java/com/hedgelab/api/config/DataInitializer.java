@@ -4,6 +4,7 @@ import com.hedgelab.api.dto.request.*;
 import com.hedgelab.api.dto.response.*;
 import com.hedgelab.api.entity.*;
 import com.hedgelab.api.repository.*;
+import com.hedgelab.api.dto.CommoditySpec;
 import com.hedgelab.api.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,9 +50,7 @@ public class DataInitializer implements ApplicationRunner {
     private final EFPTicketRepository efpTicketRepository;
     private final ReceiptTicketRepository receiptTicketRepository;
     private final CornDailySettleRepository cornDailySettleRepository;
-
-    private static final BigDecimal BUSHELS_PER_MT = new BigDecimal("39.3683");
-    private static final int BUSHELS_PER_LOT = 5000;
+    private final CommoditySpecService specService;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -347,6 +346,8 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private void seedCornBudgetLines(Site gm1, Site vf1) {
+        CommoditySpec spec = specService.getSpec("CORN");
+        BigDecimal bushelsPerMt = spec.bushelsPerMt();
         String cropYear = "2025/2026";
 
         // Futures month mapping: budgetMonth -> next available futures contract
@@ -367,7 +368,7 @@ public class DataInitializer implements ApplicationRunner {
 
         for (int i = 0; i < months.length; i++) {
             BigDecimal volMt = new BigDecimal(gm1Vols[i]);
-            BigDecimal volBu = volMt.multiply(BUSHELS_PER_MT).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal volBu = volMt.multiply(bushelsPerMt).setScale(2, RoundingMode.HALF_UP);
             CornBudgetLine line = cornBudgetLineRepository.save(CornBudgetLine.builder()
                 .site(gm1).commodityCode("CORN").budgetMonth(months[i])
                 .futuresMonth(futuresMap.get(months[i]))
@@ -381,7 +382,7 @@ public class DataInitializer implements ApplicationRunner {
 
         for (int i = 0; i < months.length; i++) {
             BigDecimal volMt = new BigDecimal(vf1Vols[i]);
-            BigDecimal volBu = volMt.multiply(BUSHELS_PER_MT).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal volBu = volMt.multiply(bushelsPerMt).setScale(2, RoundingMode.HALF_UP);
             CornBudgetLine line = cornBudgetLineRepository.save(CornBudgetLine.builder()
                 .site(vf1).commodityCode("CORN").budgetMonth(months[i])
                 .futuresMonth(futuresMap.get(months[i]))
@@ -624,7 +625,7 @@ public class DataInitializer implements ApplicationRunner {
 
         BigDecimal netMt = grossMt.multiply(BigDecimal.ONE.subtract(shrinkFactor))
             .setScale(4, RoundingMode.HALF_UP);
-        BigDecimal netBushels = netMt.multiply(BUSHELS_PER_MT).setScale(4, RoundingMode.HALF_UP);
+        BigDecimal netBushels = netMt.multiply(specService.getSpec("CORN").bushelsPerMt()).setScale(4, RoundingMode.HALF_UP);
 
         receiptTicketRepository.save(ReceiptTicket.builder()
             .ticketRef(ticketRef).physicalContract(contract).site(site)
@@ -647,7 +648,8 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private BigDecimal lotToMt(int lots) {
-        return new BigDecimal(lots * BUSHELS_PER_LOT)
-            .divide(BUSHELS_PER_MT, 4, RoundingMode.HALF_UP);
+        CommoditySpec spec = specService.getSpec("CORN");
+        return new BigDecimal(lots * spec.contractSizeBu())
+            .divide(spec.bushelsPerMt(), 4, RoundingMode.HALF_UP);
     }
 }

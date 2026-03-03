@@ -1,5 +1,6 @@
 package com.hedgelab.api.service;
 
+import com.hedgelab.api.dto.CommoditySpec;
 import com.hedgelab.api.dto.request.CreateOffsetRequest;
 import com.hedgelab.api.dto.response.HedgeOffsetResponse;
 import com.hedgelab.api.entity.*;
@@ -19,17 +20,19 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class HedgeOffsetService {
 
-    private static final BigDecimal BUSHELS_PER_LOT = new BigDecimal("5000");
-
     private final HedgeOffsetRepository     offsetRepo;
     private final HedgeTradeRepository      hedgeRepo;
     private final HedgeAllocationRepository allocationRepo;
+    private final CommoditySpecService      specService;
 
     @Transactional
     public HedgeOffsetResponse offsetFromPool(Long hedgeTradeId, CreateOffsetRequest req) {
         HedgeTrade hedge = hedgeRepo.findById(hedgeTradeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Hedge trade not found: " + hedgeTradeId));
+
+        CommoditySpec spec = specService.getSpecByFuturesPrefix(hedge.getFuturesMonth());
+        BigDecimal bushelsPerLot = BigDecimal.valueOf(spec.contractSizeBu());
 
         int allocatedLots = allocationRepo.sumAllocatedLotsByTradeId(hedgeTradeId);
         int unallocatedLots = hedge.getOpenLots() - allocatedLots;
@@ -42,7 +45,7 @@ public class HedgeOffsetService {
         BigDecimal entryPrice = hedge.getPricePerBushel();
         BigDecimal pnlPerBu = req.getExitPrice().subtract(entryPrice);
         BigDecimal pnlUsd = pnlPerBu
-                .multiply(BUSHELS_PER_LOT)
+                .multiply(bushelsPerLot)
                 .multiply(BigDecimal.valueOf(req.getLots()))
                 .setScale(2, RoundingMode.HALF_UP);
 
@@ -57,7 +60,6 @@ public class HedgeOffsetService {
 
         int newOpenLots = hedge.getOpenLots() - req.getLots();
         hedge.setOpenLots(newOpenLots);
-        // DB sum doesn't include the in-flight offset yet, so add it
         int offsetLots = offsetRepo.sumOffsetLotsByTradeId(hedge.getId()) + req.getLots();
         hedge.setStatus(HedgeService.computeStatus(hedge.getLots(), newOpenLots, offsetLots));
         hedgeRepo.save(hedge);
@@ -78,10 +80,13 @@ public class HedgeOffsetService {
         }
 
         HedgeTrade hedge = allocation.getHedgeTrade();
+        CommoditySpec spec = specService.getSpecByFuturesPrefix(hedge.getFuturesMonth());
+        BigDecimal bushelsPerLot = BigDecimal.valueOf(spec.contractSizeBu());
+
         BigDecimal entryPrice = hedge.getPricePerBushel();
         BigDecimal pnlPerBu = req.getExitPrice().subtract(entryPrice);
         BigDecimal pnlUsd = pnlPerBu
-                .multiply(BUSHELS_PER_LOT)
+                .multiply(bushelsPerLot)
                 .multiply(BigDecimal.valueOf(req.getLots()))
                 .setScale(2, RoundingMode.HALF_UP);
 
@@ -113,9 +118,14 @@ public class HedgeOffsetService {
     }
 
     @Transactional(readOnly = true)
-    public List<HedgeOffsetResponse> getByBook(String book) {
+    public List<HedgeOffsetResponse> getByBook(String commodityCode, String book) {
+        CommoditySpec spec = specService.getSpec(commodityCode);
+        String prefix = spec.futuresPrefix();
         return offsetRepo.findByHedgeTrade_BookOrderByOffsetDateDesc(book)
-                .stream().map(this::toResponse).collect(Collectors.toList());
+                .stream()
+                .filter(o -> o.getHedgeTrade().getFuturesMonth() != null
+                        && o.getHedgeTrade().getFuturesMonth().startsWith(prefix))
+                .map(this::toResponse).collect(Collectors.toList());
     }
 
     @Transactional
@@ -145,10 +155,13 @@ public class HedgeOffsetService {
 
     private HedgeOffsetResponse toResponse(HedgeOffset o) {
         HedgeTrade h = o.getHedgeTrade();
+        CommoditySpec spec = specService.getSpecByFuturesPrefix(h.getFuturesMonth());
+        BigDecimal bushelsPerLot = BigDecimal.valueOf(spec.contractSizeBu());
+
         BigDecimal entryPrice = h.getPricePerBushel();
         BigDecimal pnlPerBu = o.getExitPrice().subtract(entryPrice);
         BigDecimal pnlUsd = pnlPerBu
-                .multiply(BUSHELS_PER_LOT)
+                .multiply(bushelsPerLot)
                 .multiply(BigDecimal.valueOf(o.getLots()))
                 .setScale(2, RoundingMode.HALF_UP);
 

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { API_BASE } from "@/lib/api";
 import Papa from "papaparse";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -149,7 +150,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // First check for existing template
-      const templateRes = await fetch("/api/kernel/import", {
+      const templateRes = await fetch(`${API_BASE}/api/v2/kernel/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "find-template", orgId, targetTable, headers: rawHeaders }),
@@ -172,7 +173,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
       }
 
       // No template — ask AI
-      const res = await fetch("/api/import/ai", {
+      const res = await fetch(`${API_BASE}/api/v2/import/ai`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -227,7 +228,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
       // Create job if not yet created
       let { jobId } = get();
       if (!jobId) {
-        const createRes = await fetch("/api/kernel/import", {
+        const createRes = await fetch(`${API_BASE}/api/v2/kernel/import`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -263,7 +264,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
       let corrections: Record<string, { from: unknown; to: unknown }>[] = correctedMapped.map(() => ({}));
 
       try {
-        const aiRes = await fetch("/api/import/ai", {
+        const aiRes = await fetch(`${API_BASE}/api/v2/import/ai`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -289,7 +290,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
         mappedData: correctedRows[i] ?? r.mappedData,
       }));
 
-      const stageRes = await fetch("/api/kernel/import", {
+      const stageRes = await fetch(`${API_BASE}/api/v2/kernel/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "stage", jobId, rows: rowsToStage }),
@@ -298,7 +299,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
       const stageResult = await stageRes.json();
 
       // Fetch staged rows for review
-      const jobRes = await fetch(`/api/kernel/import?jobId=${jobId}`);
+      const jobRes = await fetch(`${API_BASE}/api/v2/kernel/import?jobId=${jobId}`);
       const jobData = await jobRes.json();
 
       // Merge AI corrections into staged rows for display
@@ -324,7 +325,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
 
     set({ loading: true, error: null });
     try {
-      const res = await fetch("/api/kernel/import", {
+      const res = await fetch(`${API_BASE}/api/v2/kernel/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "commit", jobId, userId, orgId }),
@@ -340,7 +341,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
   fetchJobs: async (orgId) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`/api/kernel/import?orgId=${orgId}`);
+      const res = await fetch(`${API_BASE}/api/v2/kernel/import?orgId=${orgId}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const jobs = await res.json();
       set({ jobs, loading: false });
@@ -352,7 +353,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
   fetchJob: async (jobId) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`/api/kernel/import?jobId=${jobId}`);
+      const res = await fetch(`${API_BASE}/api/v2/kernel/import?jobId=${jobId}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const data = await res.json();
       set({ stagedRows: data.rows ?? [], loading: false });
@@ -364,7 +365,7 @@ export const useImportStore = create<ImportState>((set, get) => ({
   fetchTargets: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch("/api/kernel/import", {
+      const res = await fetch(`${API_BASE}/api/v2/kernel/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "targets" }),

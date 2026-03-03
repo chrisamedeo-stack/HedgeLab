@@ -6,6 +6,12 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "commodities", uniqueConstraints = @UniqueConstraint(name = "uq_commodity_code", columnNames = "code"))
@@ -47,4 +53,29 @@ public class Commodity extends AuditableEntity {
 
     @Column(name = "icis_code", length = 30)
     private String icisCode;
+
+    // --- Contract spec fields ---
+
+    @Column(name = "exchange", length = 20)
+    private String exchange;
+
+    @Column(name = "futures_prefix", length = 10)
+    private String futuresPrefix;
+
+    @Column(name = "contract_size_bu")
+    private Integer contractSizeBu;
+
+    @Column(name = "bushels_per_mt", precision = 10, scale = 4)
+    private BigDecimal bushelsPerMt;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "contract_months", columnDefinition = "jsonb")
+    private List<String> contractMonths;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "month_mappings", columnDefinition = "jsonb")
+    private Map<String, List<Integer>> monthMappings;
+
+    @Column(name = "slug", length = 30)
+    private String slug;
 }
