@@ -1,11 +1,14 @@
 package com.hedgelab.v2.controller.budget;
 
+import com.hedgelab.v2.entity.budget.BudgetForecastHistory;
 import com.hedgelab.v2.entity.budget.BudgetLineItem;
+import com.hedgelab.v2.entity.budget.BudgetLineItemComponent;
 import com.hedgelab.v2.service.budget.BudgetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -31,9 +34,15 @@ public class BudgetLineItemController {
             return budgetService.upsertLineItems(periodId, items, userId);
         }
 
-        // Single upsert
+        // Single upsert with optional components
         BudgetLineItem item = toLineItem(body);
-        return budgetService.upsertLineItem(periodId, item, userId);
+        List<BudgetLineItemComponent> components = null;
+        if (body.containsKey("components")) {
+            components = ((List<Map<String, Object>>) body.get("components")).stream()
+                    .map(this::toComponent)
+                    .toList();
+        }
+        return budgetService.upsertLineItem(periodId, item, userId, components, null);
     }
 
     @DeleteMapping("/{lineItemId}")
@@ -43,6 +52,30 @@ public class BudgetLineItemController {
         UUID uid = userId != null ? UUID.fromString(userId) : null;
         budgetService.deleteLineItem(lineItemId, uid);
         return Map.of("ok", true);
+    }
+
+    @GetMapping("/{lineItemId}/components")
+    public List<BudgetLineItemComponent> getComponents(@PathVariable UUID periodId,
+                                                         @PathVariable UUID lineItemId) {
+        return budgetService.getComponents(lineItemId);
+    }
+
+    @GetMapping("/{lineItemId}/forecast-history")
+    public List<BudgetForecastHistory> getForecastHistory(@PathVariable UUID periodId,
+                                                            @PathVariable UUID lineItemId) {
+        return budgetService.getForecastHistory(lineItemId);
+    }
+
+    @PostMapping("/forecast-batch")
+    @SuppressWarnings("unchecked")
+    public List<BudgetLineItem> batchForecastUpdate(@PathVariable UUID periodId,
+                                                      @RequestBody Map<String, Object> body) {
+        UUID userId = body.containsKey("userId") ? UUID.fromString((String) body.get("userId")) : null;
+        String note = (String) body.get("note");
+        List<BudgetLineItem> updates = ((List<Map<String, Object>>) body.get("updates")).stream()
+                .map(this::toLineItem)
+                .toList();
+        return budgetService.batchForecastUpdate(periodId, updates, note, userId);
     }
 
     private BudgetLineItem toLineItem(Map<String, Object> map) {
@@ -58,8 +91,18 @@ public class BudgetLineItemController {
         if (map.containsKey("hedgedCost")) b.hedgedCost(toBd(map.get("hedgedCost")));
         if (map.containsKey("forecastVolume")) b.forecastVolume(toBd(map.get("forecastVolume")));
         if (map.containsKey("forecastPrice")) b.forecastPrice(toBd(map.get("forecastPrice")));
+        if (map.containsKey("futuresMonth")) b.futuresMonth((String) map.get("futuresMonth"));
         if (map.containsKey("notes")) b.notes((String) map.get("notes"));
         return b.build();
+    }
+
+    private BudgetLineItemComponent toComponent(Map<String, Object> map) {
+        return BudgetLineItemComponent.builder()
+                .componentName((String) map.get("componentName"))
+                .unit(map.containsKey("unit") ? (String) map.get("unit") : "$/bu")
+                .targetValue(map.containsKey("targetValue") ? toBd(map.get("targetValue")) : BigDecimal.ZERO)
+                .displayOrder(map.containsKey("displayOrder") ? ((Number) map.get("displayOrder")).intValue() : 0)
+                .build();
     }
 
     private java.math.BigDecimal toBd(Object val) {

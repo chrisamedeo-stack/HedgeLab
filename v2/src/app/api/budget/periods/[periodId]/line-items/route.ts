@@ -19,7 +19,7 @@ export async function POST(
     // Single item
     const { budgetMonth, budgetedVolume, budgetPrice, committedVolume,
             committedAvgPrice, committedCost, hedgedVolume, hedgedAvgPrice,
-            hedgedCost, forecastVolume, forecastPrice, notes } = body;
+            hedgedCost, forecastVolume, forecastPrice, futuresMonth, notes } = body;
 
     if (!budgetMonth) {
       return NextResponse.json({ error: "budgetMonth required" }, { status: 400 });
@@ -29,7 +29,7 @@ export async function POST(
       budgetMonth, budgetedVolume, budgetPrice,
       committedVolume, committedAvgPrice, committedCost,
       hedgedVolume, hedgedAvgPrice, hedgedCost,
-      forecastVolume, forecastPrice, notes,
+      forecastVolume, forecastPrice, futuresMonth, notes,
     }, userId);
 
     return NextResponse.json(item, { status: 201 });

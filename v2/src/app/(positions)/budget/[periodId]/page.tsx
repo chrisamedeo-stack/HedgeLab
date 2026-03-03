@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useBudgetPeriod, useBudgetVersions } from "@/hooks/useBudget";
 import { useBudgetStore } from "@/store/budgetStore";
@@ -11,6 +11,7 @@ import { ForecastUpdateGrid } from "@/components/budget/ForecastUpdateGrid";
 import { FiscalYearGrid } from "@/components/budget/FiscalYearGrid";
 import { BudgetLineForm } from "@/components/budget/BudgetLineForm";
 import { CoverageChart } from "@/components/budget/CoverageChart";
+import { BudgetVsCommittedChart } from "@/components/budget/BudgetVsCommittedChart";
 import { ApprovalBar } from "@/components/budget/ApprovalBar";
 import { VersionPanel } from "@/components/budget/VersionPanel";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -20,6 +21,17 @@ import type { BudgetLineItem, CoverageDataPoint } from "@/types/budget";
 const DEFAULT_USER = "00000000-0000-0000-0000-000000000001";
 
 type Tab = "budget" | "forecast" | "coverage" | "versions";
+
+function fmt(n: number | null | undefined): string {
+  if (n == null || n === 0) return "—";
+  return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtDollars(n: number): string {
+  if (n === 0) return "—";
+  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
+  return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export default function BudgetDetailPage() {
   const params = useParams();
@@ -50,6 +62,32 @@ export default function BudgetDetailPage() {
     open: Number(li.open_volume),
     coveragePct: Number(li.coverage_pct),
   }));
+
+  // Compute KPIs
+  const kpis = useMemo(() => {
+    let totalBudgetVol = 0;
+    let totalNotional = 0;
+    let weightedAllIn = 0;
+    let forecastVol = 0;
+    let overHedgedCount = 0;
+
+    items.forEach((li) => {
+      const bv = Number(li.budgeted_volume);
+      totalBudgetVol += bv;
+      totalNotional += Number(li.total_notional ?? 0);
+      const allIn = li.target_all_in_price != null ? Number(li.target_all_in_price) : 0;
+      weightedAllIn += bv * allIn;
+      forecastVol += li.forecast_volume != null ? Number(li.forecast_volume) : bv;
+      if (li.over_hedged) overHedgedCount++;
+    });
+
+    return {
+      avgAllInPrice: totalBudgetVol > 0 ? weightedAllIn / totalBudgetVol : 0,
+      totalNotional,
+      forecastVol,
+      overHedgedCount,
+    };
+  }, [items]);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "budget", label: "Budget" },
@@ -108,6 +146,32 @@ export default function BudgetDetailPage() {
         )}
       </div>
 
+      {/* KPI Cards */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="rounded-lg border border-b-default bg-surface p-3">
+          <div className="text-xs text-muted">Avg All-in Price</div>
+          <div className="text-lg font-semibold text-primary tabular-nums">
+            {kpis.avgAllInPrice > 0 ? `$${kpis.avgAllInPrice.toFixed(4)}/bu` : "—"}
+          </div>
+        </div>
+        <div className="rounded-lg border border-b-default bg-surface p-3">
+          <div className="text-xs text-muted">Total Notional</div>
+          <div className="text-lg font-semibold text-primary tabular-nums">
+            {fmtDollars(kpis.totalNotional)}
+          </div>
+        </div>
+        <div className="rounded-lg border border-b-default bg-surface p-3">
+          <div className="text-xs text-muted">Forecast Volume</div>
+          <div className="text-lg font-semibold text-primary tabular-nums">{fmt(kpis.forecastVol)}</div>
+        </div>
+        <div className="rounded-lg border border-b-default bg-surface p-3">
+          <div className="text-xs text-muted">Over-hedged</div>
+          <div className={`text-lg font-semibold tabular-nums ${kpis.overHedgedCount > 0 ? "text-warning" : "text-muted"}`}>
+            {kpis.overHedgedCount}
+          </div>
+        </div>
+      </div>
+
       {/* Approval Bar */}
       <ApprovalBar period={period} userId={DEFAULT_USER} />
 
@@ -147,7 +211,10 @@ export default function BudgetDetailPage() {
       )}
 
       {tab === "coverage" && (
-        <CoverageChart data={coverageData} height={400} />
+        <div className="space-y-6">
+          <CoverageChart data={coverageData} height={400} />
+          <BudgetVsCommittedChart data={coverageData} lineItems={items} height={320} />
+        </div>
       )}
 
       {tab === "versions" && (
@@ -172,6 +239,8 @@ export default function BudgetDetailPage() {
               budgetPrice: editItem.budget_price ? Number(editItem.budget_price) : null,
               forecastVolume: editItem.forecast_volume ? Number(editItem.forecast_volume) : null,
               forecastPrice: editItem.forecast_price ? Number(editItem.forecast_price) : null,
+              futuresMonth: editItem.futures_month,
+              components: editItem.components ?? [],
               notes: editItem.notes,
             }}
           />
@@ -179,7 +248,7 @@ export default function BudgetDetailPage() {
       </Modal>
 
       {/* Fiscal Year Grid Modal */}
-      <Modal open={showFYGrid} onClose={() => setShowFYGrid(false)} title="Fiscal Year Grid" width="max-w-3xl">
+      <Modal open={showFYGrid} onClose={() => setShowFYGrid(false)} title="Fiscal Year Grid" width="max-w-4xl">
         <FiscalYearGrid
           periodId={periodId}
           budgetYear={period.budget_year}

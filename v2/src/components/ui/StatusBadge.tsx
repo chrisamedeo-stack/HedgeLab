@@ -1,29 +1,71 @@
 "use client";
 
-const statusColors: Record<string, string> = {
-  open: "bg-action-10 text-action border-action-20",
-  efp_closed: "bg-profit-10 text-profit border-profit-20",
-  locked: "bg-profit-10 text-profit border-profit-20",
-  offset: "bg-warning-10 text-warning border-warning-20",
-  rolled: "bg-accent-10 text-accent border-accent-20",
-  cancelled: "bg-neutral-15 text-muted border-neutral-20",
+type BadgeColor = "profit" | "neutral" | "action" | "destructive" | "warning" | "accent";
+
+interface ColorConfig {
+  ring: string;
+  bg: string;
+  text: string;
+}
+
+const colorMap: Record<BadgeColor, ColorConfig> = {
+  profit: {
+    ring: "ring-profit-20",
+    bg: "bg-profit-15",
+    text: "text-profit",
+  },
+  neutral: {
+    ring: "ring-neutral-20",
+    bg: "bg-neutral-15",
+    text: "text-neutral",
+  },
+  action: {
+    ring: "ring-action-20",
+    bg: "bg-action-15",
+    text: "text-action",
+  },
+  destructive: {
+    ring: "ring-destructive-20",
+    bg: "bg-destructive-15",
+    text: "text-destructive",
+  },
+  warning: {
+    ring: "ring-warning-20",
+    bg: "bg-warning-15",
+    text: "text-warning",
+  },
+  accent: {
+    ring: "ring-accent-20",
+    bg: "bg-accent-15",
+    text: "text-accent",
+  },
+};
+
+const statusToColor: Record<string, BadgeColor> = {
+  // Position statuses
+  open: "action",
+  efp_closed: "profit",
+  locked: "profit",
+  offset: "warning",
+  rolled: "accent",
+  cancelled: "neutral",
   // Trade statuses
-  partially_allocated: "bg-warning-10 text-warning border-warning-20",
-  fully_allocated: "bg-profit-10 text-profit border-profit-20",
-  filled: "bg-profit-10 text-profit border-profit-20",
-  pending: "bg-warning-10 text-warning border-warning-20",
-  executed: "bg-profit-10 text-profit border-profit-20",
+  partially_allocated: "warning",
+  fully_allocated: "profit",
+  filled: "profit",
+  pending: "warning",
+  executed: "profit",
   // Import statuses
-  uploaded: "bg-action-10 text-action border-action-20",
-  validated: "bg-warning-10 text-warning border-warning-20",
-  committed: "bg-profit-10 text-profit border-profit-20",
-  valid: "bg-profit-10 text-profit border-profit-20",
-  warning: "bg-warning-10 text-warning border-warning-20",
-  error: "bg-destructive-10 text-loss border-destructive-20",
+  uploaded: "action",
+  validated: "warning",
+  committed: "profit",
+  valid: "profit",
+  warning: "warning",
+  error: "destructive",
   // Budget statuses
-  draft: "bg-neutral-15 text-muted border-neutral-20",
-  submitted: "bg-action-10 text-action border-action-20",
-  approved: "bg-profit-10 text-profit border-profit-20",
+  draft: "neutral",
+  submitted: "action",
+  approved: "profit",
 };
 
 const statusLabels: Record<string, string> = {
@@ -46,6 +88,7 @@ const statusLabels: Record<string, string> = {
   draft: "Draft",
   submitted: "Submitted",
   approved: "Approved",
+  locked: "Locked",
 };
 
 interface StatusBadgeProps {
@@ -54,12 +97,13 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, className = "" }: StatusBadgeProps) {
-  const colors = statusColors[status] ?? "bg-neutral-15 text-muted border-neutral-20";
+  const badgeColor = statusToColor[status] ?? "neutral";
+  const c = colorMap[badgeColor];
   const label = statusLabels[status] ?? status;
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${colors} ${className}`}
+      className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold ring-1 ${c.ring} ${c.bg} ${c.text} ${className}`}
     >
       {label}
     </span>

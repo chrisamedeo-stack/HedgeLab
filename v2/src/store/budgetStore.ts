@@ -7,6 +7,7 @@ import type {
   BudgetFilters,
   CoverageSummary,
   UpsertLineItemParams,
+  ForecastHistoryEntry,
 } from "@/types/budget";
 
 interface BudgetState {
@@ -15,6 +16,7 @@ interface BudgetState {
   selectedPeriod: BudgetPeriod | null;
   coverage: CoverageSummary | null;
   versions: BudgetVersion[];
+  forecastHistory: Record<string, ForecastHistoryEntry[]>;
 
   // UI
   loading: boolean;
@@ -34,6 +36,8 @@ interface BudgetState {
   approveBudget: (periodId: string, userId: string) => Promise<void>;
   lockBudget: (periodId: string, userId: string) => Promise<void>;
   unlockBudget: (periodId: string, userId: string) => Promise<void>;
+  fetchForecastHistory: (periodId: string, lineItemId: string) => Promise<ForecastHistoryEntry[]>;
+  batchForecastUpdate: (periodId: string, updates: { budgetMonth: string; forecastVolume?: number | null; forecastPrice?: number | null }[], note: string, userId: string) => Promise<void>;
   fetchCoverage: (orgId: string, commodityId?: string, siteId?: string) => Promise<void>;
   fetchVersions: (periodId: string) => Promise<void>;
   createSnapshot: (periodId: string, userId: string, name?: string) => Promise<void>;
@@ -46,6 +50,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
   selectedPeriod: null,
   coverage: null,
   versions: [],
+  forecastHistory: {},
   loading: false,
   error: null,
 
@@ -196,6 +201,34 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      await get().fetchPeriod(periodId);
+    } catch (err) {
+      set({ error: (err as Error).message });
+      throw err;
+    }
+  },
+
+  fetchForecastHistory: async (periodId, lineItemId) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/line-items/${lineItemId}/forecast-history`);
+      if (!res.ok) throw new Error((await res.json()).error);
+      const history: ForecastHistoryEntry[] = await res.json();
+      set((s) => ({ forecastHistory: { ...s.forecastHistory, [lineItemId]: history } }));
+      return history;
+    } catch (err) {
+      set({ error: (err as Error).message });
+      return [];
+    }
+  },
+
+  batchForecastUpdate: async (periodId, updates, note, userId) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/line-items/forecast-batch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates, note, userId }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
       await get().fetchPeriod(periodId);

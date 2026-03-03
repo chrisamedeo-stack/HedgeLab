@@ -19,8 +19,16 @@ interface ForecastRow {
   budgetPrice: number | null;
 }
 
+const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function fmtMonth(m: string): string {
+  const [y, mo] = m.split("-");
+  const idx = parseInt(mo, 10) - 1;
+  return `${MONTH_SHORT[idx] ?? mo} ${y.slice(2)}`;
+}
+
 export function ForecastUpdateGrid({ periodId, items, userId, onDone }: ForecastUpdateGridProps) {
-  const { upsertLineItems } = useBudgetStore();
+  const { batchForecastUpdate } = useBudgetStore();
 
   const [rows, setRows] = useState<ForecastRow[]>(
     items.map((li) => ({
@@ -31,6 +39,7 @@ export function ForecastUpdateGrid({ periodId, items, userId, onDone }: Forecast
       budgetPrice: li.budget_price,
     }))
   );
+  const [sharedNote, setSharedNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +61,7 @@ export function ForecastUpdateGrid({ periodId, items, userId, onDone }: Forecast
           forecastPrice: r.forecastPrice ? Number(r.forecastPrice) : null,
         }));
       if (updates.length === 0) { setError("Enter at least one forecast value"); setSaving(false); return; }
-      await upsertLineItems(periodId, updates, userId);
+      await batchForecastUpdate(periodId, updates, sharedNote, userId);
       onDone();
     } catch (err) {
       setError((err as Error).message);
@@ -66,6 +75,18 @@ export function ForecastUpdateGrid({ periodId, items, userId, onDone }: Forecast
       {error && (
         <div className="rounded-lg bg-destructive-10 border border-destructive-15 px-3 py-2 text-sm text-loss">{error}</div>
       )}
+
+      {/* Shared note */}
+      <div className="space-y-1">
+        <label className="text-xs text-muted">Update Note (applied to all changes)</label>
+        <input
+          type="text"
+          value={sharedNote}
+          onChange={(e) => setSharedNote(e.target.value)}
+          className="w-full border border-b-input bg-input-bg rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-focus"
+          placeholder="e.g. Q2 reforecast based on shipping delays"
+        />
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -81,7 +102,7 @@ export function ForecastUpdateGrid({ periodId, items, userId, onDone }: Forecast
           <tbody>
             {rows.map((row, i) => (
               <tr key={row.budgetMonth} className="border-b border-tbl-border hover:bg-row-hover">
-                <td className="px-3 py-1.5 text-secondary">{row.budgetMonth}</td>
+                <td className="px-3 py-1.5 text-secondary">{fmtMonth(row.budgetMonth)}</td>
                 <td className="px-3 py-1.5 text-right text-muted tabular-nums">{row.budgetedVolume.toLocaleString()}</td>
                 <td className="px-3 py-1">
                   <input

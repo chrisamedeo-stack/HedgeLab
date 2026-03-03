@@ -1,12 +1,16 @@
 package com.hedgelab.v2.service.budget;
 
+import com.hedgelab.v2.entity.budget.BudgetForecastHistory;
 import com.hedgelab.v2.entity.budget.BudgetLineItem;
+import com.hedgelab.v2.entity.budget.BudgetLineItemComponent;
 import com.hedgelab.v2.entity.budget.BudgetPeriod;
 import com.hedgelab.v2.entity.budget.BudgetVersion;
 import com.hedgelab.v2.entity.kernel.Commodity;
 import com.hedgelab.v2.entity.kernel.Site;
 import com.hedgelab.v2.exception.InvalidStateException;
 import com.hedgelab.v2.exception.ResourceNotFoundException;
+import com.hedgelab.v2.repository.budget.BudgetComponentRepository;
+import com.hedgelab.v2.repository.budget.BudgetForecastHistoryRepository;
 import com.hedgelab.v2.repository.budget.BudgetLineItemRepository;
 import com.hedgelab.v2.repository.budget.BudgetPeriodRepository;
 import com.hedgelab.v2.repository.budget.BudgetVersionRepository;
@@ -29,6 +33,8 @@ public class BudgetService {
     private final BudgetPeriodRepository periodRepo;
     private final BudgetLineItemRepository lineItemRepo;
     private final BudgetVersionRepository versionRepo;
+    private final BudgetComponentRepository componentRepo;
+    private final BudgetForecastHistoryRepository forecastHistoryRepo;
     private final SiteRepository siteRepo;
     private final CommodityRepository commodityRepo;
     private final AuditService auditService;
@@ -45,9 +51,51 @@ public class BudgetService {
     public BudgetPeriod getPeriod(UUID periodId) {
         BudgetPeriod period = periodRepo.findById(periodId)
                 .orElseThrow(() -> new ResourceNotFoundException("BudgetPeriod", periodId));
-        period.setLineItems(lineItemRepo.findByPeriodIdOrderByBudgetMonth(periodId));
+        List<BudgetLineItem> items = lineItemRepo.findByPeriodIdOrderByBudgetMonth(periodId);
+
+        // Load components and compute transient fields for each line item
+        BigDecimal bushelsPerMt = getBushelsPerMt(period.getCommodityId());
+        for (BudgetLineItem li : items) {
+            List<BudgetLineItemComponent> components = componentRepo.findByLineItemIdOrderByDisplayOrder(li.getId());
+            li.setComponents(components);
+            li.setTargetAllInPrice(computeAllInPrice(components, bushelsPerMt));
+            li.setOverHedged(isOverHedged(li));
+            li.setTotalNotional(computeNotional(li));
+        }
+
+        period.setLineItems(items);
         populateJoinedFields(period);
         return period;
+    }
+
+    private BigDecimal getBushelsPerMt(String commodityId) {
+        BigDecimal defaultVal = BigDecimal.valueOf(39.3683); // corn default
+        if (commodityId == null) return defaultVal;
+        return commodityRepo.findById(commodityId).map(c -> {
+            if (c.getConfig() != null && c.getConfig().containsKey("bushelsPerMt")) {
+                return new BigDecimal(c.getConfig().get("bushelsPerMt").toString());
+            }
+            // Derive from contract size for standard ag commodities: 5000 bu / ~127 MT
+            return defaultVal;
+        }).orElse(defaultVal);
+    }
+
+    private boolean isOverHedged(BudgetLineItem li) {
+        BigDecimal effectiveVolume = li.getForecastVolume() != null
+                ? li.getForecastVolume() : li.getBudgetedVolume();
+        if (effectiveVolume.compareTo(BigDecimal.ZERO) <= 0) return false;
+        BigDecimal totalCovered = li.getCommittedVolume().add(li.getHedgedVolume());
+        return totalCovered.compareTo(effectiveVolume) > 0;
+    }
+
+    private BigDecimal computeNotional(BudgetLineItem li) {
+        if (li.getTargetAllInPrice() != null && li.getTargetAllInPrice().compareTo(BigDecimal.ZERO) > 0) {
+            return li.getBudgetedVolume().multiply(li.getTargetAllInPrice());
+        }
+        if (li.getBudgetPrice() != null) {
+            return li.getBudgetedVolume().multiply(li.getBudgetPrice());
+        }
+        return BigDecimal.ZERO;
     }
 
     private void populateJoinedFields(BudgetPeriod period) {
@@ -82,6 +130,12 @@ public class BudgetService {
 
     @Transactional
     public BudgetLineItem upsertLineItem(UUID periodId, BudgetLineItem data, UUID userId) {
+        return upsertLineItem(periodId, data, userId, null, null);
+    }
+
+    @Transactional
+    public BudgetLineItem upsertLineItem(UUID periodId, BudgetLineItem data, UUID userId,
+                                          List<BudgetLineItemComponent> components, String forecastNote) {
         BudgetPeriod period = periodRepo.findById(periodId)
                 .orElseThrow(() -> new ResourceNotFoundException("BudgetPeriod", periodId));
         if (period.getLockedAt() != null) {
@@ -89,8 +143,10 @@ public class BudgetService {
         }
 
         Optional<BudgetLineItem> existing = lineItemRepo.findByPeriodIdAndBudgetMonth(periodId, data.getBudgetMonth());
+        BudgetLineItem saved;
         if (existing.isPresent()) {
             BudgetLineItem e = existing.get();
+            boolean forecastChanged = false;
             if (data.getBudgetedVolume() != null) e.setBudgetedVolume(data.getBudgetedVolume());
             if (data.getBudgetPrice() != null) e.setBudgetPrice(data.getBudgetPrice());
             if (data.getCommittedVolume() != null) e.setCommittedVolume(data.getCommittedVolume());
@@ -99,15 +155,41 @@ public class BudgetService {
             if (data.getHedgedVolume() != null) e.setHedgedVolume(data.getHedgedVolume());
             if (data.getHedgedAvgPrice() != null) e.setHedgedAvgPrice(data.getHedgedAvgPrice());
             if (data.getHedgedCost() != null) e.setHedgedCost(data.getHedgedCost());
-            if (data.getForecastVolume() != null) e.setForecastVolume(data.getForecastVolume());
-            if (data.getForecastPrice() != null) e.setForecastPrice(data.getForecastPrice());
+            if (data.getForecastVolume() != null) {
+                if (!data.getForecastVolume().equals(e.getForecastVolume())) forecastChanged = true;
+                e.setForecastVolume(data.getForecastVolume());
+            }
+            if (data.getForecastPrice() != null) {
+                if (!data.getForecastPrice().equals(e.getForecastPrice())) forecastChanged = true;
+                e.setForecastPrice(data.getForecastPrice());
+            }
+            if (data.getFuturesMonth() != null) e.setFuturesMonth(data.getFuturesMonth());
             if (data.getNotes() != null) e.setNotes(data.getNotes());
             e.setUpdatedAt(Instant.now());
-            return lineItemRepo.save(e);
+            saved = lineItemRepo.save(e);
+
+            // Log forecast history if forecast changed
+            if (forecastChanged) {
+                logForecastChange(saved.getId(), saved.getForecastVolume(), saved.getForecastPrice(),
+                        userId != null ? userId.toString() : null, forecastNote);
+            }
+        } else {
+            data.setPeriodId(periodId);
+            saved = lineItemRepo.save(data);
+
+            // Log initial forecast if present
+            if (data.getForecastVolume() != null || data.getForecastPrice() != null) {
+                logForecastChange(saved.getId(), saved.getForecastVolume(), saved.getForecastPrice(),
+                        userId != null ? userId.toString() : null, forecastNote);
+            }
         }
 
-        data.setPeriodId(periodId);
-        return lineItemRepo.save(data);
+        // Save components if provided
+        if (components != null) {
+            saveComponents(saved.getId(), components);
+        }
+
+        return saved;
     }
 
     @Transactional
@@ -125,6 +207,75 @@ public class BudgetService {
             throw new InvalidStateException("Budget period is locked");
         }
         lineItemRepo.deleteById(lineItemId);
+    }
+
+    // ---- Components ----
+
+    @Transactional
+    public List<BudgetLineItemComponent> saveComponents(UUID lineItemId, List<BudgetLineItemComponent> components) {
+        componentRepo.deleteByLineItemId(lineItemId);
+        for (int i = 0; i < components.size(); i++) {
+            BudgetLineItemComponent c = components.get(i);
+            c.setLineItemId(lineItemId);
+            c.setDisplayOrder(i);
+        }
+        return componentRepo.saveAll(components);
+    }
+
+    public List<BudgetLineItemComponent> getComponents(UUID lineItemId) {
+        return componentRepo.findByLineItemIdOrderByDisplayOrder(lineItemId);
+    }
+
+    public BigDecimal computeAllInPrice(List<BudgetLineItemComponent> components, BigDecimal bushelsPerMt) {
+        if (components == null || components.isEmpty()) return BigDecimal.ZERO;
+        BigDecimal total = BigDecimal.ZERO;
+        for (BudgetLineItemComponent c : components) {
+            BigDecimal val = c.getTargetValue();
+            switch (c.getUnit()) {
+                case "$/bu" -> total = total.add(val);
+                case "$/MT" -> {
+                    if (bushelsPerMt.compareTo(BigDecimal.ZERO) > 0) {
+                        total = total.add(val.divide(bushelsPerMt, 6, RoundingMode.HALF_UP));
+                    }
+                }
+                case "%" -> {
+                    // percentage applied to running total
+                    total = total.add(total.multiply(val).divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
+                }
+                default -> total = total.add(val);
+            }
+        }
+        return total.setScale(4, RoundingMode.HALF_UP);
+    }
+
+    // ---- Forecast History ----
+
+    public List<BudgetForecastHistory> getForecastHistory(UUID lineItemId) {
+        return forecastHistoryRepo.findByLineItemIdOrderByRecordedAtDesc(lineItemId);
+    }
+
+    @Transactional
+    public BudgetForecastHistory logForecastChange(UUID lineItemId, BigDecimal volume, BigDecimal price,
+                                                     String recordedBy, String notes) {
+        BudgetForecastHistory entry = BudgetForecastHistory.builder()
+                .lineItemId(lineItemId)
+                .forecastVolume(volume)
+                .forecastPrice(price)
+                .recordedBy(recordedBy)
+                .notes(notes)
+                .build();
+        return forecastHistoryRepo.save(entry);
+    }
+
+    @Transactional
+    public List<BudgetLineItem> batchForecastUpdate(UUID periodId, List<BudgetLineItem> updates,
+                                                      String note, UUID userId) {
+        List<BudgetLineItem> results = new ArrayList<>();
+        for (BudgetLineItem data : updates) {
+            BudgetLineItem result = upsertLineItem(periodId, data, userId, null, note);
+            results.add(result);
+        }
+        return results;
     }
 
     // ---- Workflow ----

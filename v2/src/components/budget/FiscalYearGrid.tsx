@@ -2,12 +2,17 @@
 
 import { useState } from "react";
 import { useBudgetStore } from "@/store/budgetStore";
+import { ComponentEditor } from "./ComponentEditor";
+import { ComponentTokenBar } from "./ComponentTokenBar";
+import { suggestFuturesMonth, type CommodityConfig } from "@/lib/commodity-utils";
+import type { BudgetComponent } from "@/types/budget";
 
 interface FiscalYearGridProps {
   periodId: string;
   budgetYear: number;
   userId: string;
   onDone: () => void;
+  commodity?: CommodityConfig | null;
 }
 
 function generateMonths(year: number): string[] {
@@ -24,16 +29,25 @@ interface MonthRow {
   month: string;
   volume: number;
   price: string;
+  futuresMonth: string;
+  notes: string;
 }
 
-export function FiscalYearGrid({ periodId, budgetYear, userId, onDone }: FiscalYearGridProps) {
+export function FiscalYearGrid({ periodId, budgetYear, userId, onDone, commodity }: FiscalYearGridProps) {
   const { upsertLineItems } = useBudgetStore();
   const months = generateMonths(budgetYear);
 
   const [rows, setRows] = useState<MonthRow[]>(
-    months.map((m) => ({ month: m, volume: 0, price: "" }))
+    months.map((m) => ({
+      month: m,
+      volume: 0,
+      price: "",
+      futuresMonth: suggestFuturesMonth(commodity ?? null, m),
+      notes: "",
+    }))
   );
   const [sharedPrice, setSharedPrice] = useState("");
+  const [sharedComponents, setSharedComponents] = useState<BudgetComponent[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,6 +72,9 @@ export function FiscalYearGrid({ periodId, budgetYear, userId, onDone }: FiscalY
           budgetMonth: r.month,
           budgetedVolume: Number(r.volume),
           budgetPrice: r.price ? Number(r.price) : null,
+          futuresMonth: r.futuresMonth || null,
+          components: sharedComponents.length > 0 ? sharedComponents : undefined,
+          notes: r.notes || null,
         }));
 
       if (items.length === 0) { setError("Enter at least one month with volume > 0"); setSaving(false); return; }
@@ -99,15 +116,30 @@ export function FiscalYearGrid({ periodId, budgetYear, userId, onDone }: FiscalY
         </button>
       </div>
 
+      {/* Shared components */}
+      <div className="space-y-1">
+        <label className="text-xs text-muted">Shared Cost Components (applied to all months)</label>
+        <div className="border border-b-input rounded-lg p-3 bg-surface/30">
+          <ComponentEditor components={sharedComponents} onChange={setSharedComponents} />
+        </div>
+        {sharedComponents.length > 0 && (
+          <div className="mt-1">
+            <ComponentTokenBar components={sharedComponents} />
+          </div>
+        )}
+      </div>
+
       {/* Grid */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-tbl-border bg-tbl-header">
               <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted">Month</th>
+              <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted w-24">Futures Ref</th>
               <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-muted">Volume (MT)</th>
               <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-muted">Price</th>
               <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-muted">Cost</th>
+              <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted w-28">Notes</th>
             </tr>
           </thead>
           <tbody>
@@ -116,6 +148,15 @@ export function FiscalYearGrid({ periodId, budgetYear, userId, onDone }: FiscalY
               return (
                 <tr key={row.month} className="border-b border-tbl-border hover:bg-row-hover">
                   <td className="px-3 py-1.5 text-secondary">{MONTH_LABELS[i]} {budgetYear}</td>
+                  <td className="px-3 py-1">
+                    <input
+                      type="text"
+                      value={row.futuresMonth}
+                      onChange={(e) => updateRow(i, "futuresMonth", e.target.value)}
+                      className="w-full border border-b-input bg-input-bg rounded px-2 py-1 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-focus"
+                      placeholder="—"
+                    />
+                  </td>
                   <td className="px-3 py-1">
                     <input
                       type="number"
@@ -139,6 +180,15 @@ export function FiscalYearGrid({ periodId, budgetYear, userId, onDone }: FiscalY
                   <td className="px-3 py-1.5 text-right text-muted tabular-nums">
                     {cost > 0 ? cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}
                   </td>
+                  <td className="px-3 py-1">
+                    <input
+                      type="text"
+                      value={row.notes}
+                      onChange={(e) => updateRow(i, "notes", e.target.value)}
+                      className="w-full border border-b-input bg-input-bg rounded px-2 py-1 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-focus"
+                      placeholder="—"
+                    />
+                  </td>
                 </tr>
               );
             })}
@@ -146,6 +196,7 @@ export function FiscalYearGrid({ periodId, budgetYear, userId, onDone }: FiscalY
           <tfoot>
             <tr className="border-t border-b-default bg-surface">
               <td className="px-3 py-2 text-xs font-medium text-muted">Total</td>
+              <td />
               <td className="px-3 py-2 text-right text-sm font-semibold text-secondary tabular-nums">
                 {totalVolume.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </td>
@@ -154,6 +205,7 @@ export function FiscalYearGrid({ periodId, budgetYear, userId, onDone }: FiscalY
                 {rows.reduce((s, r) => s + Number(r.volume || 0) * Number(r.price || 0), 0)
                   .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </td>
+              <td />
             </tr>
           </tfoot>
         </table>

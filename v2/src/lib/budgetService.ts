@@ -5,6 +5,8 @@ import type {
   BudgetPeriod,
   BudgetLineItem,
   BudgetVersion,
+  BudgetComponent,
+  ForecastHistoryEntry,
   CreatePeriodParams,
   UpsertLineItemParams,
   BudgetFilters,
@@ -117,8 +119,8 @@ export async function upsertLineItem(
        period_id, budget_month, budgeted_volume, budget_price,
        committed_volume, committed_avg_price, committed_cost,
        hedged_volume, hedged_avg_price, hedged_cost,
-       forecast_volume, forecast_price, notes
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+       forecast_volume, forecast_price, futures_month, notes
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
      ON CONFLICT (period_id, budget_month) DO UPDATE SET
        budgeted_volume = COALESCE($3, bgt_line_items.budgeted_volume),
        budget_price = COALESCE($4, bgt_line_items.budget_price),
@@ -130,7 +132,8 @@ export async function upsertLineItem(
        hedged_cost = COALESCE($10, bgt_line_items.hedged_cost),
        forecast_volume = COALESCE($11, bgt_line_items.forecast_volume),
        forecast_price = COALESCE($12, bgt_line_items.forecast_price),
-       notes = COALESCE($13, bgt_line_items.notes),
+       futures_month = COALESCE($13, bgt_line_items.futures_month),
+       notes = COALESCE($14, bgt_line_items.notes),
        updated_at = NOW()
      RETURNING *`,
     [
@@ -146,6 +149,7 @@ export async function upsertLineItem(
       data.hedgedCost ?? 0,
       data.forecastVolume ?? null,
       data.forecastPrice ?? null,
+      data.futuresMonth ?? null,
       data.notes ?? null,
     ]
   );
@@ -521,4 +525,54 @@ export async function getCoverageSummary(
         : 0,
     byMonth,
   };
+}
+
+// ─── Components ──────────────────────────────────────────────────────────────
+
+export async function getLineItemComponents(lineItemId: string): Promise<BudgetComponent[]> {
+  return queryAll<BudgetComponent>(
+    `SELECT * FROM bgt_line_item_components WHERE line_item_id = $1 ORDER BY display_order`,
+    [lineItemId]
+  );
+}
+
+export async function saveLineItemComponents(
+  lineItemId: string,
+  components: BudgetComponent[]
+): Promise<BudgetComponent[]> {
+  await query(`DELETE FROM bgt_line_item_components WHERE line_item_id = $1`, [lineItemId]);
+  const results: BudgetComponent[] = [];
+  for (let i = 0; i < components.length; i++) {
+    const c = components[i];
+    const row = await queryOne<BudgetComponent>(
+      `INSERT INTO bgt_line_item_components (line_item_id, component_name, unit, target_value, display_order)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [lineItemId, c.component_name, c.unit || "$/bu", c.target_value || 0, i]
+    );
+    if (row) results.push(row);
+  }
+  return results;
+}
+
+// ─── Forecast History ────────────────────────────────────────────────────────
+
+export async function getForecastHistory(lineItemId: string): Promise<ForecastHistoryEntry[]> {
+  return queryAll<ForecastHistoryEntry>(
+    `SELECT * FROM bgt_forecast_history WHERE line_item_id = $1 ORDER BY recorded_at DESC`,
+    [lineItemId]
+  );
+}
+
+export async function logForecastChange(
+  lineItemId: string,
+  forecastVolume: number | null,
+  forecastPrice: number | null,
+  recordedBy?: string,
+  notes?: string
+): Promise<ForecastHistoryEntry | null> {
+  return queryOne<ForecastHistoryEntry>(
+    `INSERT INTO bgt_forecast_history (line_item_id, forecast_volume, forecast_price, recorded_by, notes)
+     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [lineItemId, forecastVolume, forecastPrice, recordedBy ?? null, notes ?? null]
+  );
 }

@@ -2,22 +2,28 @@
 
 import { useState } from "react";
 import { useBudgetStore } from "@/store/budgetStore";
+import { ComponentEditor } from "./ComponentEditor";
+import { suggestFuturesMonth, type CommodityConfig } from "@/lib/commodity-utils";
+import type { BudgetComponent } from "@/types/budget";
 
 interface BudgetLineFormProps {
   periodId: string;
   userId: string;
   onClose: () => void;
+  commodity?: CommodityConfig | null;
   existing?: {
     budgetMonth: string;
     budgetedVolume: number;
     budgetPrice: number | null;
     forecastVolume: number | null;
     forecastPrice: number | null;
+    futuresMonth: string | null;
+    components: BudgetComponent[];
     notes: string | null;
   };
 }
 
-export function BudgetLineForm({ periodId, userId, onClose, existing }: BudgetLineFormProps) {
+export function BudgetLineForm({ periodId, userId, onClose, commodity, existing }: BudgetLineFormProps) {
   const { upsertLineItem } = useBudgetStore();
   const [form, setForm] = useState({
     budgetMonth: existing?.budgetMonth ?? "",
@@ -25,10 +31,17 @@ export function BudgetLineForm({ periodId, userId, onClose, existing }: BudgetLi
     budgetPrice: existing?.budgetPrice ?? null as number | null,
     forecastVolume: existing?.forecastVolume ?? null as number | null,
     forecastPrice: existing?.forecastPrice ?? null as number | null,
+    futuresMonth: existing?.futuresMonth ?? "" as string,
     notes: existing?.notes ?? "",
   });
+  const [components, setComponents] = useState<BudgetComponent[]>(existing?.components ?? []);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const handleMonthChange = (budgetMonth: string) => {
+    const suggested = suggestFuturesMonth(commodity ?? null, budgetMonth);
+    setForm({ ...form, budgetMonth, futuresMonth: suggested || form.futuresMonth });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +49,12 @@ export function BudgetLineForm({ periodId, userId, onClose, existing }: BudgetLi
     setSaving(true);
     setError(null);
     try {
-      await upsertLineItem(periodId, { ...form, userId });
+      await upsertLineItem(periodId, {
+        ...form,
+        futuresMonth: form.futuresMonth || null,
+        components: components.length > 0 ? components : undefined,
+        userId,
+      });
       onClose();
     } catch (err) {
       setError((err as Error).message);
@@ -53,15 +71,27 @@ export function BudgetLineForm({ periodId, userId, onClose, existing }: BudgetLi
         <div className="rounded-lg bg-destructive-10 border border-destructive-15 px-3 py-2 text-sm text-loss">{error}</div>
       )}
 
-      <div className="space-y-1">
-        <label className="text-xs text-muted">Budget Month</label>
-        <input
-          type="month"
-          value={form.budgetMonth}
-          onChange={(e) => setForm({ ...form, budgetMonth: e.target.value })}
-          className={inputCls}
-          disabled={!!existing}
-        />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <label className="text-xs text-muted">Budget Month</label>
+          <input
+            type="month"
+            value={form.budgetMonth}
+            onChange={(e) => handleMonthChange(e.target.value)}
+            className={inputCls}
+            disabled={!!existing}
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-muted">Futures Month</label>
+          <input
+            type="text"
+            value={form.futuresMonth}
+            onChange={(e) => setForm({ ...form, futuresMonth: e.target.value })}
+            className={inputCls}
+            placeholder="e.g. ZCH26"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -110,6 +140,14 @@ export function BudgetLineForm({ periodId, userId, onClose, existing }: BudgetLi
             className={inputCls}
             placeholder="Optional"
           />
+        </div>
+      </div>
+
+      {/* Cost Components */}
+      <div className="space-y-1">
+        <label className="text-xs text-muted">Cost Components</label>
+        <div className="border border-b-input rounded-lg p-3 bg-surface/30">
+          <ComponentEditor components={components} onChange={setComponents} />
         </div>
       </div>
 

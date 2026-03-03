@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { CommodityProvider, useCommodityContext } from "@/contexts/CommodityContext";
@@ -110,8 +111,8 @@ function Sidebar() {
       {/* Logo */}
       <div className="flex h-14 items-center px-4 border-b border-b-default">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-action text-white text-xs font-bold">H</div>
-          <span className="text-sm font-semibold text-primary">HedgeLab</span>
+          <Image src="/hedgelab-icon.png" alt="HL" width={28} height={28} className="shrink-0" />
+          <span className="text-sm font-semibold text-primary tracking-tight">HedgeLab</span>
         </Link>
       </div>
 

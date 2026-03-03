@@ -40,9 +40,34 @@ export interface BudgetLineItem {
   open_volume: number;
   forecast_volume: number | null;
   forecast_price: number | null;
+  futures_month: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
+  // Computed transient fields (populated by backend)
+  components?: BudgetComponent[];
+  target_all_in_price?: number | null;
+  over_hedged?: boolean;
+  total_notional?: number | null;
+}
+
+export interface BudgetComponent {
+  id?: string;
+  line_item_id?: string;
+  component_name: string;
+  unit: string;
+  target_value: number;
+  display_order: number;
+}
+
+export interface ForecastHistoryEntry {
+  id: string;
+  line_item_id: string;
+  forecast_volume: number | null;
+  forecast_price: number | null;
+  recorded_at: string;
+  recorded_by: string | null;
+  notes: string | null;
 }
 
 export interface BudgetVersion {
@@ -77,6 +102,8 @@ export interface UpsertLineItemParams {
   hedgedCost?: number;
   forecastVolume?: number | null;
   forecastPrice?: number | null;
+  futuresMonth?: string | null;
+  components?: BudgetComponent[];
   notes?: string | null;
 }
 

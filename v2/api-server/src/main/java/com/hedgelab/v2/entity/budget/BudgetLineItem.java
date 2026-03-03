@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -75,8 +76,25 @@ public class BudgetLineItem {
     @Column(name = "forecast_price")
     private BigDecimal forecastPrice;
 
+    @Column(name = "futures_month", length = 20)
+    private String futuresMonth;
+
     @Column(columnDefinition = "text")
     private String notes;
+
+    // ---- Transient (computed) fields ----
+
+    @Transient
+    private List<BudgetLineItemComponent> components;
+
+    @Transient
+    private BigDecimal targetAllInPrice;
+
+    @Transient
+    private Boolean overHedged;
+
+    @Transient
+    private BigDecimal totalNotional;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
