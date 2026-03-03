@@ -49,6 +49,7 @@ export function BudgetMonthTable({
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [assigningId, setAssigningId] = useState<number | null>(null);
   const [assignSite, setAssignSite] = useState("");
+  const [assignLots, setAssignLots] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Allocate-from-budget-month state
@@ -91,19 +92,31 @@ export function BudgetMonthTable({
       .sort((a, b) => a.budgetMonth.localeCompare(b.budgetMonth));
   }, [monthAllocations, siteAllocations]);
 
-  async function handleAssignSite(allocationId: number) {
+  async function handleAssignSite(allocationId: number, totalLots: number) {
     if (!assignSite) {
       toast.toast("Select a site", "error");
+      return;
+    }
+    const lots = assignLots ? parseInt(assignLots) : totalLots;
+    if (!lots || lots <= 0) {
+      toast.toast("Enter lots to assign", "error");
+      return;
+    }
+    if (lots > totalLots) {
+      toast.toast(`Max ${totalLots} lots available`, "error");
       return;
     }
     setSaving(true);
     try {
       await api.post(`${apiBase}/hedges/allocations/${allocationId}/assign-site`, {
         siteCode: assignSite,
+        lots,
       });
-      toast.toast("Site assigned", "success");
+      const buAssigned = lots * config.contractSizeBu;
+      toast.toast(`Assigned ${fmtVol(buAssigned, config.bushelsPerMt)} → ${assignSite}`, "success");
       setAssigningId(null);
       setAssignSite("");
+      setAssignLots("");
       onRefresh();
     } catch (e: unknown) {
       toast.toast((e as Error).message ?? "Failed to assign site", "error");
@@ -308,7 +321,7 @@ export function BudgetMonthTable({
                               <div className="flex gap-1">
                                 {can("assign-site") && (
                                   <button
-                                    onClick={() => { setAssigningId(isAssigning ? null : a.allocationId); setAssignSite(""); }}
+                                    onClick={() => { setAssigningId(isAssigning ? null : a.allocationId); setAssignSite(""); setAssignLots(""); }}
                                     className="flex items-center gap-1 px-2.5 py-1 bg-accent-20 hover:bg-accent-40 text-accent rounded-lg text-xs font-medium transition-colors"
                                   >
                                     <MapPinPlus className="h-3 w-3" /> Assign Site
@@ -339,7 +352,24 @@ export function BudgetMonthTable({
                                       ))}
                                     </select>
                                   </div>
-                                  <button onClick={() => handleAssignSite(a.allocationId)} disabled={saving || !assignSite} className={btnPrimary}>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-xs text-faint">Lots</label>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      max={a.allocatedLots}
+                                      placeholder={`All (${a.allocatedLots})`}
+                                      value={assignLots}
+                                      onChange={(e) => setAssignLots(e.target.value)}
+                                      className={cn(inputCls, "w-28")}
+                                    />
+                                  </div>
+                                  <div className="text-xs text-faint pb-1.5">
+                                    {assignLots
+                                      ? `${fmtVol(parseInt(assignLots) * config.contractSizeBu, config.bushelsPerMt)} of ${fmtVol(a.allocatedBushels, config.bushelsPerMt)}`
+                                      : `${fmtVol(a.allocatedBushels, config.bushelsPerMt)} total`}
+                                  </div>
+                                  <button onClick={() => handleAssignSite(a.allocationId, a.allocatedLots)} disabled={saving || !assignSite} className={btnPrimary}>
                                     {saving ? "Assigning\u2026" : "Assign"}
                                   </button>
                                   <button onClick={() => setAssigningId(null)} className={btnCancel}>Cancel</button>
