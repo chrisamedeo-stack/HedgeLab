@@ -1134,10 +1134,10 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("sites");
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 page-fade">
       <div>
         <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Settings</h1>
-        <p className="text-sm text-muted mt-0.5">Manage sites, groups, commodities, fiscal year, and users</p>
+        <p className="mt-0.5 text-xs text-faint">Manage sites, groups, commodities, fiscal year, and users</p>
       </div>
 
       <div className="flex gap-6 border-b border-b-default">

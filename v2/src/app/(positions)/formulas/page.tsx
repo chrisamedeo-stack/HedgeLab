@@ -194,20 +194,20 @@ export default function FormulasPage() {
 
   if (!formulaEnabled) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-6 page-fade">
         <div>
           <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Formula Pricing</h1>
-          <p className="text-sm text-muted mt-0.5">Formula pricing plugin is not enabled for this organization.</p>
+          <p className="mt-0.5 text-xs text-faint">Formula pricing plugin is not enabled for this organization.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 page-fade">
       <div>
         <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Formula Pricing</h1>
-        <p className="text-sm text-muted mt-0.5">Manage pricing formulas, rate tables, and evaluate pricing models</p>
+        <p className="mt-0.5 text-xs text-faint">Manage pricing formulas, rate tables, and evaluate pricing models</p>
       </div>
 
       {error && (
