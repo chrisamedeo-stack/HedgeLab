@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { queryAll } from "@/lib/db";
+import { queryAll, queryOne, query } from "@/lib/db";
+import { auditLog } from "@/lib/audit";
 
 export async function GET(request: Request) {
   try {
@@ -36,7 +37,47 @@ export async function GET(request: Request) {
     const sites = await queryAll(sql, params);
     return NextResponse.json(sites);
   } catch (err) {
-    console.error("[sites] Error:", err);
+    console.error("[sites] GET Error:", err);
+    return NextResponse.json(
+      { error: (err as Error).message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { orgId, code, name, region, siteTypeId, orgUnitId, timezone, config } = body;
+
+    if (!orgId || !name) {
+      return NextResponse.json(
+        { error: "Missing required fields: orgId, name" },
+        { status: 400 }
+      );
+    }
+
+    const result = await query(
+      `INSERT INTO sites (org_id, code, name, region, site_type_id, org_unit_id, timezone, config)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [orgId, code || null, name, region || null, siteTypeId || null, orgUnitId || null, timezone || null, config ? JSON.stringify(config) : null]
+    );
+
+    const site = result.rows[0];
+
+    await auditLog({
+      orgId,
+      module: "kernel",
+      entityType: "site",
+      entityId: site.id,
+      action: "create",
+      after: site as Record<string, unknown>,
+    });
+
+    return NextResponse.json(site, { status: 201 });
+  } catch (err) {
+    console.error("[sites] POST Error:", err);
     return NextResponse.json(
       { error: (err as Error).message },
       { status: 500 }

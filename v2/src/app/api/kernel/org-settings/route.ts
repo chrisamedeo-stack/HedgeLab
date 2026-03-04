@@ -76,6 +76,7 @@ export async function PATCH(request: Request) {
       "roll_critical_days", "roll_urgent_days", "roll_upcoming_days",
       "roll_auto_notify", "roll_require_approval_critical",
       "roll_default_target", "roll_budget_month_policy", "roll_cost_allocation",
+      "futures_month_mappings",
     ];
 
     for (const field of allowedFields) {
