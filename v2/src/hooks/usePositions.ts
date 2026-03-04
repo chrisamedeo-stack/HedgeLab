@@ -37,18 +37,18 @@ function useFetch<T>(
 
 // ─── Hedge Book ──────────────────────────────────────────────────────────────
 
-export function useHedgeBook(orgId: string, commodityId?: string, regionGroupId?: string) {
+export function useHedgeBook(orgId: string, commodityId?: string, regionGroupId?: string, orgUnitId?: string) {
   const { hedgeBook, loading, error, fetchHedgeBook } = usePositionStore();
 
   useEffect(() => {
-    if (orgId) fetchHedgeBook(orgId, commodityId, regionGroupId);
-  }, [orgId, commodityId, regionGroupId, fetchHedgeBook]);
+    if (orgId) fetchHedgeBook(orgId, commodityId, regionGroupId, orgUnitId);
+  }, [orgId, commodityId, regionGroupId, orgUnitId, fetchHedgeBook]);
 
   return {
     data: hedgeBook,
     loading,
     error,
-    refetch: () => fetchHedgeBook(orgId, commodityId, regionGroupId),
+    refetch: () => fetchHedgeBook(orgId, commodityId, regionGroupId, orgUnitId),
   };
 }
 
@@ -131,7 +131,14 @@ interface SiteGroup {
   sites: { id: string; name: string; code: string; region: string }[];
 }
 
+/**
+ * @deprecated Use useOrgTree() from useOrgHierarchy.ts instead.
+ * Site groups are replaced by org_units hierarchy.
+ */
 export function useSiteGroups(orgId?: string, groupType?: string) {
+  if (typeof window !== "undefined") {
+    console.warn("[useSiteGroups] Deprecated — use useOrgTree() from useOrgHierarchy.ts");
+  }
   return useFetch<SiteGroup[]>(async () => {
     const params = new URLSearchParams();
     if (orgId) params.set("orgId", orgId);

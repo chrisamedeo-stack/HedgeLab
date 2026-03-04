@@ -629,7 +629,8 @@ export async function getSitePosition(
 export async function getHedgeBook(
   orgId: string,
   commodityId?: string,
-  regionGroupId?: string
+  regionGroupId?: string,
+  orgUnitId?: string
 ): Promise<HedgeBookEntry[]> {
   let sql = `
     SELECT a.*,
@@ -647,7 +648,10 @@ export async function getHedgeBook(
     sql += ` AND a.commodity_id = $${params.length}`;
   }
 
-  if (regionGroupId) {
+  if (orgUnitId) {
+    params.push(orgUnitId);
+    sql += ` AND a.site_id IN (SELECT site_id FROM get_sites_under_unit($${params.length}))`;
+  } else if (regionGroupId) {
     params.push(regionGroupId);
     sql += ` AND a.site_id IN (
       SELECT sgm.site_id FROM site_group_members sgm WHERE sgm.site_group_id = $${params.length}

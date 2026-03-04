@@ -6,10 +6,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const orgId = searchParams.get("orgId");
     const region = searchParams.get("region");
+    const orgUnitId = searchParams.get("orgUnitId");
 
     let sql = `
       SELECT s.id, s.org_id, s.site_type_id, s.name, s.code, s.region,
-             s.timezone, s.is_active, s.config,
+             s.timezone, s.is_active, s.config, s.org_unit_id,
              st.name as site_type_name, st.operating_model, st.features,
              st.supported_commodities, st.position_sections
       FROM sites s
@@ -25,6 +26,10 @@ export async function GET(request: Request) {
     if (region) {
       params.push(region);
       sql += ` AND s.region = $${params.length}`;
+    }
+    if (orgUnitId) {
+      params.push(orgUnitId);
+      sql += ` AND s.id IN (SELECT site_id FROM get_sites_under_unit($${params.length}))`;
     }
 
     sql += ` ORDER BY s.region, s.name`;

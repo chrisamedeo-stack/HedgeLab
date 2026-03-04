@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { queryAll } from "@/lib/db";
 import { allocateToSite } from "@/lib/positionService";
+import { requirePlugin, PluginNotEnabledError } from "@/lib/orgHierarchy";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const orgId = searchParams.get("orgId");
+
+    if (orgId) await requirePlugin(orgId, "position_manager");
     const siteId = searchParams.get("siteId");
     const commodityId = searchParams.get("commodityId");
     const status = searchParams.get("status");
@@ -53,6 +56,9 @@ export async function GET(request: Request) {
     const allocations = await queryAll(sql, params);
     return NextResponse.json(allocations);
   } catch (err) {
+    if (err instanceof PluginNotEnabledError) {
+      return NextResponse.json({ error: err.message }, { status: 403 });
+    }
     console.error("[allocations] GET error:", err);
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
@@ -64,6 +70,8 @@ export async function POST(request: Request) {
     const { orgId, userId, tradeId, siteId, commodityId, allocatedVolume,
             budgetMonth, tradePrice, tradeDate, contractMonth, direction,
             currency, notes } = body;
+
+    await requirePlugin(orgId, "position_manager");
 
     if (!orgId || !userId || !siteId || !commodityId || !allocatedVolume) {
       return NextResponse.json(

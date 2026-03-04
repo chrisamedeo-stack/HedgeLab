@@ -25,6 +25,7 @@ interface PositionState {
 
   // Filters
   selectedRegion: string | null;
+  selectedOrgUnit: string | null;
   selectedCommodity: string | null;
 
   // UI state
@@ -33,7 +34,7 @@ interface PositionState {
 
   // Actions
   fetchAllocations: (params?: Record<string, string>) => Promise<void>;
-  fetchHedgeBook: (orgId: string, commodityId?: string, regionGroupId?: string) => Promise<void>;
+  fetchHedgeBook: (orgId: string, commodityId?: string, regionGroupId?: string, orgUnitId?: string) => Promise<void>;
   fetchPhysicals: (params?: Record<string, string>) => Promise<void>;
   fetchLockedPositions: (params?: Record<string, string>) => Promise<void>;
   fetchSiteView: (siteId: string, commodityId?: string) => Promise<void>;
@@ -45,6 +46,7 @@ interface PositionState {
   createPhysical: (params: CreatePhysicalParams) => Promise<PhysicalPosition>;
   cancelAllocation: (userId: string, allocationId: string) => Promise<void>;
   setSelectedRegion: (region: string | null) => void;
+  setSelectedOrgUnit: (unitId: string | null) => void;
   setSelectedCommodity: (commodity: string | null) => void;
   clearError: () => void;
 }
@@ -69,6 +71,7 @@ export const usePositionStore = create<PositionState>((set) => ({
   siteView: null,
   rollCandidates: null,
   selectedRegion: null,
+  selectedOrgUnit: null,
   selectedCommodity: null,
   loading: false,
   error: null,
@@ -85,10 +88,10 @@ export const usePositionStore = create<PositionState>((set) => ({
     }
   },
 
-  fetchHedgeBook: async (orgId, commodityId, regionGroupId) => {
+  fetchHedgeBook: async (orgId, commodityId, regionGroupId, orgUnitId) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/positions/hedge-book${qs({ orgId, commodityId, regionGroupId })}`);
+      const res = await fetch(`${API_BASE}/api/v2/positions/hedge-book${qs({ orgId, commodityId, regionGroupId, orgUnitId })}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const hedgeBook = await res.json();
       set({ hedgeBook, loading: false });
@@ -253,6 +256,7 @@ export const usePositionStore = create<PositionState>((set) => ({
   },
 
   setSelectedRegion: (region) => set({ selectedRegion: region }),
+  setSelectedOrgUnit: (unitId) => set({ selectedOrgUnit: unitId }),
   setSelectedCommodity: (commodity) => set({ selectedCommodity: commodity }),
   clearError: () => set({ error: null }),
 }));

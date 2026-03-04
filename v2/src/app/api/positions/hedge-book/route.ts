@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getHedgeBook } from "@/lib/positionService";
+import { requirePlugin, PluginNotEnabledError } from "@/lib/orgHierarchy";
 
 export async function GET(request: Request) {
   try {
@@ -7,15 +8,19 @@ export async function GET(request: Request) {
     const orgId = searchParams.get("orgId");
     const commodityId = searchParams.get("commodityId");
     const regionGroupId = searchParams.get("regionGroupId");
+    const orgUnitId = searchParams.get("orgUnitId");
 
     if (!orgId) {
       return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
     }
 
+    await requirePlugin(orgId, "position_manager");
+
     const entries = await getHedgeBook(
       orgId,
       commodityId ?? undefined,
-      regionGroupId ?? undefined
+      regionGroupId ?? undefined,
+      orgUnitId ?? undefined
     );
 
     // Group by contract month for display
@@ -41,6 +46,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ entries, byMonth, kpis });
   } catch (err) {
+    if (err instanceof PluginNotEnabledError) {
+      return NextResponse.json({ error: err.message }, { status: 403 });
+    }
     console.error("[hedge-book] GET error:", err);
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }

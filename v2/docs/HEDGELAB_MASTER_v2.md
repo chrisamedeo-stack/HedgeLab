@@ -422,7 +422,7 @@ $$ LANGUAGE plpgsql STABLE;
 
 ### 3.6 Site Types & Sites
 
-**[V1 REFERENCE]:** v1 grouped sites by hardcoded "Canada" and "US" tabs. v2 replaces this with data-driven site groups — regions are defined in the `site_groups` table and the UI dynamically generates tabs/groupings from that data. The tab pattern from v1 is good UX, but the labels and number of tabs must come from the database, not code.
+**[V1 REFERENCE]:** v1 grouped sites by hardcoded "Canada" and "US" tabs. v2 replaces this with a data-driven org hierarchy — sites are linked to `org_units` via `sites.org_unit_id`, and the UI renders hierarchy tabs/groupings from that tree. The legacy `site_groups` table is deprecated; use `org_units` + `org_hierarchy_levels` instead. See section 3.6a.
 
 ```sql
 CREATE TABLE site_types (
@@ -487,6 +487,105 @@ CREATE TABLE commodity_groups (
   sort_order INT DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
+
+### 3.6a Org Hierarchy & Customer Profiles
+
+The org hierarchy replaces flat `site_groups` with a recursive `org_units` tree. Hierarchy depth is configurable per org via `org_hierarchy_levels`. Customer profiles pre-configure new orgs with the right plugins, hierarchy template, and settings.
+
+```sql
+CREATE TABLE customer_profiles (
+  id                VARCHAR(50) PRIMARY KEY,
+  display_name      VARCHAR(100) NOT NULL,
+  operating_model   VARCHAR(20) NOT NULL CHECK (operating_model IN ('budget', 'margin')),
+  default_plugins   TEXT[] NOT NULL DEFAULT '{}',
+  hierarchy_template JSONB NOT NULL DEFAULT '[]',
+  default_site_types TEXT[] NOT NULL DEFAULT '{}',
+  default_settings  JSONB NOT NULL DEFAULT '{}',
+  description       TEXT,
+  created_at        TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Seeds: 'consumer' (budget, 4-level hierarchy, 6 plugins)
+--        'producer' (margin, 2-level hierarchy, 4 plugins)
+
+CREATE TABLE org_hierarchy_levels (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id        UUID NOT NULL REFERENCES organizations(id),
+  level_depth   INT NOT NULL,
+  label         VARCHAR(100) NOT NULL,
+  is_site_level BOOLEAN NOT NULL DEFAULT false,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(org_id, level_depth)
+);
+
+CREATE TABLE org_units (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id              UUID NOT NULL REFERENCES organizations(id),
+  hierarchy_level_id  UUID NOT NULL REFERENCES org_hierarchy_levels(id),
+  parent_id           UUID REFERENCES org_units(id),
+  name                VARCHAR(200) NOT NULL,
+  code                VARCHAR(20),
+  sort_order          INT DEFAULT 0,
+  is_active           BOOLEAN DEFAULT true,
+  created_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- sites.org_unit_id FK → org_units(id) links sites into the hierarchy
+-- organizations.customer_profile_id FK → customer_profiles(id)
+```
+
+**Hierarchy traversal functions:**
+- `get_descendant_units(unit_id)` — recursive CTE returning all child units
+- `get_sites_under_unit(unit_id)` — returns site IDs under a unit (used by hedge book filter)
+
+**Service functions** (`src/lib/orgHierarchy.ts`):
+- `getOrgTree(orgId)` — builds nested `OrgTreeNode[]` with sites at leaves
+- `getHierarchyLevels(orgId)` — returns level definitions
+- `getSiteIdsUnderUnit(unitId)` — calls `get_sites_under_unit()`
+- `getGroupingLevelLabel(orgId)` — returns label of level above sites (for tab headers)
+- `applyCustomerProfile(orgId, profileId, userId)` — creates hierarchy, enables plugins, merges settings
+
+### 3.6b Plugin System
+
+Plugins are enabled per-org. The `plugin_registry` table defines all available plugins with nav metadata. The `org_plugins` table tracks which plugins are enabled for each org.
+
+```sql
+CREATE TABLE plugin_registry (
+  id            VARCHAR(50) PRIMARY KEY,
+  name          VARCHAR(100) NOT NULL,
+  module_prefix VARCHAR(10),
+  depends_on    TEXT[] NOT NULL DEFAULT '{}',
+  nav_section   VARCHAR(50),
+  nav_label     VARCHAR(50),
+  nav_href      VARCHAR(100),
+  nav_icon      TEXT,
+  sort_order    INT DEFAULT 0,
+  description   TEXT,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 12 plugins seeded: position_manager, trade_capture, budget, market_data,
+-- formula_pricing, ai_import, risk, forecast, contracts, logistics, settlement, energy
+
+CREATE TABLE org_plugins (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id     UUID NOT NULL REFERENCES organizations(id),
+  plugin_id  VARCHAR(50) NOT NULL REFERENCES plugin_registry(id),
+  is_enabled BOOLEAN NOT NULL DEFAULT true,
+  config     JSONB DEFAULT '{}',
+  enabled_at TIMESTAMPTZ DEFAULT NOW(),
+  enabled_by UUID,
+  UNIQUE(org_id, plugin_id)
+);
+```
+
+**Plugin gating functions** (`src/lib/orgHierarchy.ts`):
+- `isPluginEnabled(orgId, pluginId)` — check org_plugins table
+- `requirePlugin(orgId, pluginId)` — throws `PluginNotEnabledError` (403) if disabled
+- `getEnabledPlugins(orgId)` — returns string[] of enabled plugin IDs
+- `getNavConfig(orgId)` — joins plugin_registry + org_plugins → `NavSection[]` for sidebar
+
+**UI gating:** The sidebar renders nav sections dynamically from `getNavConfig()`. Quick actions on the dashboard are filtered by `isPluginEnabled()`. All plugin API routes call `requirePlugin()` at the top of each handler.
 
 ### 3.7 Event Bus
 

@@ -1,17 +1,15 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useHedgeBook, useSiteGroups, useCommodities, useSites } from "@/hooks/usePositions";
-import { usePositionStore } from "@/store/positionStore";
-import { RegionTabs } from "@/components/ui/RegionTabs";
+import { useHedgeBook, useCommodities, useSites } from "@/hooks/usePositions";
+import { useOrgContext } from "@/contexts/OrgContext";
+import { HierarchyTabs } from "@/components/ui/HierarchyTabs";
 import { CommodityFilter } from "@/components/ui/CommodityFilter";
 import { KPICard } from "@/components/ui/KPICard";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AllocateForm } from "@/components/positions/AllocateForm";
 import type { HedgeBookEntry } from "@/types/positions";
-
-const ORG_ID = "00000000-0000-0000-0000-000000000001"; // demo org
 
 function fmtVol(v: unknown): string {
   const n = Number(v);
@@ -26,27 +24,18 @@ function fmtPrice(v: unknown): string {
 }
 
 export default function HedgeBookPage() {
-  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+  const { orgId, orgTree, selectedOrgUnit, setSelectedOrgUnit, groupingLevelLabel } = useOrgContext();
   const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null);
   const [showAllocate, setShowAllocate] = useState(false);
 
   const { data: hedgeBook, loading, refetch } = useHedgeBook(
-    ORG_ID,
+    orgId,
     selectedCommodity ?? undefined,
-    selectedRegion ?? undefined
+    undefined,
+    selectedOrgUnit ?? undefined
   );
-  const { data: regions } = useSiteGroups(ORG_ID, "region");
   const { data: commodities } = useCommodities();
-  const { data: sites } = useSites(ORG_ID);
-
-  const regionTabs = useMemo(() =>
-    (regions ?? []).map((r) => ({
-      id: r.id,
-      name: r.name,
-      siteCount: r.sites.length,
-    })),
-    [regions]
-  );
+  const { data: sites } = useSites(orgId);
 
   const columns: Column<HedgeBookEntry>[] = [
     { key: "contract_month", header: "Contract", width: "90px" },
@@ -56,7 +45,6 @@ export default function HedgeBookPage() {
       render: (r) => r.commodity_name ?? r.commodity_id,
     },
     { key: "site_name", header: "Site", render: (r) => r.site_name ?? "—" },
-    { key: "region", header: "Region", render: (r) => r.region ?? "—" },
     {
       key: "direction",
       header: "Dir",
@@ -106,11 +94,14 @@ export default function HedgeBookPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <RegionTabs
-          regions={regionTabs}
-          selected={selectedRegion}
-          onSelect={setSelectedRegion}
-        />
+        {orgTree.length > 0 && (
+          <HierarchyTabs
+            nodes={orgTree}
+            selected={selectedOrgUnit}
+            onSelect={setSelectedOrgUnit}
+            allLabel={`All ${groupingLevelLabel}s`}
+          />
+        )}
         {commodities && (
           <CommodityFilter
             commodities={commodities}
@@ -162,7 +153,7 @@ export default function HedgeBookPage() {
       {/* Allocate Modal */}
       {showAllocate && (
         <AllocateForm
-          orgId={ORG_ID}
+          orgId={orgId}
           sites={sites ?? []}
           commodities={commodities ?? []}
           onClose={() => setShowAllocate(false)}

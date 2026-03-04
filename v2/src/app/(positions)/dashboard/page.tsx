@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useHedgeBook, useSites, useSiteGroups, useCommodities } from "@/hooks/usePositions";
+import { useEffect } from "react";
+import { useHedgeBook, useSites, useCommodities } from "@/hooks/usePositions";
 import { useBudgetStore } from "@/store/budgetStore";
 import { useCommodityContext } from "@/contexts/CommodityContext";
+import { useOrgContext } from "@/contexts/OrgContext";
 import Link from "next/link";
-
-const ORG_ID = "00000000-0000-0000-0000-000000000001";
 
 function KPICard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
@@ -19,19 +18,23 @@ function KPICard({ label, value, sub, color }: { label: string; value: string; s
 }
 
 function QuickActions() {
-  const links = [
-    { href: "/trades", label: "Book Trade", icon: "M12 4v16m8-8H4" },
-    { href: "/hedge-book", label: "Hedge Book", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
-    { href: "/budget", label: "Budget", icon: "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" },
-    { href: "/coverage", label: "Coverage", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
-    { href: "/roll-candidates", label: "Roll Candidates", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" },
-    { href: "/import", label: "Import Data", icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" },
+  const { isPluginEnabled } = useOrgContext();
+
+  const allLinks = [
+    { href: "/trades", label: "Book Trade", plugin: "trade_capture", icon: "M12 4v16m8-8H4" },
+    { href: "/hedge-book", label: "Hedge Book", plugin: "position_manager", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
+    { href: "/budget", label: "Budget", plugin: "budget", icon: "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" },
+    { href: "/coverage", label: "Coverage", plugin: null, icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
+    { href: "/roll-candidates", label: "Roll Candidates", plugin: "position_manager", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" },
+    { href: "/import", label: "Import Data", plugin: "ai_import", icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" },
   ];
+
+  const links = allLinks.filter((l) => !l.plugin || isPluginEnabled(l.plugin));
 
   return (
     <div className="bg-surface border border-b-default rounded-lg p-5">
       <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Quick Actions</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-${Math.min(links.length, 6)} gap-2`}>
         {links.map((l) => (
           <Link
             key={l.href}
@@ -50,16 +53,17 @@ function QuickActions() {
 }
 
 export default function DashboardPage() {
+  const { orgId } = useOrgContext();
   const { commodityId } = useCommodityContext();
-  const { data: hedgeBook, loading: hbLoading } = useHedgeBook(ORG_ID, commodityId ?? undefined);
-  const { data: sites } = useSites(ORG_ID);
+  const { data: hedgeBook, loading: hbLoading } = useHedgeBook(orgId, commodityId ?? undefined);
+  const { data: sites } = useSites(orgId);
   const { data: commodities } = useCommodities();
   const { periods, coverage, fetchPeriods, fetchCoverage, loading: budgetLoading } = useBudgetStore();
 
   useEffect(() => {
-    fetchPeriods(ORG_ID);
-    fetchCoverage(ORG_ID, commodityId ?? undefined);
-  }, [fetchPeriods, fetchCoverage, commodityId]);
+    fetchPeriods(orgId);
+    fetchCoverage(orgId, commodityId ?? undefined);
+  }, [orgId, fetchPeriods, fetchCoverage, commodityId]);
 
   const isLoading = hbLoading || budgetLoading;
 
