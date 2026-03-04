@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { queryAll, query } from "@/lib/db";
 import { auditLog } from "@/lib/audit";
+import { requirePlugin, PluginNotEnabledError } from "@/lib/orgHierarchy";
 
 export async function GET(request: Request) {
   try {
@@ -11,6 +12,8 @@ export async function GET(request: Request) {
     if (!orgId) {
       return NextResponse.json({ error: "Missing orgId parameter" }, { status: 400 });
     }
+
+    await requirePlugin(orgId, "formula_pricing");
 
     let sql = `
       SELECT id, org_id, name, rate_type, commodity_id, rates,
@@ -30,6 +33,9 @@ export async function GET(request: Request) {
     const tables = await queryAll(sql, params);
     return NextResponse.json(tables);
   } catch (err) {
+    if (err instanceof PluginNotEnabledError) {
+      return NextResponse.json({ error: err.message }, { status: 403 });
+    }
     console.error("[rate-tables] Error:", err);
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
@@ -67,6 +73,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result.rows[0], { status: 201 });
   } catch (err) {
+    if (err instanceof PluginNotEnabledError) {
+      return NextResponse.json({ error: err.message }, { status: 403 });
+    }
     console.error("[rate-tables] Error:", err);
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }

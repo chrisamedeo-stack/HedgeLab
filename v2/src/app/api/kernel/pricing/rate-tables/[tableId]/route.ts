@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { queryOne, query } from "@/lib/db";
 import { auditLog } from "@/lib/audit";
+import { requirePlugin, PluginNotEnabledError } from "@/lib/orgHierarchy";
 
 export async function GET(
   _request: Request,
@@ -17,6 +18,9 @@ export async function GET(
     }
     return NextResponse.json(table);
   } catch (err) {
+    if (err instanceof PluginNotEnabledError) {
+      return NextResponse.json({ error: err.message }, { status: 403 });
+    }
     console.error("[rate-tables] GET Error:", err);
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
@@ -74,6 +78,9 @@ export async function PUT(
 
     return NextResponse.json(result.rows[0]);
   } catch (err) {
+    if (err instanceof PluginNotEnabledError) {
+      return NextResponse.json({ error: err.message }, { status: 403 });
+    }
     console.error("[rate-tables] PUT Error:", err);
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
@@ -111,6 +118,9 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    if (err instanceof PluginNotEnabledError) {
+      return NextResponse.json({ error: err.message }, { status: 403 });
+    }
     console.error("[rate-tables] DELETE Error:", err);
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }

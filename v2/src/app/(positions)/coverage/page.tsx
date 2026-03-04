@@ -3,22 +3,22 @@
 import { useState } from "react";
 import { useCoverage } from "@/hooks/useBudget";
 import { useCommodityContext } from "@/contexts/CommodityContext";
+import { useOrgContext } from "@/contexts/OrgContext";
 import { useSites } from "@/hooks/usePositions";
 import { KPICard } from "@/components/ui/KPICard";
 import { CoverageChart } from "@/components/budget/CoverageChart";
 import type { CoverageDataPoint } from "@/types/budget";
 
-const DEFAULT_ORG = "00000000-0000-0000-0000-000000000001";
-
 type TimeRange = "3" | "6" | "12" | "all";
 
 export default function CoveragePage() {
+  const { orgId } = useOrgContext();
   const { commodityId } = useCommodityContext();
-  const { data: sites } = useSites(DEFAULT_ORG);
+  const { data: sites } = useSites(orgId);
   const [filterSite, setFilterSite] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("12");
 
-  const { data: coverage, loading } = useCoverage(DEFAULT_ORG, commodityId ?? undefined, filterSite ?? undefined);
+  const { data: coverage, loading } = useCoverage(orgId, commodityId ?? undefined, filterSite ?? undefined);
 
   // Filter by time range
   const filteredData: CoverageDataPoint[] = (() => {

@@ -11,8 +11,7 @@ export async function GET(request: Request) {
     let sql = `
       SELECT s.id, s.org_id, s.site_type_id, s.name, s.code, s.region,
              s.timezone, s.is_active, s.config, s.org_unit_id,
-             st.name as site_type_name, st.operating_model, st.features,
-             st.supported_commodities, st.position_sections
+             st.name as site_type_name, st.supported_commodities, st.description as site_type_description
       FROM sites s
       JOIN site_types st ON st.id = s.site_type_id
       WHERE s.is_active = true

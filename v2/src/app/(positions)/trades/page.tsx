@@ -3,18 +3,18 @@
 import { useState } from "react";
 import { useTrades } from "@/hooks/useTrades";
 import { useCommodities, useSites } from "@/hooks/usePositions";
+import { useOrgContext } from "@/contexts/OrgContext";
 import { TradeBlotter } from "@/components/trades/TradeBlotter";
 import { TradeForm } from "@/components/trades/TradeForm";
 import type { TradeFilters, TradeStatus } from "@/types/trades";
 
-const ORG_ID = "00000000-0000-0000-0000-000000000001"; // demo org
-
 export default function TradesPage() {
+  const { orgId } = useOrgContext();
   const [showForm, setShowForm] = useState(false);
   const [filters, setFilters] = useState<Partial<TradeFilters>>({});
-  const { data: trades, loading, error, refetch } = useTrades(ORG_ID, filters);
+  const { data: trades, loading, error, refetch } = useTrades(orgId, filters);
   const { data: commodities } = useCommodities();
-  const { data: sites } = useSites(ORG_ID);
+  const { data: sites } = useSites(orgId);
 
   const setFilter = (key: keyof TradeFilters, value: string) => {
     setFilters((prev) => ({
@@ -103,14 +103,14 @@ export default function TradesPage() {
         trades={trades}
         commodities={(commodities ?? []).map((c) => ({ id: c.id, name: c.name }))}
         sites={(sites ?? []).map((s) => ({ id: s.id, name: s.name, code: s.code }))}
-        orgId={ORG_ID}
+        orgId={orgId}
         onRefresh={refetch}
       />
 
       {/* Book trade modal */}
       {showForm && (
         <TradeForm
-          orgId={ORG_ID}
+          orgId={orgId}
           commodities={(commodities ?? []).map((c) => ({ id: c.id, name: c.name, contract_size: (c as unknown as { contract_size?: number }).contract_size }))}
           onClose={() => setShowForm(false)}
           onSuccess={() => {

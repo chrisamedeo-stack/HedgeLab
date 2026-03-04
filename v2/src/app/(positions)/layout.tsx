@@ -117,7 +117,7 @@ function OrgTreeNav() {
     <div className="mb-1">
       <div className="px-4 py-2">
         <span className="text-[10px] font-medium uppercase tracking-wider text-muted">
-          {groupingLevelLabel}s
+          {groupingLevelLabel}
         </span>
       </div>
       {orgTree.map((node) => (
@@ -166,9 +166,10 @@ function OrgTreeItem({
         style={{ paddingLeft: `${12 + depth * 16}px` }}
       >
         {hasChildren && (
-          <button
+          <span
+            role="button"
             onClick={(e) => { e.stopPropagation(); toggleExpand(node.id); }}
-            className="shrink-0 text-faint hover:text-muted"
+            className="shrink-0 text-faint hover:text-muted cursor-pointer"
           >
             <svg
               className={`h-3 w-3 transition-transform ${isExpanded ? "rotate-90" : ""}`}
@@ -179,7 +180,7 @@ function OrgTreeItem({
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
-          </button>
+          </span>
         )}
         {!hasChildren && <span className="w-3" />}
         <svg className="h-3.5 w-3.5 shrink-0 text-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

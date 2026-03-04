@@ -3,16 +3,16 @@
 import { useEffect, useState } from "react";
 import { usePositionStore } from "@/store/positionStore";
 import { useCommodityContext } from "@/contexts/CommodityContext";
+import { useOrgContext } from "@/contexts/OrgContext";
 import type { LockedPosition } from "@/types/positions";
 
-const ORG_ID = "00000000-0000-0000-0000-000000000001";
-
 export default function EFPPage() {
+  const { orgId } = useOrgContext();
   const { commodityId } = useCommodityContext();
   const { lockedPositions, loading, error, fetchLockedPositions } = usePositionStore();
 
   useEffect(() => {
-    const params: Record<string, string> = { orgId: ORG_ID };
+    const params: Record<string, string> = { orgId };
     if (commodityId) params.commodityId = commodityId;
     fetchLockedPositions(params);
   }, [fetchLockedPositions, commodityId]);

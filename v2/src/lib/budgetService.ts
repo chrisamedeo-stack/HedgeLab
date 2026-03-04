@@ -119,8 +119,9 @@ export async function upsertLineItem(
        period_id, budget_month, budgeted_volume, budget_price,
        committed_volume, committed_avg_price, committed_cost,
        hedged_volume, hedged_avg_price, hedged_cost,
-       forecast_volume, forecast_price, futures_month, notes
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+       forecast_volume, forecast_price, futures_month,
+       formula_id, formula_inputs, formula_price, notes
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
      ON CONFLICT (period_id, budget_month) DO UPDATE SET
        budgeted_volume = COALESCE($3, bgt_line_items.budgeted_volume),
        budget_price = COALESCE($4, bgt_line_items.budget_price),
@@ -133,7 +134,10 @@ export async function upsertLineItem(
        forecast_volume = COALESCE($11, bgt_line_items.forecast_volume),
        forecast_price = COALESCE($12, bgt_line_items.forecast_price),
        futures_month = COALESCE($13, bgt_line_items.futures_month),
-       notes = COALESCE($14, bgt_line_items.notes),
+       formula_id = COALESCE($14, bgt_line_items.formula_id),
+       formula_inputs = COALESCE($15, bgt_line_items.formula_inputs),
+       formula_price = COALESCE($16, bgt_line_items.formula_price),
+       notes = COALESCE($17, bgt_line_items.notes),
        updated_at = NOW()
      RETURNING *`,
     [
@@ -150,6 +154,9 @@ export async function upsertLineItem(
       data.forecastVolume ?? null,
       data.forecastPrice ?? null,
       data.futuresMonth ?? null,
+      data.formulaId ?? null,
+      data.formulaInputs ? JSON.stringify(data.formulaInputs) : null,
+      data.formulaPrice ?? null,
       data.notes ?? null,
     ]
   );

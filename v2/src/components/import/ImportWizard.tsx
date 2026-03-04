@@ -14,8 +14,7 @@ const STEPS = [
   { num: 5, label: "Done" },
 ];
 
-// TODO: Replace with real org/user context from auth
-const DEMO_ORG_ID = "00000000-0000-0000-0000-000000000001";
+// TODO: Replace DEMO_USER_ID with real user context from auth
 const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 function StepIndicator({ current }: { current: number }) {
@@ -103,7 +102,7 @@ function CompletionView() {
   );
 }
 
-export function ImportWizard() {
+export function ImportWizard({ orgId }: { orgId: string }) {
   const { step, setStep, stageAndValidate, loading, error, clearError } = useImportStore();
 
   const canGoBack = step > 1 && step < 5;
@@ -127,8 +126,8 @@ export function ImportWizard() {
       <div className="min-h-[300px]">
         {step === 1 && <TargetPicker />}
         {step === 2 && <FileUpload />}
-        {step === 3 && <ColumnMapper orgId={DEMO_ORG_ID} userId={DEMO_USER_ID} />}
-        {step === 4 && <ValidationReview orgId={DEMO_ORG_ID} userId={DEMO_USER_ID} />}
+        {step === 3 && <ColumnMapper orgId={orgId} userId={DEMO_USER_ID} />}
+        {step === 4 && <ValidationReview orgId={orgId} userId={DEMO_USER_ID} />}
         {step === 5 && <CompletionView />}
       </div>
 
@@ -144,7 +143,7 @@ export function ImportWizard() {
           </button>
           {canGoNext && (
             <button
-              onClick={() => stageAndValidate(DEMO_ORG_ID, DEMO_USER_ID)}
+              onClick={() => stageAndValidate(orgId, DEMO_USER_ID)}
               disabled={loading}
               className="rounded-md bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover disabled:opacity-50"
             >

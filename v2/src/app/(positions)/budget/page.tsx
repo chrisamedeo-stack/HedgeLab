@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useBudgetPeriods, useCoverage } from "@/hooks/useBudget";
 import { useCommodities, useSites } from "@/hooks/usePositions";
 import { useCommodityContext } from "@/contexts/CommodityContext";
+import { useOrgContext } from "@/contexts/OrgContext";
 import { useBudgetStore } from "@/store/budgetStore";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { KPICard } from "@/components/ui/KPICard";
@@ -12,15 +13,15 @@ import { CoverageChart } from "@/components/budget/CoverageChart";
 import { BudgetVsCommittedChart } from "@/components/budget/BudgetVsCommittedChart";
 import Link from "next/link";
 
-const DEFAULT_ORG = "00000000-0000-0000-0000-000000000001";
 const DEFAULT_USER = "00000000-0000-0000-0000-000000000001";
 
 type ChartMode = "coverage" | "budget-vs-committed";
 
 export default function BudgetPage() {
+  const { orgId } = useOrgContext();
   const { commodityId } = useCommodityContext();
   const { data: commodities } = useCommodities();
-  const { data: sites } = useSites(DEFAULT_ORG);
+  const { data: sites } = useSites(orgId);
   const [filterSite, setFilterSite] = useState<string | null>(null);
   const [filterYear, setFilterYear] = useState<number | null>(null);
   const [chartMode, setChartMode] = useState<ChartMode>("coverage");
@@ -31,8 +32,8 @@ export default function BudgetPage() {
     siteId: filterSite ?? undefined,
     budgetYear: filterYear ?? undefined,
   };
-  const { data: periods, loading } = useBudgetPeriods(DEFAULT_ORG, filters);
-  const { data: coverage } = useCoverage(DEFAULT_ORG, commodityId ?? undefined, filterSite ?? undefined);
+  const { data: periods, loading } = useBudgetPeriods(orgId, filters);
+  const { data: coverage } = useCoverage(orgId, commodityId ?? undefined, filterSite ?? undefined);
   const { createPeriod } = useBudgetStore();
 
   // New period form state
@@ -46,7 +47,7 @@ export default function BudgetPage() {
     setCreating(true);
     try {
       await createPeriod({
-        orgId: DEFAULT_ORG,
+        orgId: orgId,
         userId: DEFAULT_USER,
         siteId: newSite,
         commodityId,

@@ -21,7 +21,7 @@ export default function ImportNewPage() {
         </p>
       </div>
       <div className="rounded-xl border border-zinc-700/50 bg-zinc-900/30 p-6">
-        <ImportWizard />
+        <ImportWizard orgId="00000000-0000-0000-0000-000000000001" />
       </div>
     </div>
   );

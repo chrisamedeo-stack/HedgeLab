@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { usePhysicals, useSites, useCommodities } from "@/hooks/usePositions";
 import { useCommodityContext } from "@/contexts/CommodityContext";
+import { useOrgContext } from "@/contexts/OrgContext";
 import { usePositionStore } from "@/store/positionStore";
 import type { PhysicalPosition, CreatePhysicalParams, PhysicalDirection, PricingType } from "@/types/positions";
 
-const ORG_ID = "00000000-0000-0000-0000-000000000001";
 const USER_ID = "00000000-0000-0000-0000-000000000099";
 
 const statusStyle: Record<string, string> = {
@@ -16,11 +16,12 @@ const statusStyle: Record<string, string> = {
 };
 
 export default function ContractsPage() {
+  const { orgId } = useOrgContext();
   const { commodityId } = useCommodityContext();
-  const params: Record<string, string> = { orgId: ORG_ID };
+  const params: Record<string, string> = { orgId };
   if (commodityId) params.commodityId = commodityId;
   const { data: physicals, loading, error, refetch } = usePhysicals(params);
-  const { data: sites } = useSites(ORG_ID);
+  const { data: sites } = useSites(orgId);
   const { data: commodities } = useCommodities();
   const { createPhysical } = usePositionStore();
   const [showForm, setShowForm] = useState(false);
@@ -45,7 +46,7 @@ export default function ContractsPage() {
     setSubmitting(true);
     try {
       await createPhysical({
-        orgId: ORG_ID,
+        orgId: orgId,
         userId: USER_ID,
         siteId: form.siteId,
         commodityId: form.commodityId,

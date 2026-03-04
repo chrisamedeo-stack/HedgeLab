@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { API_BASE } from "@/lib/api";
-
-const ORG_ID = "00000000-0000-0000-0000-000000000001";
+import { useOrgContext } from "@/contexts/OrgContext";
 
 interface ExportOption {
   label: string;
@@ -67,6 +66,7 @@ function jsonToCsv(data: Record<string, unknown>[]): string {
 }
 
 export default function ExportsPage() {
+  const { orgId } = useOrgContext();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
@@ -76,7 +76,7 @@ export default function ExportsPage() {
     setError(null);
     setLoading(option.label);
     try {
-      const params = new URLSearchParams({ orgId: ORG_ID });
+      const params = new URLSearchParams({ orgId });
       if (from) params.set("dateFrom", from);
       if (to) params.set("dateTo", to);
       const res = await fetch(`${API_BASE}${option.endpoint}?${params}`);

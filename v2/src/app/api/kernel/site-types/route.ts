@@ -5,8 +5,7 @@ import { auditLog } from "@/lib/audit";
 export async function GET() {
   try {
     const types = await queryAll(
-      `SELECT id, name, operating_model, supported_commodities, features,
-              position_sections, kpi_config, created_at
+      `SELECT id, name, supported_commodities, description, created_at
        FROM site_types
        ORDER BY name`
     );
@@ -23,22 +22,19 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const {
-      id, name, operatingModel, supportedCommodities,
-      features = {}, positionSections = [], kpiConfig = {},
-    } = body;
+    const { id, name, supportedCommodities, description } = body;
 
-    if (!id || !name || !operatingModel || !supportedCommodities) {
+    if (!id || !name) {
       return NextResponse.json(
-        { error: "Missing required fields: id, name, operatingModel, supportedCommodities" },
+        { error: "Missing required fields: id, name" },
         { status: 400 }
       );
     }
 
     const result = await query(
-      `INSERT INTO site_types (id, name, operating_model, supported_commodities, features, position_sections, kpi_config)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [id, name, operatingModel, supportedCommodities, JSON.stringify(features), positionSections, JSON.stringify(kpiConfig)]
+      `INSERT INTO site_types (id, name, supported_commodities, description)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [id, name, supportedCommodities ?? '{}', description ?? null]
     );
 
     await auditLog({
@@ -62,7 +58,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const { id, name, operatingModel, supportedCommodities, features, positionSections, kpiConfig } = body;
+    const { id, name, supportedCommodities, description } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Missing site type id" }, { status: 400 });
@@ -80,11 +76,8 @@ export async function PATCH(request: Request) {
     const params: unknown[] = [];
 
     if (name !== undefined) { params.push(name); updates.push(`name = $${params.length}`); }
-    if (operatingModel !== undefined) { params.push(operatingModel); updates.push(`operating_model = $${params.length}`); }
     if (supportedCommodities !== undefined) { params.push(supportedCommodities); updates.push(`supported_commodities = $${params.length}`); }
-    if (features !== undefined) { params.push(JSON.stringify(features)); updates.push(`features = $${params.length}`); }
-    if (positionSections !== undefined) { params.push(positionSections); updates.push(`position_sections = $${params.length}`); }
-    if (kpiConfig !== undefined) { params.push(JSON.stringify(kpiConfig)); updates.push(`kpi_config = $${params.length}`); }
+    if (description !== undefined) { params.push(description); updates.push(`description = $${params.length}`); }
 
     if (updates.length === 0) return NextResponse.json(before);
 

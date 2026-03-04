@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { API_BASE } from "@/lib/api";
-
-const ORG_ID = "00000000-0000-0000-0000-000000000001";
+import { useOrgContext } from "@/contexts/OrgContext";
 
 interface AuditEntry {
   id: string;
@@ -39,6 +38,7 @@ const actionStyles: Record<string, string> = {
 const MODULES = ["", "budget", "position", "trade", "market", "kernel"];
 
 export default function AuditPage() {
+  const { orgId } = useOrgContext();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [moduleFilter, setModuleFilter] = useState("");
@@ -48,7 +48,7 @@ export default function AuditPage() {
   const fetchAudit = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ orgId: ORG_ID });
+      const params = new URLSearchParams({ orgId });
       if (moduleFilter) params.set("module", moduleFilter);
       const res = await fetch(`${API_BASE}/api/v2/kernel/audit?${params}`);
       if (!res.ok) throw new Error("Failed to fetch audit log");
@@ -59,7 +59,7 @@ export default function AuditPage() {
     } finally {
       setLoading(false);
     }
-  }, [moduleFilter]);
+  }, [moduleFilter, orgId]);
 
   useEffect(() => {
     fetchAudit();

@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { API_BASE } from "@/lib/api";
 import { useSites, useCommodities } from "@/hooks/usePositions";
 import { useCommodityContext } from "@/contexts/CommodityContext";
-
-const ORG_ID = "00000000-0000-0000-0000-000000000001";
+import { useOrgContext } from "@/contexts/OrgContext";
 
 interface Receipt {
   id: string;
@@ -21,8 +20,9 @@ interface Receipt {
 }
 
 export default function ReceiptsPage() {
+  const { orgId } = useOrgContext();
   const { commodityId } = useCommodityContext();
-  const { data: sites } = useSites(ORG_ID);
+  const { data: sites } = useSites(orgId);
   const { data: commodities } = useCommodities();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,7 @@ export default function ReceiptsPage() {
   const fetchReceipts = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ orgId: ORG_ID });
+      const params = new URLSearchParams({ orgId });
       if (commodityId) params.set("commodityId", commodityId);
       const res = await fetch(`${API_BASE}/api/v2/positions/physicals?${params}`);
       if (!res.ok) throw new Error("Failed to fetch");
@@ -44,7 +44,7 @@ export default function ReceiptsPage() {
     } finally {
       setLoading(false);
     }
-  }, [commodityId]);
+  }, [commodityId, orgId]);
 
   useEffect(() => {
     fetchReceipts();

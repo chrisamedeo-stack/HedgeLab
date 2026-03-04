@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { API_BASE } from "@/lib/api";
 import type { OrgTreeNode, HierarchyLevel } from "@/types/org";
 
 interface OrgContextValue {
@@ -53,9 +52,9 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const [pluginsRes, treeRes, levelsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/v2/kernel/org-plugins?orgId=${DEFAULT_ORG_ID}`),
-        fetch(`${API_BASE}/api/v2/kernel/org-hierarchy?orgId=${DEFAULT_ORG_ID}`),
-        fetch(`${API_BASE}/api/v2/kernel/org-hierarchy/levels?orgId=${DEFAULT_ORG_ID}`),
+        fetch(`/api/v2/kernel/org-plugins?orgId=${DEFAULT_ORG_ID}`),
+        fetch(`/api/v2/kernel/org-hierarchy?orgId=${DEFAULT_ORG_ID}`),
+        fetch(`/api/v2/kernel/org-hierarchy/levels?orgId=${DEFAULT_ORG_ID}`),
       ]);
 
       if (pluginsRes.ok) {

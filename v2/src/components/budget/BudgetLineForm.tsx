@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useBudgetStore } from "@/store/budgetStore";
+import { useOrgContext } from "@/contexts/OrgContext";
+import { usePricingStore } from "@/store/pricingStore";
 import { ComponentEditor } from "./ComponentEditor";
 import { suggestFuturesMonth, type CommodityConfig } from "@/lib/commodity-utils";
 import type { BudgetComponent } from "@/types/budget";
+import type { FormulaComponent, EvaluationResult } from "@/lib/pricingEngine";
 
 interface BudgetLineFormProps {
   periodId: string;
   userId: string;
   onClose: () => void;
   commodity?: CommodityConfig | null;
+  commodityId?: string;
   existing?: {
     budgetMonth: string;
     budgetedVolume: number;
@@ -20,11 +24,18 @@ interface BudgetLineFormProps {
     futuresMonth: string | null;
     components: BudgetComponent[];
     notes: string | null;
+    formulaId?: string | null;
+    formulaInputs?: Record<string, number> | null;
+    formulaPrice?: number | null;
   };
 }
 
-export function BudgetLineForm({ periodId, userId, onClose, commodity, existing }: BudgetLineFormProps) {
+export function BudgetLineForm({ periodId, userId, onClose, commodity, commodityId, existing }: BudgetLineFormProps) {
   const { upsertLineItem } = useBudgetStore();
+  const { orgId, isPluginEnabled } = useOrgContext();
+  const { formulas, fetchFormulas, evaluateFormula } = usePricingStore();
+  const formulaEnabled = isPluginEnabled("formula_pricing");
+
   const [form, setForm] = useState({
     budgetMonth: existing?.budgetMonth ?? "",
     budgetedVolume: existing?.budgetedVolume ?? 0,
@@ -33,14 +44,59 @@ export function BudgetLineForm({ periodId, userId, onClose, commodity, existing 
     forecastPrice: existing?.forecastPrice ?? null as number | null,
     futuresMonth: existing?.futuresMonth ?? "" as string,
     notes: existing?.notes ?? "",
+    formulaId: existing?.formulaId ?? "" as string,
   });
   const [components, setComponents] = useState<BudgetComponent[]>(existing?.components ?? []);
+  const [formulaInputs, setFormulaInputs] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    if (existing?.formulaInputs) {
+      for (const [k, v] of Object.entries(existing.formulaInputs)) {
+        initial[k] = String(v);
+      }
+    }
+    return initial;
+  });
+  const [formulaResult, setFormulaResult] = useState<EvaluationResult | null>(null);
+  const [calculating, setCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Fetch formulas when formula pricing is enabled
+  useEffect(() => {
+    if (formulaEnabled) {
+      fetchFormulas(orgId, commodityId);
+    }
+  }, [formulaEnabled, orgId, commodityId, fetchFormulas]);
+
+  const selectedFormula = formulas.find((f) => f.id === form.formulaId);
+  const editableComponents = selectedFormula?.components
+    .filter((c: FormulaComponent) => c.type === "input" || c.type === "market_ref")
+    .sort((a: FormulaComponent, b: FormulaComponent) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)) ?? [];
 
   const handleMonthChange = (budgetMonth: string) => {
     const suggested = suggestFuturesMonth(commodity ?? null, budgetMonth);
     setForm({ ...form, budgetMonth, futuresMonth: suggested || form.futuresMonth });
+  };
+
+  const handleCalculate = async () => {
+    if (!form.formulaId) return;
+    setCalculating(true);
+    setError(null);
+    try {
+      const inputs: Record<string, number> = {};
+      for (const [k, v] of Object.entries(formulaInputs)) {
+        inputs[k] = Number(v) || 0;
+      }
+      const result = await evaluateFormula(form.formulaId, { inputs });
+      setFormulaResult(result);
+      if (result.totalPrice !== undefined) {
+        setForm((f) => ({ ...f, budgetPrice: result.totalPrice }));
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setCalculating(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,9 +105,17 @@ export function BudgetLineForm({ periodId, userId, onClose, commodity, existing 
     setSaving(true);
     setError(null);
     try {
+      const numInputs: Record<string, number> = {};
+      for (const [k, v] of Object.entries(formulaInputs)) {
+        numInputs[k] = Number(v) || 0;
+      }
+
       await upsertLineItem(periodId, {
         ...form,
         futuresMonth: form.futuresMonth || null,
+        formulaId: form.formulaId || null,
+        formulaInputs: Object.keys(numInputs).length > 0 ? numInputs : null,
+        formulaPrice: formulaResult?.totalPrice ?? existing?.formulaPrice ?? null,
         components: components.length > 0 ? components : undefined,
         userId,
       });
@@ -114,9 +178,64 @@ export function BudgetLineForm({ periodId, userId, onClose, commodity, existing 
             onChange={(e) => setForm({ ...form, budgetPrice: e.target.value ? Number(e.target.value) : null })}
             className={inputCls}
             placeholder="Optional"
+            readOnly={!!formulaResult}
           />
         </div>
       </div>
+
+      {/* Formula pricing section */}
+      {formulaEnabled && (
+        <div className="space-y-2 rounded-lg border border-action-30 bg-action-5 p-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-action">Formula Price (optional)</label>
+            <select
+              value={form.formulaId}
+              onChange={(e) => { setForm({ ...form, formulaId: e.target.value }); setFormulaResult(null); setFormulaInputs({}); }}
+              className={inputCls}
+            >
+              <option value="">No formula</option>
+              {formulas.map((f) => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {selectedFormula && editableComponents.length > 0 && (
+            <div className="grid grid-cols-2 gap-2">
+              {editableComponents.map((comp: FormulaComponent) => (
+                <div key={comp.id} className="space-y-1">
+                  <label className="text-xs text-muted">{comp.label} {comp.unit ? `(${comp.unit})` : ""}</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={formulaInputs[comp.id] ?? ""}
+                    onChange={(e) => { setFormulaInputs((prev) => ({ ...prev, [comp.id]: e.target.value })); setFormulaResult(null); }}
+                    className={inputCls}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {selectedFormula && (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleCalculate}
+                disabled={calculating}
+                className="rounded-lg bg-action px-3 py-1.5 text-xs font-medium text-white hover:bg-action-hover disabled:opacity-50"
+              >
+                {calculating ? "Calculating..." : "Calculate"}
+              </button>
+              {formulaResult && (
+                <span className="text-sm font-medium text-profit">
+                  = {formulaResult.totalPrice?.toFixed(selectedFormula.rounding ?? 4)} {selectedFormula.output_unit ?? ""}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">

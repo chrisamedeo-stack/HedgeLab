@@ -27,9 +27,9 @@ import { usePricingStore } from "@/store/pricingStore";
 import type { FormulaRow, RateTable, FormulaTemplate } from "@/types/pricing";
 import type { FormulaComponent } from "@/lib/pricingEngine";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+import { useOrgContext } from "@/contexts/OrgContext";
 
-const ORG_ID = "00000000-0000-0000-0000-000000000001";
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const MONTH_NAMES = [
   "January","February","March","April","May","June",
@@ -97,19 +97,25 @@ async function apiFetch(path: string, opts?: RequestInit) {
 // ─── Sites Tab ────────────────────────────────────────────────────────────────
 
 function SitesTab() {
+  const { orgId } = useOrgContext();
   const [sites, setSites] = useState<any[]>([]);
+  const [siteTypes, setSiteTypes] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
-  const [form, setForm] = useState({ code: "", name: "", region: "", siteTypeId: "elevator" });
+  const [form, setForm] = useState({ code: "", name: "", region: "", siteTypeId: "" });
 
   const load = useCallback(async () => {
     try {
-      const data = await apiFetch(`/api/v2/kernel/sites?orgId=${ORG_ID}`);
-      setSites(data);
+      const [sitesData, typesData] = await Promise.all([
+        apiFetch(`/api/v2/kernel/sites?orgId=${orgId}`),
+        apiFetch("/api/v2/kernel/site-types"),
+      ]);
+      setSites(sitesData);
+      setSiteTypes(typesData ?? []);
     } catch (err) { setError((err as Error).message); }
     finally { setLoading(false); }
   }, []);
@@ -126,13 +132,13 @@ function SitesTab() {
 
   function cancelForm() {
     setShowForm(false); setEditing(null);
-    setForm({ code: "", name: "", region: "", siteTypeId: "elevator" });
+    setForm({ code: "", name: "", region: "", siteTypeId: "" });
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setSubmitting(true);
     try {
-      const payload = { orgId: ORG_ID, code: form.code, name: form.name, region: form.region || null, siteTypeId: form.siteTypeId };
+      const payload = { orgId: orgId, code: form.code, name: form.name, region: form.region || null, siteTypeId: form.siteTypeId };
       if (editing) {
         await apiFetch(`/api/v2/kernel/sites/${editing.id}`, { method: "PUT", body: JSON.stringify({ ...payload, id: editing.id }) });
       } else {
@@ -184,10 +190,10 @@ function SitesTab() {
             </div>
             <div className="space-y-1"><label className="text-xs text-muted">Site Type</label>
               <select className={selectCls} value={form.siteTypeId} onChange={e => field("siteTypeId", e.target.value)}>
-                <option value="elevator">Elevator</option>
-                <option value="feed_yard">Feed Yard</option>
-                <option value="processing">Processing</option>
-                <option value="terminal">Terminal</option>
+                <option value="">Select...</option>
+                {siteTypes.map(st => (
+                  <option key={st.id} value={st.id}>{st.name}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -245,6 +251,7 @@ function SitesTab() {
 // ─── Site Groups Tab ─────────────────────────────────────────────────────────
 
 function SiteGroupsTab() {
+  const { orgId } = useOrgContext();
   const [groups, setGroups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -254,7 +261,7 @@ function SiteGroupsTab() {
 
   const load = useCallback(async () => {
     try {
-      const data = await apiFetch(`/api/v2/kernel/site-groups?orgId=${ORG_ID}`);
+      const data = await apiFetch(`/api/v2/kernel/site-groups?orgId=${orgId}`);
       setGroups(data);
     } catch (err) { setError((err as Error).message); }
     finally { setLoading(false); }
@@ -267,7 +274,7 @@ function SiteGroupsTab() {
     try {
       await apiFetch("/api/v2/kernel/site-groups", {
         method: "POST",
-        body: JSON.stringify({ orgId: ORG_ID, name: form.name, groupType: form.groupType }),
+        body: JSON.stringify({ orgId: orgId, name: form.name, groupType: form.groupType }),
       });
       setShowForm(false); setForm({ name: "", groupType: "region" }); load();
     } catch (err) { setError((err as Error).message); }
@@ -402,6 +409,7 @@ function CommoditiesTab() {
 // ─── Fiscal Year Tab ──────────────────────────────────────────────────────────
 
 function FiscalYearTab() {
+  const { orgId } = useOrgContext();
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -409,7 +417,7 @@ function FiscalYearTab() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch(`/api/v2/kernel/org-settings?orgId=${ORG_ID}`)
+    apiFetch(`/api/v2/kernel/org-settings?orgId=${orgId}`)
       .then(data => {
         setSettings(data);
         const fy = data?.config?.fiscal_year_start_month ?? data?.config?.fiscalYearStartMonth;
@@ -433,7 +441,7 @@ function FiscalYearTab() {
       await apiFetch(`/api/v2/kernel/org-settings`, {
         method: "PUT",
         body: JSON.stringify({
-          orgId: ORG_ID,
+          orgId: orgId,
           config: { ...(settings?.config ?? {}), fiscal_year_start_month: month },
         }),
       });
@@ -476,6 +484,7 @@ function FiscalYearTab() {
 type MappingState = Record<string, number[]>;
 
 function FuturesMonthsTab() {
+  const { orgId } = useOrgContext();
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -485,7 +494,7 @@ function FuturesMonthsTab() {
   const [draft, setDraft] = useState<MappingState | null>(null);
 
   useEffect(() => {
-    apiFetch(`/api/v2/kernel/org-settings?orgId=${ORG_ID}`)
+    apiFetch(`/api/v2/kernel/org-settings?orgId=${orgId}`)
       .then(data => {
         const fm = data?.config?.futures_month_mappings ?? data?.config?.futuresMonthMappings;
         if (fm && typeof fm === "object") setMappings(fm);
@@ -515,10 +524,10 @@ function FuturesMonthsTab() {
     if (!draft) return;
     setSaving(true);
     try {
-      const current = await apiFetch(`/api/v2/kernel/org-settings?orgId=${ORG_ID}`);
+      const current = await apiFetch(`/api/v2/kernel/org-settings?orgId=${orgId}`);
       await apiFetch(`/api/v2/kernel/org-settings`, {
         method: "PUT",
-        body: JSON.stringify({ orgId: ORG_ID, config: { ...(current?.config ?? {}), futures_month_mappings: draft } }),
+        body: JSON.stringify({ orgId: orgId, config: { ...(current?.config ?? {}), futures_month_mappings: draft } }),
       });
       setMappings(draft); setEditMode(false); setDraft(null);
     } catch (err) { setError((err as Error).message); }
@@ -591,6 +600,7 @@ function FuturesMonthsTab() {
 // ─── Users Tab ───────────────────────────────────────────────────────────────
 
 function UsersTab() {
+  const { orgId } = useOrgContext();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -602,7 +612,7 @@ function UsersTab() {
 
   const load = useCallback(async () => {
     try {
-      const data = await apiFetch(`/api/v2/kernel/users?orgId=${ORG_ID}`);
+      const data = await apiFetch(`/api/v2/kernel/users?orgId=${orgId}`);
       setUsers(data);
     } catch (err) { setError((err as Error).message); }
     finally { setLoading(false); }
@@ -626,7 +636,7 @@ function UsersTab() {
     try {
       await apiFetch("/api/v2/kernel/users", {
         method: "POST",
-        body: JSON.stringify({ orgId: ORG_ID, username: form.username, email: form.email || null, role: form.role }),
+        body: JSON.stringify({ orgId: orgId, username: form.username, email: form.email || null, role: form.role }),
       });
       cancelAll(); load();
     } catch (err) { setError((err as Error).message); }
@@ -769,6 +779,7 @@ function UsersTab() {
 type PricingSubTab = "formulas" | "rate-tables" | "evaluator";
 
 function PricingTab() {
+  const { orgId } = useOrgContext();
   const [subTab, setSubTab] = useState<PricingSubTab>("formulas");
   const [commodities, setCommodities] = useState<{ id: string; name: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -796,8 +807,8 @@ function PricingTab() {
 
   // Load data
   useEffect(() => {
-    fetchFormulas(ORG_ID);
-    fetchRateTables(ORG_ID);
+    fetchFormulas(orgId);
+    fetchRateTables(orgId);
     fetchTemplates();
     apiFetch("/api/v2/kernel/commodities")
       .then((data: any[]) => setCommodities(data.map((c: any) => ({ id: c.id, name: c.name }))))
@@ -816,7 +827,7 @@ function PricingTab() {
       if (editingFormula) {
         await updateFormula(editingFormula.id, data);
       } else {
-        await createFormula({ orgId: ORG_ID, ...data, description: data.description || undefined, commodityId: data.commodityId ?? undefined, outputUnit: data.outputUnit ?? undefined });
+        await createFormula({ orgId: orgId, ...data, description: data.description || undefined, commodityId: data.commodityId ?? undefined, outputUnit: data.outputUnit ?? undefined });
       }
       setShowFormulaModal(false);
       setEditingFormula(null);
@@ -836,7 +847,7 @@ function PricingTab() {
 
   async function handleDuplicateFormula(f: FormulaRow) {
     try {
-      await duplicateFormula(f.id, ORG_ID);
+      await duplicateFormula(f.id, orgId);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -855,7 +866,7 @@ function PricingTab() {
   async function handleSelectTemplate(t: FormulaTemplate) {
     setShowTemplateModal(false);
     try {
-      await instantiateTemplate(t.id, ORG_ID);
+      await instantiateTemplate(t.id, orgId);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -879,7 +890,7 @@ function PricingTab() {
       if (editingRateTable) {
         await updateRateTable(editingRateTable.id, data);
       } else {
-        await createRateTable({ orgId: ORG_ID, ...data, commodityId: data.commodityId ?? undefined, effectiveDate: data.effectiveDate ?? undefined, expiryDate: data.expiryDate ?? undefined });
+        await createRateTable({ orgId: orgId, ...data, commodityId: data.commodityId ?? undefined, effectiveDate: data.effectiveDate ?? undefined, expiryDate: data.expiryDate ?? undefined });
       }
       setShowRateTableModal(false);
       setEditingRateTable(null);
@@ -913,7 +924,7 @@ function PricingTab() {
 
   // Build initial data for FormulaBuilder when using template prefill
   const formulaBuilderInitial: FormulaRow | null = editingFormula ?? (templatePrefill ? {
-    id: "", org_id: ORG_ID, name: templatePrefill.name,
+    id: "", org_id: orgId, name: templatePrefill.name,
     description: templatePrefill.description, commodity_id: null,
     formula_type: templatePrefill.formulaType,
     components: templatePrefill.components,

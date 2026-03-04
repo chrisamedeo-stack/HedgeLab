@@ -69,6 +69,9 @@ export interface PhysicalPosition {
   counterparty: string | null;
   currency: string;
   status: PhysicalStatus;
+  formula_id: string | null;
+  formula_inputs: Record<string, number> | null;
+  formula_result: Record<string, unknown> | null;
   import_job_id: string | null;
   created_at: string;
   updated_at: string;
@@ -198,6 +201,9 @@ export interface CreatePhysicalParams {
   deliveryMonth?: string;
   counterparty?: string;
   currency?: string;
+  formulaId?: string;
+  formulaInputs?: Record<string, number>;
+  formulaResult?: Record<string, unknown>;
 }
 
 export interface CancelAllocationParams {

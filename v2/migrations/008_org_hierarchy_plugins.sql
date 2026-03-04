@@ -132,9 +132,9 @@ ALTER TABLE site_groups ADD COLUMN deprecated BOOLEAN DEFAULT false;
 
 -- ─── 7. Migrate Seed Data ────────────────────────────────────────────────
 
--- Create hierarchy levels for demo org (Country → Site, 2-level for simplicity)
+-- Create hierarchy levels for demo org (Region → Site, 2-level for simplicity)
 INSERT INTO org_hierarchy_levels (id, org_id, level_depth, label, is_site_level) VALUES
-  ('00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000001', 0, 'Country', false),
+  ('00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000001', 0, 'Region', false),
   ('00000000-0000-0000-0000-000000000302', '00000000-0000-0000-0000-000000000001', 1, 'Site', true);
 
 -- Create org_units from existing site_groups ("Canada", "US")

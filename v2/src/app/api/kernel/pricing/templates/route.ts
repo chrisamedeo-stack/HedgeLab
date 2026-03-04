@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { auditLog } from "@/lib/audit";
+import { requirePlugin, PluginNotEnabledError } from "@/lib/orgHierarchy";
 import type { FormulaComponent } from "@/lib/pricingEngine";
 
 interface FormulaTemplate {
@@ -103,6 +104,8 @@ export async function POST(request: Request) {
       );
     }
 
+    await requirePlugin(orgId, "formula_pricing");
+
     const template = TEMPLATES.find((t) => t.id === templateId);
     if (!template) {
       return NextResponse.json({ error: "Template not found" }, { status: 404 });
@@ -137,6 +140,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result.rows[0], { status: 201 });
   } catch (err) {
+    if (err instanceof PluginNotEnabledError) {
+      return NextResponse.json({ error: err.message }, { status: 403 });
+    }
     console.error("[pricing/templates] Error:", err);
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }

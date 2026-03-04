@@ -99,7 +99,7 @@ export default function HedgeBookPage() {
             nodes={orgTree}
             selected={selectedOrgUnit}
             onSelect={setSelectedOrgUnit}
-            allLabel={`All ${groupingLevelLabel}s`}
+            allLabel={`All ${groupingLevelLabel}`}
           />
         )}
         {commodities && (

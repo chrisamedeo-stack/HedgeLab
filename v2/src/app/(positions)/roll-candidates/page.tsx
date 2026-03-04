@@ -6,9 +6,8 @@ import { CommodityFilter } from "@/components/ui/CommodityFilter";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { KPICard } from "@/components/ui/KPICard";
 import { RollForm } from "@/components/positions/RollForm";
+import { useOrgContext } from "@/contexts/OrgContext";
 import type { RolloverCandidate } from "@/types/positions";
-
-const ORG_ID = "00000000-0000-0000-0000-000000000001";
 
 const urgencyColors: Record<string, string> = {
   CRITICAL: "border-loss bg-destructive-5",
@@ -23,10 +22,11 @@ const urgencyLabels: Record<string, string> = {
 };
 
 export default function RollCandidatesPage() {
+  const { orgId } = useOrgContext();
   const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null);
   const [rollTarget, setRollTarget] = useState<RolloverCandidate | null>(null);
 
-  const { data, loading, refetch } = useRollCandidates(ORG_ID, selectedCommodity ?? undefined);
+  const { data, loading, refetch } = useRollCandidates(orgId, selectedCommodity ?? undefined);
   const { data: commodities } = useCommodities();
 
   const columns: Column<RolloverCandidate>[] = [

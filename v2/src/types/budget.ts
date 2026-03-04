@@ -41,6 +41,9 @@ export interface BudgetLineItem {
   forecast_volume: number | null;
   forecast_price: number | null;
   futures_month: string | null;
+  formula_id: string | null;
+  formula_inputs: Record<string, number> | null;
+  formula_price: number | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -103,6 +106,9 @@ export interface UpsertLineItemParams {
   forecastVolume?: number | null;
   forecastPrice?: number | null;
   futuresMonth?: string | null;
+  formulaId?: string | null;
+  formulaInputs?: Record<string, number> | null;
+  formulaPrice?: number | null;
   components?: BudgetComponent[];
   notes?: string | null;
 }

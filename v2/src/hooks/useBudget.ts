@@ -4,22 +4,19 @@ import { useEffect } from "react";
 import { useBudgetStore } from "@/store/budgetStore";
 import type { BudgetFilters } from "@/types/budget";
 
-const DEFAULT_ORG = "00000000-0000-0000-0000-000000000001";
-
-export function useBudgetPeriods(orgId?: string, filters?: BudgetFilters) {
+export function useBudgetPeriods(orgId: string, filters?: BudgetFilters) {
   const { periods, loading, error, fetchPeriods } = useBudgetStore();
-  const org = orgId ?? DEFAULT_ORG;
 
   useEffect(() => {
-    fetchPeriods(org, filters);
+    if (orgId) fetchPeriods(orgId, filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [org, JSON.stringify(filters), fetchPeriods]);
+  }, [orgId, JSON.stringify(filters), fetchPeriods]);
 
   return {
     data: periods,
     loading,
     error,
-    refetch: () => fetchPeriods(org, filters),
+    refetch: () => fetchPeriods(orgId, filters),
   };
 }
 
@@ -38,19 +35,18 @@ export function useBudgetPeriod(periodId: string | null) {
   };
 }
 
-export function useCoverage(orgId?: string, commodityId?: string, siteId?: string) {
+export function useCoverage(orgId: string, commodityId?: string, siteId?: string) {
   const { coverage, loading, error, fetchCoverage } = useBudgetStore();
-  const org = orgId ?? DEFAULT_ORG;
 
   useEffect(() => {
-    fetchCoverage(org, commodityId, siteId);
-  }, [org, commodityId, siteId, fetchCoverage]);
+    if (orgId) fetchCoverage(orgId, commodityId, siteId);
+  }, [orgId, commodityId, siteId, fetchCoverage]);
 
   return {
     data: coverage,
     loading,
     error,
-    refetch: () => fetchCoverage(org, commodityId, siteId),
+    refetch: () => fetchCoverage(orgId, commodityId, siteId),
   };
 }
 

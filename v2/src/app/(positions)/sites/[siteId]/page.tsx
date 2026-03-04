@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, use } from "react";
+import { useOrgContext } from "@/contexts/OrgContext";
 import { useSiteView, useCommodities } from "@/hooks/usePositions";
 import { CommodityFilter } from "@/components/ui/CommodityFilter";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -25,6 +26,7 @@ function fmtPrice(v: unknown): string {
 
 export default function SiteViewPage({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = use(params);
+  const { orgId } = useOrgContext();
   const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null);
   const [lockTarget, setLockTarget] = useState<SitePositionHedge | null>(null);
   const [offsetTarget, setOffsetTarget] = useState<SitePositionHedge | null>(null);
@@ -243,7 +245,7 @@ export default function SiteViewPage({ params }: { params: Promise<{ siteId: str
       )}
       {showPhysicalForm && siteView && (
         <PhysicalForm
-          orgId="00000000-0000-0000-0000-000000000001"
+          orgId={orgId}
           siteId={siteId}
           commodities={commodities ?? []}
           onClose={() => setShowPhysicalForm(false)}

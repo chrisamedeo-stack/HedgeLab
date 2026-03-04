@@ -15,9 +15,9 @@ export function HierarchyTabs({
   onSelect,
   allLabel,
 }: HierarchyTabsProps) {
-  // Dynamic "All" label from level label (e.g. "All Countries")
+  // Dynamic "All" label from level label (e.g. "All Region")
   const levelLabel = nodes[0]?.level_label;
-  const defaultAllLabel = levelLabel ? `All ${levelLabel}s` : "All";
+  const defaultAllLabel = levelLabel ? `All ${levelLabel}` : "All";
   const resolvedAllLabel = allLabel ?? defaultAllLabel;
 
   return (

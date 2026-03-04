@@ -75,7 +75,7 @@ export default function SitesIndexPage() {
           nodes={orgTree}
           selected={selectedOrgUnit}
           onSelect={setSelectedOrgUnit}
-          allLabel={`All ${groupingLevelLabel}s`}
+          allLabel={`All ${groupingLevelLabel}`}
         />
       )}
 

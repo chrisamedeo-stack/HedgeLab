@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { useOrgContext } from "@/contexts/OrgContext";
 import { usePositionStore } from "@/store/positionStore";
 import type { RolloverCandidate } from "@/types/positions";
 
 const USER_ID = "00000000-0000-0000-0000-000000000099";
-const ORG_ID = "00000000-0000-0000-0000-000000000001";
 
 interface RollFormProps {
   candidate: RolloverCandidate;
@@ -15,6 +15,7 @@ interface RollFormProps {
 }
 
 export function RollForm({ candidate, onClose, onSuccess }: RollFormProps) {
+  const { orgId } = useOrgContext();
   const { executeRoll } = usePositionStore();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +43,7 @@ export function RollForm({ candidate, onClose, onSuccess }: RollFormProps) {
     try {
       await executeRoll({
         userId: USER_ID,
-        orgId: ORG_ID,
+        orgId,
         sourceAllocationId: candidate.id,
         closePrice: Number(form.closePrice),
         openPrice: Number(form.openPrice),

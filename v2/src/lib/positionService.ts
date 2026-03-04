@@ -111,7 +111,25 @@ export async function executeEFP(params: ExecuteEFPParams): Promise<LockedPositi
     [params.allocationId]
   );
   const rollCost = chain?.cumulative_roll_cost ?? 0;
-  const allInPrice = params.lockPrice + basis + rollCost;
+
+  // Check if the linked physical position uses a formula for all-in calc
+  let allInPrice = params.lockPrice + basis + rollCost;
+  try {
+    const linkedPhysical = await queryOne<{ formula_id: string | null; formula_result: Record<string, unknown> | null }>(
+      `SELECT formula_id, formula_result FROM pm_physical_positions
+       WHERE site_id = $1 AND commodity_id = $2 AND formula_id IS NOT NULL AND status = 'open'
+       ORDER BY created_at DESC LIMIT 1`,
+      [allocation.site_id, allocation.commodity_id]
+    );
+    if (linkedPhysical?.formula_result) {
+      const formulaTotal = (linkedPhysical.formula_result as Record<string, unknown>).totalPrice as number;
+      if (typeof formulaTotal === "number") {
+        allInPrice = formulaTotal + rollCost;
+      }
+    }
+  } catch {
+    // Graceful fallback to standard calculation
+  }
 
   return await transaction(async (tx) => {
     // Create locked position
@@ -672,8 +690,9 @@ export async function createPhysicalPosition(params: CreatePhysicalParams): Prom
     `INSERT INTO pm_physical_positions
        (org_id, site_id, commodity_id, direction, volume, price,
         pricing_type, basis_price, basis_month, delivery_month,
-        counterparty, currency, status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'open')
+        counterparty, currency, status,
+        formula_id, formula_inputs, formula_result)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'open',$13,$14,$15)
      RETURNING *`,
     [
       params.orgId,
@@ -688,10 +707,31 @@ export async function createPhysicalPosition(params: CreatePhysicalParams): Prom
       params.deliveryMonth ?? null,
       params.counterparty ?? null,
       params.currency ?? "USD",
+      params.formulaId ?? null,
+      params.formulaInputs ? JSON.stringify(params.formulaInputs) : null,
+      params.formulaResult ? JSON.stringify(params.formulaResult) : null,
     ]
   );
 
   const physical = result.rows[0];
+
+  // Save pricing audit trail when formula used
+  if (params.formulaId && params.formulaResult) {
+    try {
+      const { savePricingResult } = await import("./pricingEngine");
+      await savePricingResult({
+        formulaId: params.formulaId,
+        entityType: "physical_position",
+        entityId: physical.id,
+        componentValues: (params.formulaResult as Record<string, unknown>).componentValues as Record<string, number> ?? {},
+        totalPrice: params.price ?? 0,
+        currency: params.currency ?? "USD",
+        appliedBy: params.userId,
+      });
+    } catch {
+      // Non-critical: pricing audit is best-effort
+    }
+  }
 
   await auditLog({
     orgId: params.orgId,
