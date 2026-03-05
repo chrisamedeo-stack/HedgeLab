@@ -26,6 +26,8 @@ export const chartTheme = {
   open: chartColors.chart6,
   budgeted: chartColors.chart3,
   forecast: "#8b5cf6",
+  scenarioBase: "#5C7495",
+  scenarioProjected: "#8b5cf6",
 
   // Position status colors
   statusOpen: chartColors.chart3,
