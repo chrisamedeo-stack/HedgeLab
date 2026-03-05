@@ -1,6 +1,7 @@
 "use client";
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { chartTheme, chartColors, tooltipStyle, legendStyle, axisStyle } from "@/lib/chartTheme";
 import type { CoverageDataPoint } from "@/types/budget";
 
 interface CoverageChartProps {
@@ -21,34 +22,29 @@ export function CoverageChart({ data, height = 320 }: CoverageChartProps) {
     <div className="rounded-lg border border-b-default bg-surface p-4">
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1A2A40" />
+          <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
           <XAxis
             dataKey="month"
-            stroke="#5C7495"
-            fontSize={11}
+            stroke={axisStyle.stroke}
+            fontSize={axisStyle.fontSize}
             tickLine={false}
           />
           <YAxis
-            stroke="#5C7495"
-            fontSize={11}
+            stroke={axisStyle.stroke}
+            fontSize={axisStyle.fontSize}
             tickLine={false}
             tickFormatter={(v) => v.toLocaleString()}
           />
           <Tooltip
-            contentStyle={{
-              backgroundColor: "#040C17",
-              border: "1px solid #2B4362",
-              borderRadius: "4px",
-              fontSize: 12,
-            }}
+            contentStyle={tooltipStyle}
             labelStyle={{ color: "#B3C0D3" }}
           />
           <Legend
-            wrapperStyle={{ fontSize: 11, color: "#7B90AE" }}
+            wrapperStyle={legendStyle}
           />
-          <Bar dataKey="committed" name="Committed" stackId="coverage" fill="#007acc" radius={[0, 0, 0, 0]} />
-          <Bar dataKey="hedged" name="Hedged" stackId="coverage" fill="#00509e" radius={[0, 0, 0, 0]} />
-          <Bar dataKey="open" name="Open" stackId="coverage" fill="#D49A4E" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="committed" name="Committed" stackId="coverage" fill={chartTheme.committed} radius={[0, 0, 0, 0]} />
+          <Bar dataKey="hedged" name="Hedged" stackId="coverage" fill={chartTheme.hedged} radius={[0, 0, 0, 0]} />
+          <Bar dataKey="open" name="Open" stackId="coverage" fill={chartTheme.open} radius={[2, 2, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

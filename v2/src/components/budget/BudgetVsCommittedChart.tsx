@@ -1,6 +1,7 @@
 "use client";
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, LabelList } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from "recharts";
+import { chartTheme, chartColors, tooltipStyle, legendStyle, axisStyle } from "@/lib/chartTheme";
 import type { CoverageDataPoint } from "@/types/budget";
 import type { BudgetLineItem } from "@/types/budget";
 
@@ -39,38 +40,33 @@ export function BudgetVsCommittedChart({ data, lineItems, height = 320 }: Budget
     <div className="rounded-lg border border-b-default bg-surface p-4">
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1A2A40" />
+          <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
           <XAxis
             dataKey="month"
-            stroke="#5C7495"
-            fontSize={11}
+            stroke={axisStyle.stroke}
+            fontSize={axisStyle.fontSize}
             tickLine={false}
           />
           <YAxis
-            stroke="#5C7495"
-            fontSize={11}
+            stroke={axisStyle.stroke}
+            fontSize={axisStyle.fontSize}
             tickLine={false}
             tickFormatter={(v) => v.toLocaleString()}
           />
           <Tooltip
-            contentStyle={{
-              backgroundColor: "#040C17",
-              border: "1px solid #2B4362",
-              borderRadius: "4px",
-              fontSize: 12,
-            }}
+            contentStyle={tooltipStyle}
             labelStyle={{ color: "#B3C0D3" }}
           />
-          <Legend wrapperStyle={{ fontSize: 11, color: "#7B90AE" }} />
-          <Bar dataKey="budgeted" name="Budget" fill="#66a3ff" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="committed" name="Committed" fill="#007acc" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="hedged" name="Hedged" fill="#00509e" radius={[2, 2, 0, 0]} />
+          <Legend wrapperStyle={legendStyle} />
+          <Bar dataKey="budgeted" name="Budget" fill={chartTheme.budgeted} radius={[2, 2, 0, 0]} />
+          <Bar dataKey="committed" name="Committed" fill={chartTheme.committed} radius={[2, 2, 0, 0]} />
+          <Bar dataKey="hedged" name="Hedged" fill={chartTheme.hedged} radius={[2, 2, 0, 0]} />
           {hasForecast && (
-            <Bar dataKey="forecast" name="Forecast" fill="#8b5cf6" radius={[2, 2, 0, 0]}>
+            <Bar dataKey="forecast" name="Forecast" fill={chartTheme.forecast} radius={[2, 2, 0, 0]}>
               <LabelList
                 dataKey="varianceLabel"
                 position="top"
-                style={{ fontSize: 9, fill: "#8b5cf6" }}
+                style={{ fontSize: 9, fill: chartTheme.forecast }}
               />
             </Bar>
           )}
