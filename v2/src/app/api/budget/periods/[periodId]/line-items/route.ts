@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { upsertLineItem, upsertLineItems } from "@/lib/budgetService";
+import { upsertLineItem, upsertLineItems, saveLineItemComponents } from "@/lib/budgetService";
 
 export async function POST(
   request: Request,
@@ -19,7 +19,8 @@ export async function POST(
     // Single item
     const { budgetMonth, budgetedVolume, budgetPrice, committedVolume,
             committedAvgPrice, committedCost, hedgedVolume, hedgedAvgPrice,
-            hedgedCost, forecastVolume, forecastPrice, futuresMonth, notes } = body;
+            hedgedCost, forecastVolume, forecastPrice, futuresMonth,
+            formulaId, formulaInputs, formulaPrice, components, notes } = body;
 
     if (!budgetMonth) {
       return NextResponse.json({ error: "budgetMonth required" }, { status: 400 });
@@ -29,8 +30,14 @@ export async function POST(
       budgetMonth, budgetedVolume, budgetPrice,
       committedVolume, committedAvgPrice, committedCost,
       hedgedVolume, hedgedAvgPrice, hedgedCost,
-      forecastVolume, forecastPrice, futuresMonth, notes,
+      forecastVolume, forecastPrice, futuresMonth,
+      formulaId, formulaInputs, formulaPrice, components, notes,
     }, userId);
+
+    // Save components if provided
+    if (Array.isArray(components) && components.length > 0) {
+      await saveLineItemComponents(item.id, components);
+    }
 
     return NextResponse.json(item, { status: 201 });
   } catch (err) {

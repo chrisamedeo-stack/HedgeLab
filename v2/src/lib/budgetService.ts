@@ -57,6 +57,42 @@ export async function getBudgetPeriod(periodId: string): Promise<BudgetPeriod | 
     `SELECT * FROM bgt_line_items WHERE period_id = $1 ORDER BY budget_month`,
     [periodId]
   );
+
+  // Fetch components for all line items in one query
+  if (lineItems.length > 0) {
+    const lineItemIds = lineItems.map((li) => li.id);
+    const components = await queryAll<BudgetComponent>(
+      `SELECT * FROM bgt_line_item_components WHERE line_item_id = ANY($1) ORDER BY display_order`,
+      [lineItemIds]
+    );
+
+    // Group components by line_item_id
+    const componentMap = new Map<string, BudgetComponent[]>();
+    for (const c of components) {
+      const list = componentMap.get(c.line_item_id!) || [];
+      list.push(c);
+      componentMap.set(c.line_item_id!, list);
+    }
+
+    // Attach components and compute transient fields
+    for (const li of lineItems) {
+      li.components = componentMap.get(li.id) || [];
+      if (li.components.length > 0) {
+        li.target_all_in_price = li.components.reduce(
+          (sum, c) => sum + Number(c.target_value || 0),
+          0
+        );
+      } else {
+        li.target_all_in_price = li.budget_price ? Number(li.budget_price) : null;
+      }
+      li.total_notional =
+        li.target_all_in_price != null
+          ? Number(li.budgeted_volume) * li.target_all_in_price
+          : null;
+      li.over_hedged = Number(li.hedged_volume) > Number(li.budgeted_volume);
+    }
+  }
+
   period.line_items = lineItems;
 
   return period;
@@ -162,6 +198,11 @@ export async function upsertLineItem(
   );
 
   if (!row) throw new Error("Failed to upsert line item");
+
+  // Save components if provided
+  if (data.components && data.components.length > 0) {
+    await saveLineItemComponents(row.id, data.components);
+  }
 
   await auditLog({
     orgId: period.org_id,
