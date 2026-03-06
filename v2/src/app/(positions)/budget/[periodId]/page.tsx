@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useBudgetPeriod, useBudgetVersions } from "@/hooks/useBudget";
 import { useBudgetStore } from "@/store/budgetStore";
@@ -64,30 +64,26 @@ export default function BudgetDetailPage() {
   }));
 
   // Compute KPIs
-  const kpis = useMemo(() => {
-    let totalBudgetVol = 0;
-    let totalNotional = 0;
-    let weightedAllIn = 0;
-    let forecastVol = 0;
-    let overHedgedCount = 0;
-
-    items.forEach((li) => {
-      const bv = Number(li.budgeted_volume);
-      totalBudgetVol += bv;
-      totalNotional += Number(li.total_notional ?? 0);
-      const allIn = li.target_all_in_price != null ? Number(li.target_all_in_price) : 0;
-      weightedAllIn += bv * allIn;
-      forecastVol += li.forecast_volume != null ? Number(li.forecast_volume) : bv;
-      if (li.over_hedged) overHedgedCount++;
-    });
-
-    return {
-      avgAllInPrice: totalBudgetVol > 0 ? weightedAllIn / totalBudgetVol : 0,
-      totalNotional,
-      forecastVol,
-      overHedgedCount,
-    };
-  }, [items]);
+  let totalBudgetVol = 0;
+  let totalNotional = 0;
+  let weightedAllIn = 0;
+  let forecastVol = 0;
+  let overHedgedCount = 0;
+  items.forEach((li) => {
+    const bv = Number(li.budgeted_volume);
+    totalBudgetVol += bv;
+    totalNotional += Number(li.total_notional ?? 0);
+    const allIn = li.target_all_in_price != null ? Number(li.target_all_in_price) : 0;
+    weightedAllIn += bv * allIn;
+    forecastVol += li.forecast_volume != null ? Number(li.forecast_volume) : bv;
+    if (li.over_hedged) overHedgedCount++;
+  });
+  const kpis = {
+    avgAllInPrice: totalBudgetVol > 0 ? weightedAllIn / totalBudgetVol : 0,
+    totalNotional,
+    forecastVol,
+    overHedgedCount,
+  };
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "budget", label: "Budget" },

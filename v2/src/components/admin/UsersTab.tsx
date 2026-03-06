@@ -6,15 +6,16 @@ import { useOrgContext } from "@/contexts/OrgContext";
 import { apiFetch, btnPrimary, btnCancel, inputCls, selectCls, cn } from "./shared";
 import { TableSkeleton, EmptyState, ConfirmDialog } from "./SharedUI";
 
-const ROLES = ["admin", "risk_manager", "trader", "read_only"];
+const ROLES = ["admin", "risk_manager", "trader", "operations", "viewer"];
 const ROLE_LABELS: Record<string, string> = {
-  admin: "Admin", risk_manager: "Risk Manager", trader: "Trader", read_only: "Read Only",
+  admin: "Admin", risk_manager: "Risk Manager", trader: "Trader", operations: "Operations", viewer: "Viewer",
 };
 const ROLE_COLORS: Record<string, string> = {
   admin: "bg-destructive-15 text-destructive",
   risk_manager: "bg-action-20 text-action",
   trader: "bg-profit-20 text-profit",
-  read_only: "bg-input-bg text-muted",
+  operations: "bg-warning-20 text-warning",
+  viewer: "bg-input-bg text-muted",
 };
 
 export function UsersTab() {
@@ -26,7 +27,7 @@ export function UsersTab() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
-  const [form, setForm] = useState({ username: "", email: "", role: "trader", enabled: true });
+  const [form, setForm] = useState({ name: "", email: "", role: "trader", enabled: true });
 
   const load = useCallback(async () => {
     try {
@@ -40,13 +41,13 @@ export function UsersTab() {
 
   function startEdit(u: any) {
     setEditing(u);
-    setForm({ username: u.username, email: u.email ?? "", role: u.role ?? "trader", enabled: u.enabled ?? u.is_active ?? true });
+    setForm({ name: u.name ?? "", email: u.email ?? "", role: u.role_id ?? u.role ?? "trader", enabled: u.is_active ?? true });
     setShowForm(false);
   }
 
   function cancelAll() {
     setShowForm(false); setEditing(null);
-    setForm({ username: "", email: "", role: "trader", enabled: true });
+    setForm({ name: "", email: "", role: "trader", enabled: true });
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -54,7 +55,7 @@ export function UsersTab() {
     try {
       await apiFetch("/api/v2/kernel/users", {
         method: "POST",
-        body: JSON.stringify({ orgId, username: form.username, email: form.email || null, role: form.role }),
+        body: JSON.stringify({ orgId, name: form.name, email: form.email || null, roleId: form.role }),
       });
       cancelAll(); load();
     } catch (err) { setError((err as Error).message); }
@@ -66,7 +67,7 @@ export function UsersTab() {
     try {
       await apiFetch(`/api/v2/kernel/users/${editing.id}`, {
         method: "PUT",
-        body: JSON.stringify({ email: form.email || null, role: form.role, enabled: form.enabled }),
+        body: JSON.stringify({ email: form.email || null, roleId: form.role, isActive: form.enabled }),
       });
       cancelAll(); load();
     } catch (err) { setError((err as Error).message); }
@@ -97,8 +98,8 @@ export function UsersTab() {
         <form onSubmit={handleCreate} className="bg-surface border border-b-default rounded-lg p-6 space-y-4">
           <h3 className="text-sm font-semibold text-secondary">New User</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="space-y-1"><label className="text-xs text-muted">Username</label>
-              <input type="text" required maxLength={50} className={inputCls} placeholder="jsmith" value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} />
+            <div className="space-y-1"><label className="text-xs text-muted">Name</label>
+              <input type="text" required maxLength={100} className={inputCls} placeholder="John Smith" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
             <div className="space-y-1"><label className="text-xs text-muted">Email</label>
               <input type="email" maxLength={150} className={inputCls} placeholder="j.smith@company.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
@@ -118,7 +119,7 @@ export function UsersTab() {
 
       {editing && (
         <form onSubmit={handleEdit} className="bg-surface border border-b-default rounded-lg p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-secondary">Edit <span className="text-action">{editing.username}</span></h3>
+          <h3 className="text-sm font-semibold text-secondary">Edit <span className="text-action">{editing.name}</span></h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="space-y-1"><label className="text-xs text-muted">Email</label>
               <input type="email" maxLength={150} className={inputCls} placeholder="email@company.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
@@ -158,17 +159,17 @@ export function UsersTab() {
             <tbody className="divide-y divide-b-default">
               {users.map((u: any) => (
                 <tr key={u.id} className="hover:bg-row-hover transition-colors">
-                  <td className="px-3 py-3 font-medium text-secondary">{u.username}</td>
+                  <td className="px-3 py-3 font-medium text-secondary">{u.name}</td>
                   <td className="px-3 py-3 text-muted">{u.email ?? "\u2014"}</td>
                   <td className="px-3 py-3">
-                    <span className={cn("inline-flex px-2 py-0.5 rounded-full text-xs font-medium", ROLE_COLORS[u.role] ?? "bg-input-bg text-muted")}>
-                      {ROLE_LABELS[u.role] ?? u.role}
+                    <span className={cn("inline-flex px-2 py-0.5 rounded-full text-xs font-medium", ROLE_COLORS[u.role_id] ?? "bg-input-bg text-muted")}>
+                      {ROLE_LABELS[u.role_id] ?? u.role_name ?? u.role_id}
                     </span>
                   </td>
                   <td className="px-3 py-3">
                     <span className={cn("inline-flex px-2 py-0.5 rounded-full text-xs font-medium",
-                      (u.enabled ?? u.is_active) ? "bg-profit-20 text-profit" : "bg-input-bg text-faint")}>
-                      {(u.enabled ?? u.is_active) ? "Active" : "Disabled"}
+                      u.is_active ? "bg-profit-20 text-profit" : "bg-input-bg text-faint")}>
+                      {u.is_active ? "Active" : "Disabled"}
                     </span>
                   </td>
                   <td className="px-3 py-3">
@@ -185,7 +186,7 @@ export function UsersTab() {
       )}
 
       {deleteTarget && (
-        <ConfirmDialog title="Delete User" desc={`Delete user "${deleteTarget.username}"? This cannot be undone.`}
+        <ConfirmDialog title="Delete User" desc={`Delete user "${deleteTarget.name}"? This cannot be undone.`}
           onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
       )}
     </div>
