@@ -30,7 +30,10 @@ export function VersionPanel({ periodId, versions, userId, locked }: VersionPane
       </div>
       <div className="divide-y divide-tbl-border">
         {versions.map((v) => {
-          const snap = typeof v.snapshot === "string" ? JSON.parse(v.snapshot) : v.snapshot;
+          let snap: unknown = v.snapshot;
+          if (typeof snap === "string") {
+            try { snap = JSON.parse(snap); } catch { snap = []; }
+          }
           const itemCount = Array.isArray(snap) ? snap.length : 0;
           return (
             <div key={v.id} className="flex items-center justify-between px-4 py-3 hover:bg-row-hover transition-colors">

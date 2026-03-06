@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useBudgetStore } from "@/store/budgetStore";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { usePricingStore } from "@/store/pricingStore";
@@ -68,10 +68,28 @@ export function BudgetLineForm({ periodId, userId, onClose, commodity, commodity
     }
   }, [formulaEnabled, orgId, commodityId, fetchFormulas]);
 
+  // Sync component all-in total → budgetPrice (unless a formula is driving the price)
+  const handleComponentsChange = useCallback((updated: BudgetComponent[]) => {
+    setComponents(updated);
+    if (!form.formulaId && updated.length > 0) {
+      let baseTotal = 0;
+      let pctMultiplier = 1;
+      for (const c of updated) {
+        if (c.unit === "%") {
+          pctMultiplier *= 1 + Number(c.target_value || 0) / 100;
+        } else {
+          baseTotal += Number(c.target_value || 0);
+        }
+      }
+      const allIn = baseTotal * pctMultiplier;
+      setForm((f) => ({ ...f, budgetPrice: allIn || null }));
+    }
+  }, [form.formulaId]);
+
   const selectedFormula = formulas.find((f) => f.id === form.formulaId);
   const editableComponents = selectedFormula?.components
-    .filter((c: FormulaComponent) => c.type === "input" || c.type === "market_ref")
-    .sort((a: FormulaComponent, b: FormulaComponent) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)) ?? [];
+    ?.filter((c: FormulaComponent) => c.type === "input" || c.type === "market_ref")
+    ?.sort((a: FormulaComponent, b: FormulaComponent) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)) ?? [];
 
   const handleMonthChange = (budgetMonth: string) => {
     const suggested = suggestFuturesMonth(commodity ?? null, budgetMonth);
@@ -178,7 +196,7 @@ export function BudgetLineForm({ periodId, userId, onClose, commodity, commodity
             onChange={(e) => setForm({ ...form, budgetPrice: e.target.value ? Number(e.target.value) : null })}
             className={inputCls}
             placeholder="Optional"
-            readOnly={!!formulaResult}
+            readOnly={!!formulaResult || (components.length > 0 && !form.formulaId)}
           />
         </div>
       </div>
@@ -266,7 +284,7 @@ export function BudgetLineForm({ periodId, userId, onClose, commodity, commodity
       <div className="space-y-1">
         <label className="text-xs text-muted">Cost Components</label>
         <div className="border border-b-input rounded-lg p-3 bg-surface/30">
-          <ComponentEditor components={components} onChange={setComponents} />
+          <ComponentEditor components={components} onChange={handleComponentsChange} />
         </div>
       </div>
 

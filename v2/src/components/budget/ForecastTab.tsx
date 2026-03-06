@@ -46,7 +46,8 @@ export function ForecastTab({ periodId, items, userId, locked }: ForecastTabProp
         fetchForecastHistory(periodId, li.id);
       }
     });
-  }, [items, periodId, fetchForecastHistory, forecastHistory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, periodId, fetchForecastHistory]);
 
   const overHedgedCount = useMemo(() => {
     return items.filter((li) => li.over_hedged).length;

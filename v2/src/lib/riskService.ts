@@ -33,7 +33,7 @@ export async function runMtm(orgId: string, userId: string): Promise<MtmSnapshot
   for (const { commodity_id } of commodities) {
     // Get latest market price
     const priceRow = await queryOne<{ price: string }>(
-      `SELECT settle_price as price FROM md_prices
+      `SELECT price FROM md_prices
        WHERE commodity_id = $1 ORDER BY price_date DESC LIMIT 1`,
       [commodity_id]
     );

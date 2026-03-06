@@ -88,7 +88,7 @@ export const useTradeStore = create<TradeState>((set) => ({
   createTrades: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/trades/batch`, {
+      const res = await fetch(`${API_BASE}/api/v2/trades`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),

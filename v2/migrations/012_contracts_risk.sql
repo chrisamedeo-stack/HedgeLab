@@ -43,7 +43,7 @@ CREATE TABLE ct_physical_contracts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL,
   counterparty_id UUID,
-  commodity_id UUID,
+  commodity_id VARCHAR(20),
   site_id UUID,
   contract_ref VARCHAR(100),
   contract_type VARCHAR(20) NOT NULL DEFAULT 'purchase',
@@ -92,7 +92,7 @@ CREATE TABLE rsk_mtm_snapshots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL,
   snapshot_date DATE NOT NULL,
-  commodity_id UUID,
+  commodity_id VARCHAR(20),
   futures_pnl NUMERIC(16,2) NOT NULL DEFAULT 0,
   physical_pnl NUMERIC(16,2) NOT NULL DEFAULT 0,
   total_pnl NUMERIC(16,2) GENERATED ALWAYS AS (futures_pnl + physical_pnl) STORED,
@@ -113,7 +113,7 @@ CREATE INDEX idx_rsk_mtm_org_date ON rsk_mtm_snapshots(org_id, snapshot_date DES
 CREATE TABLE rsk_position_limits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL,
-  commodity_id UUID,
+  commodity_id VARCHAR(20),
   limit_type VARCHAR(30) NOT NULL DEFAULT 'net',
   limit_value NUMERIC(16,4) NOT NULL,
   alert_threshold NUMERIC(5,2) NOT NULL DEFAULT 80.00,
@@ -154,10 +154,10 @@ CREATE INDEX idx_rsk_checks_date ON rsk_limit_checks(org_id, check_date DESC);
 
 -- ─── 6. Enable plugins for demo org ────────────────────────────────────────
 
-INSERT INTO org_plugins (org_id, id, display_name, is_enabled) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'contracts', 'Physical Contracts', true),
-  ('00000000-0000-0000-0000-000000000001', 'risk', 'Risk Management', true)
-ON CONFLICT (org_id, id) DO UPDATE SET is_enabled = true;
+INSERT INTO org_plugins (org_id, plugin_id, is_enabled) VALUES
+  ('00000000-0000-0000-0000-000000000001', 'contracts', true),
+  ('00000000-0000-0000-0000-000000000001', 'risk', true)
+ON CONFLICT (org_id, plugin_id) DO UPDATE SET is_enabled = true;
 
 -- ─── 7. Seed permissions ───────────────────────────────────────────────────
 

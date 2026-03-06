@@ -31,15 +31,17 @@ const PILL_COLORS = [
 export function ComponentTokenBar({ components, bushelsPerMt = 39.3683 }: ComponentTokenBarProps) {
   if (!components || components.length === 0) return null;
 
-  // Compute all-in total
-  let allIn = 0;
+  // Compute all-in total: first sum absolute values, then apply percentages
+  let baseTotal = 0;
+  let pctMultiplier = 1;
   for (const c of components) {
     if (c.unit === "%") {
-      allIn += allIn * (Number(c.target_value) / 100);
+      pctMultiplier *= 1 + Number(c.target_value || 0) / 100;
     } else {
-      allIn += toPerBu(Number(c.target_value), c.unit, bushelsPerMt);
+      baseTotal += toPerBu(Number(c.target_value), c.unit, bushelsPerMt);
     }
   }
+  const allIn = baseTotal * pctMultiplier;
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">

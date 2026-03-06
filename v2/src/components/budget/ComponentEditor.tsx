@@ -61,14 +61,17 @@ export function ComponentEditor({ components, onChange, bushelsPerMt = 39.3683 }
     onChange(components.filter((_, i) => i !== idx));
   };
 
-  // Compute all-in total ($/bu)
-  const allInTotal = components.reduce((sum, c) => {
-    const perBu = toPerBu(Number(c.target_value), c.unit, bushelsPerMt);
+  // Compute all-in total ($/bu): sum absolute values first, then apply percentages
+  let baseTotal = 0;
+  let pctMultiplier = 1;
+  for (const c of components) {
     if (c.unit === "%") {
-      return sum + sum * (Number(c.target_value) / 100);
+      pctMultiplier *= 1 + Number(c.target_value || 0) / 100;
+    } else {
+      baseTotal += toPerBu(Number(c.target_value), c.unit, bushelsPerMt);
     }
-    return sum + perBu;
-  }, 0);
+  }
+  const allInTotal = baseTotal * pctMultiplier;
 
   const inputCls =
     "border border-b-input bg-input-bg rounded px-2 py-1 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-focus";

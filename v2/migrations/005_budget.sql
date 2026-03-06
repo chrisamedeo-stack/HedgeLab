@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS bgt_periods (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id        UUID NOT NULL,
   site_id       UUID NOT NULL,
-  commodity_id  UUID NOT NULL,
+  commodity_id  VARCHAR(20) NOT NULL,
   budget_year   INT NOT NULL,
   status        VARCHAR(20) NOT NULL DEFAULT 'draft',
   approved_by   UUID,
