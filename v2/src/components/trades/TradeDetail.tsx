@@ -112,7 +112,7 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
             </span>
           </div>
           <div className="mt-0.5 text-xs text-faint">
-            {trade.trade_date?.slice(0, 10)} &middot; {trade.num_contracts} contracts @ {Number(trade.trade_price).toFixed(2)}
+            {trade.trade_date?.slice(0, 10)} &middot; {trade.num_contracts} contracts @ ${Number(trade.trade_price).toFixed(4)}
             {trade.broker && <> &middot; {trade.broker}</>}
           </div>
         </div>

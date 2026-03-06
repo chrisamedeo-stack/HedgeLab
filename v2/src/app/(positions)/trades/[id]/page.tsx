@@ -99,7 +99,7 @@ export default function TradeDetailPage() {
             ["Contracts", String(trade.num_contracts)],
             ["Contract Size", String(trade.contract_size)],
             ["Total Volume", trade.total_volume.toLocaleString()],
-            ["Trade Price", trade.trade_price != null ? `$${Number(trade.trade_price).toFixed(4)}` : "\u2014"],
+            ["Trade Price", trade.trade_price != null ? `$${Number(trade.trade_price).toFixed(4)}/bu` : "\u2014"],
             ["Currency", trade.currency],
             ["Commission", trade.commission != null ? `$${Number(trade.commission).toFixed(2)}` : "\u2014"],
             ["Fees", trade.fees != null ? `$${Number(trade.fees).toFixed(2)}` : "\u2014"],
@@ -166,7 +166,7 @@ export default function TradeDetailPage() {
                       </span>
                     </td>
                     <td className="px-4 py-2.5 tabular-nums text-secondary">
-                      {a.trade_price != null ? `$${Number(a.trade_price).toFixed(4)}` : "\u2014"}
+                      {a.trade_price != null ? `$${Number(a.trade_price).toFixed(4)}/bu` : "\u2014"}
                     </td>
                     <td className="px-4 py-2.5">
                       <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${allocStatusStyle[a.status] ?? "bg-hover text-muted"}`}>

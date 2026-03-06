@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useTradeStore } from "@/store/tradeStore";
-import { useContractCalendar } from "@/hooks/useTrades";
 import { generateFuturesMonths } from "@/lib/commodity-utils";
 import type { Commodity } from "@/hooks/usePositions";
 import type { TradeFormRow, CreateTradeParams } from "@/types/trades";
@@ -44,16 +43,16 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
   // Multi-row grid
   const [rows, setRows] = useState<TradeFormRow[]>([emptyRow()]);
 
-  // Contract calendar for selected commodity (first row drives this for UX simplicity)
-  const firstCommodity = rows[0]?.commodityId;
-  const { data: contractMonths } = useContractCalendar(firstCommodity || undefined);
-
-  // Build futures month options: prefer contract calendar, fallback to generated from commodity config
-  const firstCommodityObj = commodities.find((c) => c.id === firstCommodity) ?? null;
-  const futuresMonthOptions: string[] =
-    contractMonths.length > 0
-      ? contractMonths.map((m) => m.contract_month)
-      : generateFuturesMonths(firstCommodityObj, 3);
+  // Build per-commodity futures month options (memoize by commodity id)
+  const futuresMonthCache: Record<string, string[]> = {};
+  const getFuturesMonths = (commodityId: string): string[] => {
+    if (!commodityId) return [];
+    if (futuresMonthCache[commodityId]) return futuresMonthCache[commodityId];
+    const c = commodities.find((c) => c.id === commodityId) ?? null;
+    const months = generateFuturesMonths(c, 3);
+    futuresMonthCache[commodityId] = months;
+    return months;
+  };
 
   const updateRow = (key: string, field: keyof TradeFormRow, value: string) => {
     setRows((prev) =>
@@ -171,12 +170,12 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
 
         {/* Multi-row grid */}
         <div className="space-y-1">
-          <div className="grid grid-cols-[1fr_80px_130px_110px_90px_1fr_32px] gap-1.5 text-xs font-medium text-muted px-1">
+          <div className="grid grid-cols-[1fr_80px_130px_110px_100px_1fr_32px] gap-1.5 text-xs font-medium text-muted px-1">
             <span>Commodity</span>
             <span>Dir</span>
             <span>Futures Month</span>
             <span>Volume</span>
-            <span>Price</span>
+            <span>Price ($)</span>
             <span>Notes</span>
             <span></span>
           </div>
@@ -184,8 +183,11 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
           {rows.map((row) => {
             const contractSize = Number(row.contractSize) || 1;
             const contracts = Number(row.numContracts) || 0;
+            const rowMonths = getFuturesMonths(row.commodityId);
+            const rowCommodity = commodities.find((c) => c.id === row.commodityId);
+            const unitLabel = rowCommodity?.unit ? `/${rowCommodity.unit.replace(/s$/, "")}` : "";
             return (
-            <div key={row.key} className="grid grid-cols-[1fr_80px_130px_110px_90px_1fr_32px] gap-1.5 items-center">
+            <div key={row.key} className="grid grid-cols-[1fr_80px_130px_110px_100px_1fr_32px] gap-1.5 items-center">
               <select
                 value={row.commodityId}
                 onChange={(e) => updateRow(row.key, "commodityId", e.target.value)}
@@ -211,8 +213,8 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
                 onChange={(e) => updateRow(row.key, "contractMonth", e.target.value)}
                 className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none"
               >
-                <option value="">Month...</option>
-                {futuresMonthOptions.map((m) => (
+                <option value="">{row.commodityId ? "Month..." : "Select commodity"}</option>
+                {rowMonths.map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
               </select>
@@ -234,14 +236,19 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
                 )}
               </div>
 
-              <input
-                type="number"
-                step="any"
-                value={row.tradePrice}
-                onChange={(e) => updateRow(row.key, "tradePrice", e.target.value)}
-                className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none tabular-nums"
-                placeholder="450.25"
-              />
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.0025"
+                  value={row.tradePrice}
+                  onChange={(e) => updateRow(row.key, "tradePrice", e.target.value)}
+                  className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none tabular-nums pr-8"
+                  placeholder="4.50"
+                />
+                {unitLabel && (
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-faint pointer-events-none">{unitLabel}</span>
+                )}
+              </div>
 
               <input
                 type="text"

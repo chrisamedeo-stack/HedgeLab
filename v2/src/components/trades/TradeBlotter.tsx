@@ -70,7 +70,7 @@ export function TradeBlotter({ trades, commodities, sites, orgId, onRefresh }: T
       align: "right",
       render: (row) => (
         <span className="tabular-nums font-medium text-secondary">
-          {Number(row.trade_price).toFixed(2)}
+          ${Number(row.trade_price).toFixed(4)}
         </span>
       ),
     },
