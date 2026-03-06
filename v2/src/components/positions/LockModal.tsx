@@ -5,7 +5,7 @@ import { Modal } from "@/components/ui/Modal";
 import { usePositionStore } from "@/store/positionStore";
 import type { SitePositionHedge } from "@/types/positions";
 
-const USER_ID = "00000000-0000-0000-0000-000000000099";
+const USER_ID = "00000000-0000-0000-0000-000000000010";
 
 interface LockModalProps {
   allocation: SitePositionHedge;

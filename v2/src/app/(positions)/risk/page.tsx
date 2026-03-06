@@ -13,7 +13,7 @@ import { ExposureByTenorChart } from "@/components/charts/ExposureByTenorChart";
 import { CounterpartyExposureChart } from "@/components/charts/CounterpartyExposureChart";
 import type { LimitType, CreateLimitParams } from "@/types/risk";
 
-const USER_ID = "00000000-0000-0000-0000-000000000099";
+const USER_ID = "00000000-0000-0000-0000-000000000010";
 
 const tabs = [
   { id: "pnl", label: "P&L Overview" },

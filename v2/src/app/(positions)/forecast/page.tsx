@@ -13,7 +13,7 @@ import { StressTestChart } from "@/components/charts/StressTestChart";
 import { ScenarioComparisonChart } from "@/components/charts/ScenarioComparisonChart";
 import type { ScenarioType, FctScenario, FctScenarioResult } from "@/types/forecast";
 
-const DEFAULT_USER = "00000000-0000-0000-0000-000000000001";
+const DEFAULT_USER = "00000000-0000-0000-0000-000000000010";
 
 type Tab = "scenarios" | "stress-test";
 

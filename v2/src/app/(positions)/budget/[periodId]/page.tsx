@@ -18,7 +18,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import Link from "next/link";
 import type { BudgetLineItem, CoverageDataPoint } from "@/types/budget";
 
-const DEFAULT_USER = "00000000-0000-0000-0000-000000000001";
+const DEFAULT_USER = "00000000-0000-0000-0000-000000000010";
 
 type Tab = "budget" | "forecast" | "coverage" | "versions";
 

@@ -9,7 +9,7 @@ import type { PhysicalDirection, PricingType } from "@/types/positions";
 import type { FormulaRow } from "@/types/pricing";
 import type { FormulaComponent, EvaluationResult } from "@/lib/pricingEngine";
 
-const USER_ID = "00000000-0000-0000-0000-000000000099";
+const USER_ID = "00000000-0000-0000-0000-000000000010";
 const inputCls = "w-full rounded-md border border-b-input bg-input-bg px-3 py-2 text-sm text-primary focus:border-focus focus:outline-none";
 
 interface PhysicalFormProps {

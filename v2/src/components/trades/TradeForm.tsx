@@ -7,7 +7,7 @@ import { useContractCalendar } from "@/hooks/useTrades";
 import type { TradeFormRow, CreateTradeParams } from "@/types/trades";
 import type { Direction } from "@/types/positions";
 
-const USER_ID = "00000000-0000-0000-0000-000000000099"; // demo admin
+const USER_ID = "00000000-0000-0000-0000-000000000010"; // demo admin
 
 interface TradeFormProps {
   orgId: string;

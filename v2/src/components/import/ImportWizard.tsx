@@ -15,7 +15,7 @@ const STEPS = [
 ];
 
 // TODO: Replace DEMO_USER_ID with real user context from auth
-const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
+const DEMO_USER_ID = "00000000-0000-0000-0000-000000000010";
 
 function StepIndicator({ current }: { current: number }) {
   return (

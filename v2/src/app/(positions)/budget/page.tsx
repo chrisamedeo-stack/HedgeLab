@@ -13,7 +13,7 @@ import { CoverageChart } from "@/components/budget/CoverageChart";
 import { BudgetVsCommittedChart } from "@/components/budget/BudgetVsCommittedChart";
 import Link from "next/link";
 
-const DEFAULT_USER = "00000000-0000-0000-0000-000000000001";
+const DEFAULT_USER = "00000000-0000-0000-0000-000000000010";
 
 type ChartMode = "coverage" | "budget-vs-committed";
 

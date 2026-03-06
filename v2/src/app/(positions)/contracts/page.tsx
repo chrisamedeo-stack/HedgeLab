@@ -14,7 +14,7 @@ import type {
   ContractFilters,
 } from "@/types/contracts";
 
-const USER_ID = "00000000-0000-0000-0000-000000000099";
+const USER_ID = "00000000-0000-0000-0000-000000000010";
 
 const statusStyle: Record<string, string> = {
   draft: "bg-hover text-muted",

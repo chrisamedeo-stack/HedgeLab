@@ -10,7 +10,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AllocateForm } from "@/components/positions/AllocateForm";
 import type { Allocation } from "@/types/positions";
 
-const USER_ID = "00000000-0000-0000-0000-000000000099"; // demo admin
+const USER_ID = "00000000-0000-0000-0000-000000000010"; // demo admin
 
 interface TradeDetailProps {
   tradeId: string;

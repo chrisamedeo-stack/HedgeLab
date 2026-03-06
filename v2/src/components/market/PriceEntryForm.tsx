@@ -7,7 +7,7 @@ import { useContractCalendar } from "@/hooks/useTrades";
 import { useMarketStore } from "@/store/marketStore";
 import type { PriceFormRow } from "@/types/market";
 
-const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
+const DEMO_USER_ID = "00000000-0000-0000-0000-000000000010";
 
 const emptyRow = (): PriceFormRow => ({
   contractMonth: "",

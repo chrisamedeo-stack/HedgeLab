@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { usePositionStore } from "@/store/positionStore";
 
-const USER_ID = "00000000-0000-0000-0000-000000000099"; // demo admin
+const USER_ID = "00000000-0000-0000-0000-000000000010"; // demo admin
 
 interface AllocateFormProps {
   orgId: string;
