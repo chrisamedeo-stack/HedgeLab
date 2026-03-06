@@ -1,21 +1,13 @@
 -- ============================================================================
--- HedgeLab v2 — Migration 012: Contracts & Risk
+-- HedgeLab v2 — Migration 015: Contracts & Risk Fixup
 -- ============================================================================
--- Adds:
---   1. ct_counterparties — counterparty registry
---   2. ct_physical_contracts — full contract lifecycle with delivery tracking
---   3. rsk_mtm_snapshots — daily mark-to-market by commodity
---   4. rsk_position_limits — configurable position limits
---   5. rsk_limit_checks — audit trail of limit check results
---   6. Enable contracts + risk plugins for demo org
---   7. Seed counterparty-related permissions
+-- Re-applies migration 012 tables that were not created due to a broken
+-- INSERT INTO org_plugins that rolled back the transaction.
 -- ============================================================================
-
-BEGIN;
 
 -- ─── 1. Counterparty Registry ──────────────────────────────────────────────
 
-CREATE TABLE ct_counterparties (
+CREATE TABLE IF NOT EXISTS ct_counterparties (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL,
   name VARCHAR(200) NOT NULL,
@@ -34,12 +26,12 @@ CREATE TABLE ct_counterparties (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_ct_counterparties_org ON ct_counterparties(org_id);
-CREATE INDEX idx_ct_counterparties_active ON ct_counterparties(org_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_ct_counterparties_org ON ct_counterparties(org_id);
+CREATE INDEX IF NOT EXISTS idx_ct_counterparties_active ON ct_counterparties(org_id, is_active);
 
 -- ─── 2. Physical Contracts ─────────────────────────────────────────────────
 
-CREATE TABLE ct_physical_contracts (
+CREATE TABLE IF NOT EXISTS ct_physical_contracts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL,
   counterparty_id UUID,
@@ -81,14 +73,14 @@ CREATE TABLE ct_physical_contracts (
   CONSTRAINT chk_ct_delivered CHECK (delivered_volume >= 0 AND delivered_volume <= total_volume)
 );
 
-CREATE INDEX idx_ct_contracts_org ON ct_physical_contracts(org_id);
-CREATE INDEX idx_ct_contracts_status ON ct_physical_contracts(org_id, status);
-CREATE INDEX idx_ct_contracts_counterparty ON ct_physical_contracts(counterparty_id);
-CREATE INDEX idx_ct_contracts_commodity ON ct_physical_contracts(commodity_id);
+CREATE INDEX IF NOT EXISTS idx_ct_contracts_org ON ct_physical_contracts(org_id);
+CREATE INDEX IF NOT EXISTS idx_ct_contracts_status ON ct_physical_contracts(org_id, status);
+CREATE INDEX IF NOT EXISTS idx_ct_contracts_counterparty ON ct_physical_contracts(counterparty_id);
+CREATE INDEX IF NOT EXISTS idx_ct_contracts_commodity ON ct_physical_contracts(commodity_id);
 
 -- ─── 3. MTM Snapshots ──────────────────────────────────────────────────────
 
-CREATE TABLE rsk_mtm_snapshots (
+CREATE TABLE IF NOT EXISTS rsk_mtm_snapshots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL,
   snapshot_date DATE NOT NULL,
@@ -105,12 +97,12 @@ CREATE TABLE rsk_mtm_snapshots (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX idx_rsk_mtm_unique ON rsk_mtm_snapshots(org_id, snapshot_date, commodity_id);
-CREATE INDEX idx_rsk_mtm_org_date ON rsk_mtm_snapshots(org_id, snapshot_date DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rsk_mtm_unique ON rsk_mtm_snapshots(org_id, snapshot_date, commodity_id);
+CREATE INDEX IF NOT EXISTS idx_rsk_mtm_org_date ON rsk_mtm_snapshots(org_id, snapshot_date DESC);
 
 -- ─── 4. Position Limits ────────────────────────────────────────────────────
 
-CREATE TABLE rsk_position_limits (
+CREATE TABLE IF NOT EXISTS rsk_position_limits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL,
   commodity_id VARCHAR(20),
@@ -128,12 +120,12 @@ CREATE TABLE rsk_position_limits (
   CONSTRAINT chk_rsk_alert CHECK (alert_threshold > 0 AND alert_threshold <= 100)
 );
 
-CREATE INDEX idx_rsk_limits_org ON rsk_position_limits(org_id);
-CREATE INDEX idx_rsk_limits_active ON rsk_position_limits(org_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_rsk_limits_org ON rsk_position_limits(org_id);
+CREATE INDEX IF NOT EXISTS idx_rsk_limits_active ON rsk_position_limits(org_id, is_active);
 
 -- ─── 5. Limit Check Audit Trail ────────────────────────────────────────────
 
-CREATE TABLE rsk_limit_checks (
+CREATE TABLE IF NOT EXISTS rsk_limit_checks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL,
   limit_id UUID NOT NULL,
@@ -148,9 +140,9 @@ CREATE TABLE rsk_limit_checks (
   CONSTRAINT chk_rsk_check_result CHECK (result IN ('ok', 'warning', 'breached'))
 );
 
-CREATE INDEX idx_rsk_checks_org ON rsk_limit_checks(org_id);
-CREATE INDEX idx_rsk_checks_limit ON rsk_limit_checks(limit_id);
-CREATE INDEX idx_rsk_checks_date ON rsk_limit_checks(org_id, check_date DESC);
+CREATE INDEX IF NOT EXISTS idx_rsk_checks_org ON rsk_limit_checks(org_id);
+CREATE INDEX IF NOT EXISTS idx_rsk_checks_limit ON rsk_limit_checks(limit_id);
+CREATE INDEX IF NOT EXISTS idx_rsk_checks_date ON rsk_limit_checks(org_id, check_date DESC);
 
 -- ─── 6. Enable plugins for demo org ────────────────────────────────────────
 
@@ -182,5 +174,3 @@ SELECT r.id, p.id FROM roles r CROSS JOIN permissions p
 WHERE r.name IN ('admin', 'trader')
   AND p.module IN ('contracts', 'risk')
 ON CONFLICT DO NOTHING;
-
-COMMIT;

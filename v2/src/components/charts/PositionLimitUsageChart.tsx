@@ -75,7 +75,7 @@ export function PositionLimitUsageChart({ limits, checks, height = 280 }: Positi
           <ReferenceLine x={100} stroke={chartTheme.limitBreached} strokeDasharray="3 3" strokeWidth={2} />
           <Bar dataKey="utilization" radius={[0, 4, 4, 0]} barSize={18}>
             {data.map((entry, index) => {
-              let fill = chartTheme.limitOk;
+              let fill: string = chartTheme.limitOk;
               if (entry.result === "breached") fill = chartTheme.limitBreached;
               else if (entry.result === "warning") fill = chartTheme.limitWarning;
               return <Cell key={index} fill={fill} />;
