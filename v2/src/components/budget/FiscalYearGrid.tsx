@@ -148,14 +148,8 @@ export function FiscalYearGrid({ periodId, budgetYear, userId, onDone, commodity
               return (
                 <tr key={row.month} className="border-b border-tbl-border hover:bg-row-hover">
                   <td className="px-3 py-1.5 text-secondary">{MONTH_LABELS[i]} {budgetYear}</td>
-                  <td className="px-3 py-1">
-                    <input
-                      type="text"
-                      value={row.futuresMonth}
-                      onChange={(e) => updateRow(i, "futuresMonth", e.target.value)}
-                      className="w-full border border-b-input bg-input-bg rounded px-2 py-1 text-xs text-primary focus:outline-none focus:ring-1 focus:ring-focus"
-                      placeholder="—"
-                    />
+                  <td className="px-3 py-1.5 text-xs text-muted tabular-nums">
+                    {row.futuresMonth || "—"}
                   </td>
                   <td className="px-3 py-1">
                     <input

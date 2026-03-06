@@ -151,13 +151,20 @@ export function useSiteGroups(orgId?: string, groupType?: string) {
 
 // ─── Commodities ─────────────────────────────────────────────────────────────
 
-interface Commodity {
+export interface Commodity {
   id: string;
   name: string;
   category: string;
   unit: string;
   currency: string;
   exchange: string;
+  contract_size?: number;
+  contract_months?: string;
+  config?: {
+    month_mappings?: Record<string, number[]>;
+    futures_prefix?: string;
+    bushels_per_mt?: number;
+  };
 }
 
 export function useCommodities() {

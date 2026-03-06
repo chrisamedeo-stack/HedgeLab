@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useBudgetPeriod, useBudgetVersions } from "@/hooks/useBudget";
+import { useCommodities } from "@/hooks/usePositions";
 import { useBudgetStore } from "@/store/budgetStore";
 import { Modal } from "@/components/ui/Modal";
 import { LineItemTable } from "@/components/budget/LineItemTable";
@@ -38,6 +39,7 @@ export default function BudgetDetailPage() {
   const periodId = params.periodId as string;
   const { data: period, loading } = useBudgetPeriod(periodId);
   const { data: versions } = useBudgetVersions(periodId);
+  const { data: commodities } = useCommodities();
   const { deleteLineItem } = useBudgetStore();
 
   const [tab, setTab] = useState<Tab>("budget");
@@ -52,6 +54,7 @@ export default function BudgetDetailPage() {
 
   const items = period.line_items ?? [];
   const isLocked = !!period.locked_at;
+  const commodity = commodities?.find((c) => c.id === period.commodity_id) ?? null;
 
   // Build coverage data from line items
   const coverageData: CoverageDataPoint[] = items.map((li) => ({
@@ -219,7 +222,7 @@ export default function BudgetDetailPage() {
 
       {/* Add Month Modal */}
       <Modal open={showAddMonth} onClose={() => setShowAddMonth(false)} title="Add Budget Month">
-        <BudgetLineForm periodId={periodId} userId={DEFAULT_USER} onClose={() => setShowAddMonth(false)} />
+        <BudgetLineForm periodId={periodId} userId={DEFAULT_USER} onClose={() => setShowAddMonth(false)} commodity={commodity} commodityId={period.commodity_id} />
       </Modal>
 
       {/* Edit Item Modal */}
@@ -229,6 +232,8 @@ export default function BudgetDetailPage() {
             periodId={periodId}
             userId={DEFAULT_USER}
             onClose={() => setEditItem(null)}
+            commodity={commodity}
+            commodityId={period.commodity_id}
             existing={{
               budgetMonth: editItem.budget_month,
               budgetedVolume: Number(editItem.budgeted_volume),
@@ -250,6 +255,7 @@ export default function BudgetDetailPage() {
           budgetYear={period.budget_year}
           userId={DEFAULT_USER}
           onDone={() => setShowFYGrid(false)}
+          commodity={commodity}
         />
       </Modal>
 

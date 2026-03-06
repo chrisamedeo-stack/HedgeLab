@@ -114,6 +114,7 @@ export interface TradeFormRow {
   contractMonth: string;
   numContracts: string;
   contractSize: string;
+  volume: string;
   tradePrice: string;
   notes: string;
 }

@@ -111,7 +111,7 @@ export default function TradesPage() {
       {showForm && (
         <TradeForm
           orgId={orgId}
-          commodities={(commodities ?? []).map((c) => ({ id: c.id, name: c.name, contract_size: (c as unknown as { contract_size?: number }).contract_size }))}
+          commodities={commodities ?? []}
           onClose={() => setShowForm(false)}
           onSuccess={() => {
             setShowForm(false);

@@ -16,7 +16,7 @@ const MONTH_NUM_TO_CODE: Record<number, string> = Object.fromEntries(
 export interface CommodityConfig {
   id: string;
   name: string;
-  contract_months: string; // e.g., "HKNUZ"
+  contract_months?: string; // e.g., "HKNUZ"
   exchange?: string;
   config?: {
     month_mappings?: Record<string, number[]>;

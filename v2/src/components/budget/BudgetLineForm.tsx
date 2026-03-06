@@ -166,13 +166,19 @@ export function BudgetLineForm({ periodId, userId, onClose, commodity, commodity
         </div>
         <div className="space-y-1">
           <label className="text-xs text-muted">Futures Month</label>
-          <input
-            type="text"
-            value={form.futuresMonth}
-            onChange={(e) => setForm({ ...form, futuresMonth: e.target.value })}
-            className={inputCls}
-            placeholder="e.g. ZCH26"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={form.futuresMonth}
+              onChange={(e) => setForm({ ...form, futuresMonth: e.target.value })}
+              className={inputCls}
+              placeholder={commodity ? "Auto-mapped" : "e.g. ZCH26"}
+              readOnly={!!commodity && !!form.futuresMonth}
+            />
+            {commodity && form.futuresMonth && (
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-faint">auto</span>
+            )}
+          </div>
         </div>
       </div>
 

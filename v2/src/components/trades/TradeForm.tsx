@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useTradeStore } from "@/store/tradeStore";
 import { useContractCalendar } from "@/hooks/useTrades";
+import { generateFuturesMonths } from "@/lib/commodity-utils";
+import type { Commodity } from "@/hooks/usePositions";
 import type { TradeFormRow, CreateTradeParams } from "@/types/trades";
 import type { Direction } from "@/types/positions";
 
@@ -11,7 +13,7 @@ const USER_ID = "00000000-0000-0000-0000-000000000010"; // demo admin
 
 interface TradeFormProps {
   orgId: string;
-  commodities: { id: string; name: string; contract_size?: number }[];
+  commodities: Commodity[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -24,6 +26,7 @@ function emptyRow(): TradeFormRow {
     contractMonth: "",
     numContracts: "",
     contractSize: "",
+    volume: "",
     tradePrice: "",
     notes: "",
   };
@@ -45,15 +48,33 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
   const firstCommodity = rows[0]?.commodityId;
   const { data: contractMonths } = useContractCalendar(firstCommodity || undefined);
 
+  // Build futures month options: prefer contract calendar, fallback to generated from commodity config
+  const firstCommodityObj = commodities.find((c) => c.id === firstCommodity) ?? null;
+  const futuresMonthOptions: string[] =
+    contractMonths.length > 0
+      ? contractMonths.map((m) => m.contract_month)
+      : generateFuturesMonths(firstCommodityObj, 3);
+
   const updateRow = (key: string, field: keyof TradeFormRow, value: string) => {
     setRows((prev) =>
       prev.map((r) => {
         if (r.key !== key) return r;
         const updated = { ...r, [field]: value };
-        // Auto-fill contract size when commodity changes
+        // Auto-fill contract size and reset volume when commodity changes
         if (field === "commodityId") {
           const c = commodities.find((c) => c.id === value);
-          if (c?.contract_size) updated.contractSize = String(c.contract_size);
+          if (c?.contract_size) {
+            updated.contractSize = String(c.contract_size);
+            // Reset volume to one contract worth
+            updated.volume = String(c.contract_size);
+            updated.numContracts = "1";
+          }
+        }
+        // When volume changes, compute numContracts
+        if (field === "volume") {
+          const size = Number(updated.contractSize) || 1;
+          const vol = Number(value) || 0;
+          updated.numContracts = String(Math.round(vol / size));
         }
         return updated;
       })
@@ -67,9 +88,7 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
   };
 
   const calcVolume = (r: TradeFormRow) => {
-    const n = Number(r.numContracts) || 0;
-    const s = Number(r.contractSize) || 0;
-    return n * s;
+    return Number(r.volume) || 0;
   };
 
   const calcNotional = (r: TradeFormRow) => {
@@ -85,7 +104,7 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
 
     try {
       const validRows = rows.filter(
-        (r) => r.commodityId && r.contractMonth && r.numContracts && r.contractSize && r.tradePrice
+        (r) => r.commodityId && r.contractMonth && r.volume && r.tradePrice
       );
 
       if (validRows.length === 0) {
@@ -102,8 +121,8 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
         tradeDate,
         contractMonth: r.contractMonth,
         broker: broker || undefined,
-        numContracts: Number(r.numContracts),
-        contractSize: Number(r.contractSize),
+        numContracts: Number(r.numContracts) || 1,
+        contractSize: Number(r.contractSize) || 1,
         tradePrice: Number(r.tradePrice),
         notes: r.notes || undefined,
       }));
@@ -152,19 +171,21 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
 
         {/* Multi-row grid */}
         <div className="space-y-1">
-          <div className="grid grid-cols-[1fr_80px_120px_80px_90px_90px_1fr_32px] gap-1.5 text-xs font-medium text-muted px-1">
+          <div className="grid grid-cols-[1fr_80px_130px_110px_90px_1fr_32px] gap-1.5 text-xs font-medium text-muted px-1">
             <span>Commodity</span>
             <span>Dir</span>
-            <span>Contract Mo</span>
-            <span>Contracts</span>
-            <span>Size</span>
+            <span>Futures Month</span>
+            <span>Volume</span>
             <span>Price</span>
             <span>Notes</span>
             <span></span>
           </div>
 
-          {rows.map((row) => (
-            <div key={row.key} className="grid grid-cols-[1fr_80px_120px_80px_90px_90px_1fr_32px] gap-1.5 items-center">
+          {rows.map((row) => {
+            const contractSize = Number(row.contractSize) || 1;
+            const contracts = Number(row.numContracts) || 0;
+            return (
+            <div key={row.key} className="grid grid-cols-[1fr_80px_130px_110px_90px_1fr_32px] gap-1.5 items-center">
               <select
                 value={row.commodityId}
                 onChange={(e) => updateRow(row.key, "commodityId", e.target.value)}
@@ -185,44 +206,33 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
                 <option value="short">Short</option>
               </select>
 
-              {contractMonths.length > 0 ? (
-                <select
-                  value={row.contractMonth}
-                  onChange={(e) => updateRow(row.key, "contractMonth", e.target.value)}
-                  className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none"
-                >
-                  <option value="">Month...</option>
-                  {contractMonths.map((m) => (
-                    <option key={m.contract_month} value={m.contract_month}>{m.contract_month}</option>
-                  ))}
-                </select>
-              ) : (
+              <select
+                value={row.contractMonth}
+                onChange={(e) => updateRow(row.key, "contractMonth", e.target.value)}
+                className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none"
+              >
+                <option value="">Month...</option>
+                {futuresMonthOptions.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+
+              <div className="relative">
                 <input
-                  type="text"
-                  value={row.contractMonth}
-                  onChange={(e) => updateRow(row.key, "contractMonth", e.target.value)}
-                  className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none"
-                  placeholder="Z26"
+                  type="number"
+                  min={contractSize}
+                  step={contractSize}
+                  value={row.volume}
+                  onChange={(e) => updateRow(row.key, "volume", e.target.value)}
+                  className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none tabular-nums"
+                  placeholder={String(contractSize)}
                 />
-              )}
-
-              <input
-                type="number"
-                min="1"
-                value={row.numContracts}
-                onChange={(e) => updateRow(row.key, "numContracts", e.target.value)}
-                className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none tabular-nums"
-                placeholder="10"
-              />
-
-              <input
-                type="number"
-                step="any"
-                value={row.contractSize}
-                onChange={(e) => updateRow(row.key, "contractSize", e.target.value)}
-                className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none tabular-nums"
-                placeholder="5000"
-              />
+                {contracts > 0 && (
+                  <span className="absolute right-7 top-1/2 -translate-y-1/2 text-[10px] text-faint pointer-events-none">
+                    {contracts}ct
+                  </span>
+                )}
+              </div>
 
               <input
                 type="number"
@@ -252,15 +262,16 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
                 </svg>
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Calculated totals */}
-        {rows.some((r) => Number(r.numContracts) > 0) && (
+        {rows.some((r) => Number(r.volume) > 0) && (
           <div className="rounded-md bg-surface border border-b-default px-3 py-2 text-xs text-muted">
             <div className="flex gap-6">
               <span>
-                Rows: <span className="text-secondary font-medium">{rows.filter((r) => r.commodityId && r.numContracts).length}</span>
+                Rows: <span className="text-secondary font-medium">{rows.filter((r) => r.commodityId && r.volume).length}</span>
               </span>
               <span>
                 Total Volume: <span className="text-secondary font-medium tabular-nums">{rows.reduce((s, r) => s + calcVolume(r), 0).toLocaleString()}</span>
@@ -298,7 +309,7 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
               disabled={submitting}
               className="rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover disabled:opacity-50"
             >
-              {submitting ? "Booking..." : `Book ${rows.filter((r) => r.commodityId && r.numContracts).length} Trade(s)`}
+              {submitting ? "Booking..." : `Book ${rows.filter((r) => r.commodityId && r.volume).length} Trade(s)`}
             </button>
           </div>
         </div>

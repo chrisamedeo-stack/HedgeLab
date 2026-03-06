@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { BudgetLineItem } from "@/types/budget";
 import { ComponentTokenBar } from "./ComponentTokenBar";
 
@@ -79,7 +79,8 @@ export function LineItemTable({ items, onEdit, onDelete, locked }: LineItemTable
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-tbl-border bg-tbl-header">
-            <th className="px-1 py-2 w-8" /> {/* expand toggle */}
+            {/* expand toggle */}
+            <th className="px-1 py-2 w-8" />
             <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted">Month</th>
             <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted">Futures Ref</th>
             <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-muted">Budget Vol</th>
@@ -107,8 +108,8 @@ export function LineItemTable({ items, onEdit, onDelete, locked }: LineItemTable
               const overHedged = li.over_hedged;
 
               return (
-                <>
-                  <tr key={li.id} className="border-b border-tbl-border hover:bg-row-hover transition-colors">
+                <Fragment key={li.id}>
+                  <tr className="border-b border-tbl-border hover:bg-row-hover transition-colors">
                     <td className="px-1 py-2 text-center">
                       {hasComponents ? (
                         <button
@@ -181,7 +182,7 @@ export function LineItemTable({ items, onEdit, onDelete, locked }: LineItemTable
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               );
             })
           )}
