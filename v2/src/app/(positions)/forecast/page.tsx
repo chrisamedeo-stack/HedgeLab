@@ -5,6 +5,7 @@ import { useScenarios } from "@/hooks/useForecast";
 import { useCommodities, useSites } from "@/hooks/usePositions";
 import { useCommodityContext } from "@/contexts/CommodityContext";
 import { useOrgContext } from "@/contexts/OrgContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useForecastStore } from "@/store/forecastStore";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { KPICard } from "@/components/ui/KPICard";
@@ -12,8 +13,6 @@ import { Modal } from "@/components/ui/Modal";
 import { StressTestChart } from "@/components/charts/StressTestChart";
 import { ScenarioComparisonChart } from "@/components/charts/ScenarioComparisonChart";
 import type { ScenarioType, FctScenario, FctScenarioResult } from "@/types/forecast";
-
-const DEFAULT_USER = "00000000-0000-0000-0000-000000000010";
 
 type Tab = "scenarios" | "stress-test";
 
@@ -32,7 +31,8 @@ const STRESS_PRESETS = [
 
 export default function ForecastPage() {
   const { orgId } = useOrgContext();
-  const { commodityId } = useCommodityContext();
+  const { commodityId, commodity } = useCommodityContext();
+  const { user } = useAuth();
   const { data: commodities } = useCommodities();
   const { data: sites } = useSites(orgId);
   const { data: scenarios, loading } = useScenarios(orgId);
@@ -111,7 +111,7 @@ export default function ForecastPage() {
     try {
       await createScenario({
         orgId,
-        userId: DEFAULT_USER,
+        userId: user!.id,
         name: formName,
         description: formDesc || undefined,
         scenarioType: formType,
@@ -130,7 +130,7 @@ export default function ForecastPage() {
 
   const handleRun = async (id: string) => {
     try {
-      await runScenario(id, DEFAULT_USER);
+      await runScenario(id, user!.id);
       setExpandedId(id);
     } catch {
       // error via store
@@ -157,13 +157,13 @@ export default function ForecastPage() {
     try {
       const scenario = await createScenario({
         orgId,
-        userId: DEFAULT_USER,
+        userId: user!.id,
         name: `Stress Test — ${commodities?.find((c) => c.id === stressCommodity)?.name ?? stressCommodity}`,
         scenarioType: "stress_test",
         baseCommodity: stressCommodity,
         assumptions: { priceDeltas: deltas },
       });
-      await runScenario(scenario.id, DEFAULT_USER);
+      await runScenario(scenario.id, user!.id);
       await fetchScenario(scenario.id);
       setStressResults(useForecastStore.getState().activeResults);
     } catch {
@@ -315,13 +315,13 @@ export default function ForecastPage() {
                             </button>
                           )}
                           <button
-                            onClick={() => cloneScenario(s.id, DEFAULT_USER)}
+                            onClick={() => cloneScenario(s.id, user!.id)}
                             className="px-2 py-1 text-xs text-muted hover:text-secondary transition-colors"
                           >
                             Clone
                           </button>
                           <button
-                            onClick={() => deleteScenario(s.id, DEFAULT_USER)}
+                            onClick={() => deleteScenario(s.id, user!.id)}
                             className="px-2 py-1 text-xs text-muted hover:text-loss transition-colors"
                           >
                             Delete
@@ -533,7 +533,7 @@ export default function ForecastPage() {
           {formType === "volume_change" && (
             <div className="flex gap-3 items-end">
               <div className="flex-1 space-y-1">
-                <label className="text-xs text-muted">Volume Change (MT)</label>
+                <label className="text-xs text-muted">Volume Change ({commodity?.volume_unit || "MT"})</label>
                 <input type="number" step="1" value={formVolumeChange} onChange={(e) => setFormVolumeChange(e.target.value)} className={inputCls} />
               </div>
               <label className="flex items-center gap-1.5 pb-1.5 text-xs text-muted cursor-pointer">
@@ -560,7 +560,7 @@ export default function ForecastPage() {
                   <input type="month" value={formFuturesMonth} onChange={(e) => setFormFuturesMonth(e.target.value)} className={inputCls} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-muted">Volume (MT)</label>
+                  <label className="text-xs text-muted">Volume ({commodity?.volume_unit || "MT"})</label>
                   <input type="number" step="1" value={formHedgeVol} onChange={(e) => setFormHedgeVol(e.target.value)} className={inputCls} />
                 </div>
                 <div className="space-y-1">

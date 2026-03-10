@@ -3,12 +3,11 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useTradeStore } from "@/store/tradeStore";
+import { useAuth } from "@/contexts/AuthContext";
 import { generateFuturesMonths } from "@/lib/commodity-utils";
 import type { Commodity } from "@/hooks/usePositions";
 import type { TradeFormRow, CreateTradeParams } from "@/types/trades";
 import type { Direction } from "@/types/positions";
-
-const USER_ID = "00000000-0000-0000-0000-000000000010"; // demo admin
 
 interface TradeFormProps {
   orgId: string;
@@ -33,6 +32,7 @@ function emptyRow(): TradeFormRow {
 
 export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormProps) {
   const { createTrades } = useTradeStore();
+  const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -114,7 +114,7 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
 
       const params: CreateTradeParams[] = validRows.map((r) => ({
         orgId,
-        userId: USER_ID,
+        userId: user!.id,
         commodityId: r.commodityId,
         direction: r.direction as Direction,
         tradeDate,

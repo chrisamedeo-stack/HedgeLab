@@ -16,10 +16,10 @@ import { BudgetVsCommittedChart } from "@/components/budget/BudgetVsCommittedCha
 import { ApprovalBar } from "@/components/budget/ApprovalBar";
 import { VersionPanel } from "@/components/budget/VersionPanel";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 import type { BudgetLineItem, CoverageDataPoint } from "@/types/budget";
-
-const DEFAULT_USER = "00000000-0000-0000-0000-000000000010";
+import { formatPriceWithUnit } from "@/lib/commodity-units";
 
 type Tab = "budget" | "forecast" | "coverage" | "versions";
 
@@ -41,6 +41,7 @@ export default function BudgetDetailPage() {
   const { data: versions } = useBudgetVersions(periodId);
   const { data: commodities } = useCommodities();
   const { deleteLineItem } = useBudgetStore();
+  const { user } = useAuth();
 
   const [tab, setTab] = useState<Tab>("budget");
   const [showAddMonth, setShowAddMonth] = useState(false);
@@ -150,7 +151,7 @@ export default function BudgetDetailPage() {
         <div className="rounded-lg border border-b-default bg-surface p-3">
           <div className="text-xs text-muted">Avg All-in Price</div>
           <div className="text-lg font-semibold text-primary tabular-nums">
-            {kpis.avgAllInPrice > 0 ? `$${kpis.avgAllInPrice.toFixed(4)}/bu` : "—"}
+            {kpis.avgAllInPrice > 0 ? formatPriceWithUnit(kpis.avgAllInPrice, commodity) : "—"}
           </div>
         </div>
         <div className="rounded-lg border border-b-default bg-surface p-3">
@@ -172,7 +173,7 @@ export default function BudgetDetailPage() {
       </div>
 
       {/* Approval Bar */}
-      <ApprovalBar period={period} userId={DEFAULT_USER} />
+      <ApprovalBar period={period} userId={user!.id} />
 
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-b-default">
@@ -199,14 +200,14 @@ export default function BudgetDetailPage() {
           onEdit={!isLocked ? (li) => setEditItem(li) : undefined}
           onDelete={!isLocked ? (id) => {
             if (confirm("Delete this line item?")) {
-              deleteLineItem(periodId, id, DEFAULT_USER);
+              deleteLineItem(periodId, id, user!.id);
             }
           } : undefined}
         />
       )}
 
       {tab === "forecast" && (
-        <ForecastTab periodId={periodId} items={items} userId={DEFAULT_USER} locked={isLocked} />
+        <ForecastTab periodId={periodId} items={items} userId={user!.id} locked={isLocked} />
       )}
 
       {tab === "coverage" && (
@@ -217,12 +218,12 @@ export default function BudgetDetailPage() {
       )}
 
       {tab === "versions" && (
-        <VersionPanel periodId={periodId} versions={versions} userId={DEFAULT_USER} locked={isLocked} />
+        <VersionPanel periodId={periodId} versions={versions} userId={user!.id} locked={isLocked} />
       )}
 
       {/* Add Month Modal */}
       <Modal open={showAddMonth} onClose={() => setShowAddMonth(false)} title="Add Budget Month">
-        <BudgetLineForm periodId={periodId} userId={DEFAULT_USER} onClose={() => setShowAddMonth(false)} commodity={commodity} commodityId={period.commodity_id} />
+        <BudgetLineForm periodId={periodId} userId={user!.id} onClose={() => setShowAddMonth(false)} commodity={commodity} commodityId={period.commodity_id} />
       </Modal>
 
       {/* Edit Item Modal */}
@@ -230,7 +231,7 @@ export default function BudgetDetailPage() {
         {editItem && (
           <BudgetLineForm
             periodId={periodId}
-            userId={DEFAULT_USER}
+            userId={user!.id}
             onClose={() => setEditItem(null)}
             commodity={commodity}
             commodityId={period.commodity_id}
@@ -249,11 +250,11 @@ export default function BudgetDetailPage() {
       </Modal>
 
       {/* Fiscal Year Grid Modal */}
-      <Modal open={showFYGrid} onClose={() => setShowFYGrid(false)} title="Fiscal Year Grid" width="max-w-4xl">
+      <Modal open={showFYGrid} onClose={() => setShowFYGrid(false)} title="Fiscal Year Grid" width="max-w-7xl">
         <FiscalYearGrid
           periodId={periodId}
           budgetYear={period.budget_year}
-          userId={DEFAULT_USER}
+          userId={user!.id}
           onDone={() => setShowFYGrid(false)}
           commodity={commodity}
         />
@@ -264,7 +265,7 @@ export default function BudgetDetailPage() {
         <ForecastUpdateGrid
           periodId={periodId}
           items={items}
-          userId={DEFAULT_USER}
+          userId={user!.id}
           onDone={() => setShowForecastGrid(false)}
         />
       </Modal>

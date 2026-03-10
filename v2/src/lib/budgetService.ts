@@ -20,8 +20,8 @@ export async function createBudgetPeriod(params: CreatePeriodParams): Promise<Bu
   const { orgId, userId, siteId, commodityId, budgetYear, notes, currency } = params;
 
   const row = await queryOne<BudgetPeriod>(
-    `INSERT INTO bgt_periods (org_id, site_id, commodity_id, budget_year, notes, currency)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO bgt_periods (org_id, site_id, commodity_id, budget_year, notes, currency, status)
+     VALUES ($1, $2, $3, $4, $5, $6, 'approved')
      RETURNING *`,
     [orgId, siteId, commodityId, budgetYear, notes ?? null, currency ?? "USD"]
   );
@@ -595,7 +595,7 @@ export async function saveLineItemComponents(
     const row = await queryOne<BudgetComponent>(
       `INSERT INTO bgt_line_item_components (line_item_id, component_name, unit, target_value, display_order)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [lineItemId, c.component_name, c.unit || "$/bu", c.target_value || 0, i]
+      [lineItemId, c.component_name, c.unit, c.target_value || 0, i]
     );
     if (row) results.push(row);
   }

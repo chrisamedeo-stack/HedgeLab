@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import type { BudgetComponent } from "@/types/budget";
+import type { Commodity } from "@/hooks/usePositions";
+import { getPriceUnits, getDefaultPriceUnit, toPerPriceUnit } from "@/lib/commodity-units";
 
 interface ComponentEditorProps {
   components: BudgetComponent[];
   onChange: (components: BudgetComponent[]) => void;
+  commodity?: Commodity | null;
+  /** @deprecated Use commodity prop instead */
   bushelsPerMt?: number;
 }
 
@@ -19,35 +22,30 @@ const PRESETS = [
   "Quality Premium",
 ];
 
-const UNITS = ["$/bu", "$/MT", "%"];
+export function ComponentEditor({ components, onChange, commodity, bushelsPerMt }: ComponentEditorProps) {
+  // Derive units from commodity; fall back to legacy behavior
+  const UNITS = commodity ? getPriceUnits(commodity) : ["$/bu", "$/MT", "%"];
+  const defaultUnit = commodity ? getDefaultPriceUnit(commodity) : "$/bu";
+  const nativeUnit = commodity?.price_unit || "$/bu";
 
-function toPerBu(value: number, unit: string, bushelsPerMt: number): number {
-  switch (unit) {
-    case "$/bu":
-      return value;
-    case "$/MT":
-      return bushelsPerMt > 0 ? value / bushelsPerMt : 0;
-    case "%":
-      return 0; // percentage — shown separately
-    default:
-      return value;
-  }
-}
+  // Build a compat commodity object if only bushelsPerMt was passed (legacy callers)
+  const effectiveCommodity: Commodity | null = commodity ?? (bushelsPerMt
+    ? { id: "", name: "", category: "", unit: "", currency: "", exchange: "", config: { units_per_mt: bushelsPerMt } }
+    : null);
 
-export function ComponentEditor({ components, onChange, bushelsPerMt = 39.3683 }: ComponentEditorProps) {
   const usedNames = new Set(components.map((c) => c.component_name));
 
   const addPreset = (name: string) => {
     onChange([
       ...components,
-      { component_name: name, unit: "$/bu", target_value: 0, display_order: components.length },
+      { component_name: name, unit: defaultUnit, target_value: 0, display_order: components.length },
     ]);
   };
 
   const addCustom = () => {
     onChange([
       ...components,
-      { component_name: "", unit: "$/bu", target_value: 0, display_order: components.length },
+      { component_name: "", unit: defaultUnit, target_value: 0, display_order: components.length },
     ]);
   };
 
@@ -61,14 +59,14 @@ export function ComponentEditor({ components, onChange, bushelsPerMt = 39.3683 }
     onChange(components.filter((_, i) => i !== idx));
   };
 
-  // Compute all-in total ($/bu): sum absolute values first, then apply percentages
+  // Compute all-in total in native price unit
   let baseTotal = 0;
   let pctMultiplier = 1;
   for (const c of components) {
     if (c.unit === "%") {
       pctMultiplier *= 1 + Number(c.target_value || 0) / 100;
     } else {
-      baseTotal += toPerBu(Number(c.target_value), c.unit, bushelsPerMt);
+      baseTotal += toPerPriceUnit(Number(c.target_value), c.unit, effectiveCommodity);
     }
   }
   const allInTotal = baseTotal * pctMultiplier;
@@ -100,13 +98,13 @@ export function ComponentEditor({ components, onChange, bushelsPerMt = 39.3683 }
               <th className="text-left py-1 font-medium">Name</th>
               <th className="text-left py-1 font-medium w-20">Unit</th>
               <th className="text-right py-1 font-medium w-24">Value</th>
-              <th className="text-right py-1 font-medium w-20">&asymp; $/bu</th>
+              <th className="text-right py-1 font-medium w-20">&asymp; {nativeUnit}</th>
               <th className="w-8" />
             </tr>
           </thead>
           <tbody>
             {components.map((c, i) => {
-              const perBu = toPerBu(Number(c.target_value), c.unit, bushelsPerMt);
+              const perNative = toPerPriceUnit(Number(c.target_value), c.unit, effectiveCommodity);
               return (
                 <tr key={i} className="border-t border-tbl-border">
                   <td className="py-1 pr-2">
@@ -142,7 +140,7 @@ export function ComponentEditor({ components, onChange, bushelsPerMt = 39.3683 }
                     />
                   </td>
                   <td className="py-1 text-right tabular-nums text-faint">
-                    {c.unit === "%" ? `${Number(c.target_value).toFixed(1)}%` : perBu.toFixed(4)}
+                    {c.unit === "%" ? `${Number(c.target_value).toFixed(1)}%` : perNative.toFixed(4)}
                   </td>
                   <td className="py-1 text-center">
                     <button

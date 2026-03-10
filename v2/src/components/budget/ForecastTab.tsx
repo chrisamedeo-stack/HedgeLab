@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import type { BudgetLineItem } from "@/types/budget";
 import { useBudgetStore } from "@/store/budgetStore";
 import { ForecastSparkline } from "./ForecastSparkline";
@@ -165,8 +165,8 @@ export function ForecastTab({ periodId, items, userId, locked }: ForecastTabProp
                 const history = forecastHistory[li.id] ?? [];
 
                 return (
-                  <>
-                    <tr key={li.id} className="border-b border-tbl-border hover:bg-row-hover transition-colors">
+                  <Fragment key={li.id}>
+                    <tr className="border-b border-tbl-border hover:bg-row-hover transition-colors">
                       <td className="px-1 py-2 text-center">
                         <button
                           onClick={() => toggleExpand(li.id)}
@@ -241,13 +241,13 @@ export function ForecastTab({ periodId, items, userId, locked }: ForecastTabProp
                     </tr>
                     {/* Expanded forecast history */}
                     {isExpanded && (
-                      <tr key={`${li.id}-history`} className="border-b border-tbl-border">
+                      <tr className="border-b border-tbl-border">
                         <td colSpan={colCount} className="px-6 py-3 bg-main/40 border-t border-b-default/50">
                           <ForecastHistory periodId={periodId} lineItemId={li.id} />
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })
             )}

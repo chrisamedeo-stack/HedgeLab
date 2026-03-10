@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { usePositionStore } from "@/store/positionStore";
+import { useAuth } from "@/contexts/AuthContext";
 import type { SitePositionHedge } from "@/types/positions";
-
-const USER_ID = "00000000-0000-0000-0000-000000000010";
 
 interface LockModalProps {
   allocation: SitePositionHedge;
@@ -15,6 +14,7 @@ interface LockModalProps {
 
 export function LockModal({ allocation, onClose, onSuccess }: LockModalProps) {
   const { executeEFP } = usePositionStore();
+  const { user } = useAuth();
   const [lockPrice, setLockPrice] = useState(allocation.trade_price?.toString() ?? "");
   const [basisPrice, setBasisPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -33,7 +33,7 @@ export function LockModal({ allocation, onClose, onSuccess }: LockModalProps) {
     setError(null);
     try {
       await executeEFP({
-        userId: USER_ID,
+        userId: user!.id,
         allocationId: allocation.id,
         lockPrice: Number(lockPrice),
         basisPrice: basisPrice ? Number(basisPrice) : undefined,

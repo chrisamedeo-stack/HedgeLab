@@ -158,11 +158,15 @@ export interface Commodity {
   unit: string;
   currency: string;
   exchange: string;
+  price_unit?: string;
+  volume_unit?: string;
   contract_size?: number;
   contract_months?: string;
   config?: {
     month_mappings?: Record<string, number[]>;
     futures_prefix?: string;
+    units_per_mt?: number;
+    /** @deprecated Use units_per_mt instead */
     bushels_per_mt?: number;
   };
 }

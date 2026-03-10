@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Plus, X, Edit2, Trash2 } from "lucide-react";
-import { useOrgContext } from "@/contexts/OrgContext";
+import { useOrgContextSafe } from "@/contexts/OrgContext";
 import { apiFetch, btnPrimary, btnCancel, inputCls, selectCls, cn } from "./shared";
 import { TableSkeleton, EmptyState, ConfirmDialog } from "./SharedUI";
 
@@ -18,8 +18,9 @@ const ROLE_COLORS: Record<string, string> = {
   viewer: "bg-input-bg text-muted",
 };
 
-export function UsersTab() {
-  const { orgId } = useOrgContext();
+export function UsersTab({ orgId: propOrgId }: { orgId?: string } = {}) {
+  const ctx = useOrgContextSafe();
+  const orgId = propOrgId ?? ctx?.orgId ?? "";
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);

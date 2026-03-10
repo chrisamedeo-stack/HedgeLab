@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Plus, X, Edit2, Trash2 } from "lucide-react";
-import { useOrgContext } from "@/contexts/OrgContext";
+import { useOrgContextSafe } from "@/contexts/OrgContext";
 import { apiFetch, btnPrimary, btnCancel, inputCls, selectCls } from "./shared";
 import { TableSkeleton, EmptyState, ConfirmDialog } from "./SharedUI";
 
-export function SitesTab() {
-  const { orgId } = useOrgContext();
+export function SitesTab({ orgId: propOrgId }: { orgId?: string } = {}) {
+  const ctx = useOrgContextSafe();
+  const orgId = propOrgId ?? ctx?.orgId ?? "";
   const [sites, setSites] = useState<any[]>([]);
   const [siteTypes, setSiteTypes] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);

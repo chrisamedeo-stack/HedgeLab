@@ -4,13 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useTrade } from "@/hooks/useTrades";
 import { useTradeStore } from "@/store/tradeStore";
+import { useAuth } from "@/contexts/AuthContext";
 import { KPICard } from "@/components/ui/KPICard";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AllocateForm } from "@/components/positions/AllocateForm";
 import type { Allocation } from "@/types/positions";
-
-const USER_ID = "00000000-0000-0000-0000-000000000010"; // demo admin
 
 interface TradeDetailProps {
   tradeId: string;
@@ -24,6 +23,7 @@ interface TradeDetailProps {
 export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRefresh }: TradeDetailProps) {
   const { data, loading, refetch } = useTrade(tradeId);
   const { cancelTrade, updateTrade } = useTradeStore();
+  const { user } = useAuth();
   const [showAllocate, setShowAllocate] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editPrice, setEditPrice] = useState("");
@@ -43,7 +43,7 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
     if (!confirm("Cancel this trade? Open allocations will also be cancelled.")) return;
     setCancelling(true);
     try {
-      await cancelTrade(tradeId, USER_ID, "User cancelled from blotter");
+      await cancelTrade(tradeId, user!.id, "User cancelled from blotter");
       onRefresh();
       onClose();
     } catch {
@@ -56,7 +56,7 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
   const handleSavePrice = async () => {
     if (!editPrice) return;
     try {
-      await updateTrade(tradeId, USER_ID, { tradePrice: Number(editPrice) });
+      await updateTrade(tradeId, user!.id, { tradePrice: Number(editPrice) });
       setEditing(false);
       refetch();
       onRefresh();

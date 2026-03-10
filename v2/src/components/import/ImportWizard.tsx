@@ -1,6 +1,7 @@
 "use client";
 
 import { useImportStore } from "@/store/importStore";
+import { useAuth } from "@/contexts/AuthContext";
 import { TargetPicker } from "./TargetPicker";
 import { FileUpload } from "./FileUpload";
 import { ColumnMapper } from "./ColumnMapper";
@@ -13,9 +14,6 @@ const STEPS = [
   { num: 4, label: "Review" },
   { num: 5, label: "Done" },
 ];
-
-// TODO: Replace DEMO_USER_ID with real user context from auth
-const DEMO_USER_ID = "00000000-0000-0000-0000-000000000010";
 
 function StepIndicator({ current }: { current: number }) {
   return (
@@ -104,6 +102,7 @@ function CompletionView() {
 
 export function ImportWizard({ orgId }: { orgId: string }) {
   const { step, setStep, stageAndValidate, loading, error, clearError } = useImportStore();
+  const { user } = useAuth();
 
   const canGoBack = step > 1 && step < 5;
   const canGoNext = step === 3; // Only the mapping step has a manual "next" button
@@ -126,8 +125,8 @@ export function ImportWizard({ orgId }: { orgId: string }) {
       <div className="min-h-[300px]">
         {step === 1 && <TargetPicker />}
         {step === 2 && <FileUpload />}
-        {step === 3 && <ColumnMapper orgId={orgId} userId={DEMO_USER_ID} />}
-        {step === 4 && <ValidationReview orgId={orgId} userId={DEMO_USER_ID} />}
+        {step === 3 && <ColumnMapper orgId={orgId} userId={user!.id} />}
+        {step === 4 && <ValidationReview orgId={orgId} userId={user!.id} />}
         {step === 5 && <CompletionView />}
       </div>
 
@@ -143,7 +142,7 @@ export function ImportWizard({ orgId }: { orgId: string }) {
           </button>
           {canGoNext && (
             <button
-              onClick={() => stageAndValidate(orgId, DEMO_USER_ID)}
+              onClick={() => stageAndValidate(orgId, user!.id)}
               disabled={loading}
               className="rounded-md bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover disabled:opacity-50"
             >

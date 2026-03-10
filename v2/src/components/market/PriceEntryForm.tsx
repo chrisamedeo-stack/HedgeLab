@@ -4,10 +4,9 @@ import { useState, useCallback } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useCommodities } from "@/hooks/usePositions";
 import { useContractCalendar } from "@/hooks/useTrades";
+import { useAuth } from "@/contexts/AuthContext";
 import { useMarketStore } from "@/store/marketStore";
 import type { PriceFormRow } from "@/types/market";
-
-const DEMO_USER_ID = "00000000-0000-0000-0000-000000000010";
 
 const emptyRow = (): PriceFormRow => ({
   contractMonth: "",
@@ -26,6 +25,7 @@ interface PriceEntryFormProps {
 export function PriceEntryForm({ onClose, onSuccess }: PriceEntryFormProps) {
   const { data: commodities } = useCommodities();
   const createPrices = useMarketStore((s) => s.createPrices);
+  const { user } = useAuth();
 
   const [commodityId, setCommodityId] = useState("");
   const [priceDate, setPriceDate] = useState(() => new Date().toISOString().split("T")[0]);
@@ -58,7 +58,7 @@ export function PriceEntryForm({ onClose, onSuccess }: PriceEntryFormProps) {
     try {
       await createPrices(
         validRows.map((r) => ({
-          userId: DEMO_USER_ID,
+          userId: user!.id,
           commodityId,
           contractMonth: r.contractMonth,
           priceDate,

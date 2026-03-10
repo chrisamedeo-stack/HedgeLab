@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { CommodityProvider, useCommodityContext } from "@/contexts/CommodityContext";
 import { OrgProvider, useOrgContext } from "@/contexts/OrgContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { OrgImpersonationBanner } from "@/components/platform/OrgImpersonationBanner";
 import { useCommodities } from "@/hooks/usePositions";
 import { useNavConfig } from "@/hooks/useOrgHierarchy";
 import type { OrgTreeNode } from "@/types/org";
@@ -210,6 +212,38 @@ function OrgTreeItem({
   );
 }
 
+// ─── User Section ────────────────────────────────────────────────────────
+
+function UserSection() {
+  const { user, logout } = useAuth();
+  const initials = user?.name
+    ? user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+    : "?";
+
+  return (
+    <div className="border-t border-b-default px-3 py-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-action text-white text-xs font-bold shrink-0">
+          {initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-secondary truncate">{user?.name ?? "—"}</p>
+          <p className="text-xs text-faint truncate">{user?.roleId ?? "—"}</p>
+        </div>
+        <button
+          onClick={logout}
+          title="Sign out"
+          className="text-faint hover:text-loss transition-colors shrink-0"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Dynamic Sidebar ────────────────────────────────────────────────────
 
 function Sidebar() {
@@ -360,23 +394,19 @@ function Sidebar() {
       </div>
 
       {/* User section */}
-      <div className="border-t border-b-default px-3 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-action text-white text-xs font-bold shrink-0">
-            SA
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-secondary truncate">System Admin</p>
-            <p className="text-xs text-faint truncate">admin</p>
-          </div>
-          <button title="Sign out" className="text-faint hover:text-loss transition-colors shrink-0">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-            </svg>
-          </button>
-        </div>
-      </div>
+      <UserSection />
     </aside>
+  );
+}
+
+function MainContent({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="flex-1 overflow-auto flex flex-col">
+      <OrgImpersonationBanner />
+      <div className="mx-auto max-w-7xl px-6 py-6 page-fade flex-1">
+        {children}
+      </div>
+    </main>
   );
 }
 
@@ -386,11 +416,7 @@ export default function PositionsLayout({ children }: { children: React.ReactNod
       <CommodityProvider>
         <div className="flex min-h-screen bg-main text-primary">
           <Sidebar />
-          <main className="flex-1 overflow-auto">
-            <div className="mx-auto max-w-7xl px-6 py-6 page-fade">
-              {children}
-            </div>
-          </main>
+          <MainContent>{children}</MainContent>
         </div>
       </CommodityProvider>
     </OrgProvider>

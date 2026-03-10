@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { usePositionStore } from "@/store/positionStore";
+import { useAuth } from "@/contexts/AuthContext";
 import type { SitePositionHedge } from "@/types/positions";
-
-const USER_ID = "00000000-0000-0000-0000-000000000010";
 
 interface OffsetModalProps {
   allocation: SitePositionHedge;
@@ -15,6 +14,7 @@ interface OffsetModalProps {
 
 export function OffsetModal({ allocation, onClose, onSuccess }: OffsetModalProps) {
   const { executeOffset } = usePositionStore();
+  const { user } = useAuth();
   const [offsetPrice, setOffsetPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +32,7 @@ export function OffsetModal({ allocation, onClose, onSuccess }: OffsetModalProps
     setError(null);
     try {
       await executeOffset({
-        userId: USER_ID,
+        userId: user!.id,
         allocationId: allocation.id,
         offsetPrice: Number(offsetPrice),
       });

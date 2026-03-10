@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useCommodityContext } from "@/contexts/CommodityContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCommodities } from "@/hooks/usePositions";
 import { useRiskSummary, useRiskHistory, usePositionLimits, useExposureByTenor, useExposureByCounterparty, useRiskStore } from "@/hooks/useRisk";
 import { KPICard } from "@/components/ui/KPICard";
@@ -12,8 +13,6 @@ import { PositionLimitUsageChart } from "@/components/charts/PositionLimitUsageC
 import { ExposureByTenorChart } from "@/components/charts/ExposureByTenorChart";
 import { CounterpartyExposureChart } from "@/components/charts/CounterpartyExposureChart";
 import type { LimitType, CreateLimitParams } from "@/types/risk";
-
-const USER_ID = "00000000-0000-0000-0000-000000000010";
 
 const tabs = [
   { id: "pnl", label: "P&L Overview" },
@@ -66,9 +65,10 @@ function PnlTab({ orgId, commodityId }: { orgId: string; commodityId?: string })
   const { data: summary, loading, refetch: refetchSummary } = useRiskSummary(orgId);
   const { data: history } = useRiskHistory(orgId, 30);
   const { runMtm, loading: mtmLoading } = useRiskStore();
+  const { user } = useAuth();
 
   async function handleRunMtm() {
-    await runMtm(orgId, USER_ID);
+    await runMtm(orgId, user!.id);
     refetchSummary();
   }
 
@@ -138,6 +138,7 @@ function LimitsTab({ orgId }: { orgId: string }) {
   const { data: limits, loading, refetch } = usePositionLimits(orgId);
   const { data: commodities } = useCommodities();
   const { createLimit, checkLimits, limitChecks, loading: actionLoading } = useRiskStore();
+  const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     commodityId: "",
@@ -152,7 +153,7 @@ function LimitsTab({ orgId }: { orgId: string }) {
     try {
       await createLimit({
         orgId,
-        userId: USER_ID,
+        userId: user!.id,
         commodityId: form.commodityId || undefined,
         limitType: form.limitType,
         limitValue: Number(form.limitValue),
@@ -168,7 +169,7 @@ function LimitsTab({ orgId }: { orgId: string }) {
   }
 
   async function handleCheckAll() {
-    await checkLimits(orgId, USER_ID);
+    await checkLimits(orgId, user!.id);
     refetch();
   }
 

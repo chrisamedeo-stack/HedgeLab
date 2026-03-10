@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Edit2 } from "lucide-react";
-import { useOrgContext } from "@/contexts/OrgContext";
+import { useOrgContextSafe } from "@/contexts/OrgContext";
 import { apiFetch, btnPrimary, btnCancel, cn } from "./shared";
 
 const MONTH_ABBR = [
@@ -16,8 +16,9 @@ const CBOT_LETTERS: Record<string, string> = {
 
 type MappingState = Record<string, number[]>;
 
-export function FuturesMonthsTab() {
-  const { orgId } = useOrgContext();
+export function FuturesMonthsTab({ orgId: propOrgId }: { orgId?: string } = {}) {
+  const ctx = useOrgContextSafe();
+  const orgId = propOrgId ?? ctx?.orgId ?? "";
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [error, setError] = useState<string | null>(null);

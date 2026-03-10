@@ -185,6 +185,70 @@ export async function getNavConfig(orgId: string): Promise<NavSection[]> {
   }));
 }
 
+// ─── Customer Profile (Transaction-safe) ──────────────────────────────────
+
+/**
+ * Apply customer profile within an existing transaction.
+ * Shared by setup wizard POST and platform admin createOrganization.
+ */
+export async function applyCustomerProfileInTx(
+  tx: { query: (text: string, params?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }> },
+  orgId: string,
+  profileId: string,
+  userId: string,
+  customLevels?: { depth: number; label: string; is_site_level?: boolean }[]
+): Promise<void> {
+  const profileRes = await tx.query(
+    `SELECT id, display_name, operating_model, default_plugins,
+            hierarchy_template, default_site_types, default_settings, description
+     FROM customer_profiles WHERE id = $1`,
+    [profileId]
+  );
+  const profile = profileRes.rows[0];
+  if (!profile) throw new Error(`Customer profile '${profileId}' not found`);
+
+  await tx.query(
+    `UPDATE organizations SET customer_profile_id = $2 WHERE id = $1`,
+    [orgId, profileId]
+  );
+
+  const levels = customLevels && customLevels.length > 0
+    ? customLevels
+    : (typeof profile.hierarchy_template === "string"
+        ? JSON.parse(profile.hierarchy_template as string)
+        : profile.hierarchy_template) as { depth: number; label: string; is_site_level?: boolean }[];
+
+  for (const level of levels) {
+    await tx.query(
+      `INSERT INTO org_hierarchy_levels (org_id, level_depth, label, is_site_level)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (org_id, level_depth) DO UPDATE SET label = $3, is_site_level = $4`,
+      [orgId, level.depth, level.label, level.is_site_level ?? false]
+    );
+  }
+
+  const plugins = profile.default_plugins as string[];
+  for (const pluginId of plugins) {
+    await tx.query(
+      `INSERT INTO org_plugins (org_id, plugin_id, is_enabled, enabled_by)
+       VALUES ($1, $2, true, $3)
+       ON CONFLICT (org_id, plugin_id) DO UPDATE SET is_enabled = true`,
+      [orgId, pluginId, userId]
+    );
+  }
+
+  const settings = typeof profile.default_settings === "string"
+    ? JSON.parse(profile.default_settings as string)
+    : profile.default_settings;
+
+  if (settings && Object.keys(settings as Record<string, unknown>).length > 0) {
+    await tx.query(
+      `UPDATE organizations SET settings = COALESCE(settings, '{}'::jsonb) || $2::jsonb WHERE id = $1`,
+      [orgId, JSON.stringify(settings)]
+    );
+  }
+}
+
 // ─── Customer Profiles ────────────────────────────────────────────────────
 
 /** Apply a customer profile to an org — creates hierarchy levels, enables plugins, merges settings */

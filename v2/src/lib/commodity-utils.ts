@@ -16,11 +16,15 @@ const MONTH_NUM_TO_CODE: Record<number, string> = Object.fromEntries(
 export interface CommodityConfig {
   id: string;
   name: string;
+  price_unit?: string;
+  volume_unit?: string;
   contract_months?: string; // e.g., "HKNUZ"
   exchange?: string;
   config?: {
     month_mappings?: Record<string, number[]>;
     futures_prefix?: string;
+    units_per_mt?: number;
+    /** @deprecated Use units_per_mt instead */
     bushels_per_mt?: number;
   };
 }

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Calendar } from "lucide-react";
-import { useOrgContext } from "@/contexts/OrgContext";
+import { useOrgContextSafe } from "@/contexts/OrgContext";
 import { apiFetch, btnPrimary, selectCls } from "./shared";
 import { TableSkeleton } from "./SharedUI";
 
@@ -15,8 +15,9 @@ const MONTH_ABBR = [
   "Jul","Aug","Sep","Oct","Nov","Dec",
 ];
 
-export function FiscalYearTab() {
-  const { orgId } = useOrgContext();
+export function FiscalYearTab({ orgId: propOrgId }: { orgId?: string } = {}) {
+  const ctx = useOrgContextSafe();
+  const orgId = propOrgId ?? ctx?.orgId ?? "";
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [month, setMonth] = useState(7);

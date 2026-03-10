@@ -5,6 +5,7 @@ import { useBudgetPeriods, useCoverage } from "@/hooks/useBudget";
 import { useCommodities, useSites } from "@/hooks/usePositions";
 import { useCommodityContext } from "@/contexts/CommodityContext";
 import { useOrgContext } from "@/contexts/OrgContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useBudgetStore } from "@/store/budgetStore";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { KPICard } from "@/components/ui/KPICard";
@@ -13,13 +14,12 @@ import { CoverageChart } from "@/components/budget/CoverageChart";
 import { BudgetVsCommittedChart } from "@/components/budget/BudgetVsCommittedChart";
 import Link from "next/link";
 
-const DEFAULT_USER = "00000000-0000-0000-0000-000000000010";
-
 type ChartMode = "coverage" | "budget-vs-committed";
 
 export default function BudgetPage() {
   const { orgId } = useOrgContext();
   const { commodityId } = useCommodityContext();
+  const { user } = useAuth();
   const { data: commodities } = useCommodities();
   const { data: sites } = useSites(orgId);
   const [filterSite, setFilterSite] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export default function BudgetPage() {
     try {
       await createPeriod({
         orgId: orgId,
-        userId: DEFAULT_USER,
+        userId: user!.id,
         siteId: newSite,
         commodityId,
         budgetYear: newYear,

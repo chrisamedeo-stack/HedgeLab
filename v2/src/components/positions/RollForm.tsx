@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useOrgContext } from "@/contexts/OrgContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { usePositionStore } from "@/store/positionStore";
 import type { RolloverCandidate } from "@/types/positions";
-
-const USER_ID = "00000000-0000-0000-0000-000000000010";
 
 interface RollFormProps {
   candidate: RolloverCandidate;
@@ -17,6 +16,7 @@ interface RollFormProps {
 export function RollForm({ candidate, onClose, onSuccess }: RollFormProps) {
   const { orgId } = useOrgContext();
   const { executeRoll } = usePositionStore();
+  const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +42,7 @@ export function RollForm({ candidate, onClose, onSuccess }: RollFormProps) {
     setError(null);
     try {
       await executeRoll({
-        userId: USER_ID,
+        userId: user!.id,
         orgId,
         sourceAllocationId: candidate.id,
         closePrice: Number(form.closePrice),

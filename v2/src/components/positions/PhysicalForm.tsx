@@ -3,13 +3,12 @@
 import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useOrgContext } from "@/contexts/OrgContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { usePositionStore } from "@/store/positionStore";
 import { usePricingStore } from "@/store/pricingStore";
 import type { PhysicalDirection, PricingType } from "@/types/positions";
 import type { FormulaRow } from "@/types/pricing";
 import type { FormulaComponent, EvaluationResult } from "@/lib/pricingEngine";
-
-const USER_ID = "00000000-0000-0000-0000-000000000010";
 const inputCls = "w-full rounded-md border border-b-input bg-input-bg px-3 py-2 text-sm text-primary focus:border-focus focus:outline-none";
 
 interface PhysicalFormProps {
@@ -23,6 +22,7 @@ interface PhysicalFormProps {
 export function PhysicalForm({ orgId, siteId, commodities, onClose, onSuccess }: PhysicalFormProps) {
   const { createPhysical } = usePositionStore();
   const { isPluginEnabled } = useOrgContext();
+  const { user } = useAuth();
   const { formulas, fetchFormulas, evaluateFormula } = usePricingStore();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +111,7 @@ export function PhysicalForm({ orgId, siteId, commodities, onClose, onSuccess }:
 
       await createPhysical({
         orgId,
-        userId: USER_ID,
+        userId: user!.id,
         siteId,
         commodityId: form.commodityId,
         direction: form.direction as PhysicalDirection,

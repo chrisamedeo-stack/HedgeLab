@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useOrgContext } from "@/contexts/OrgContext";
+import { useOrgContextSafe } from "@/contexts/OrgContext";
 import { apiFetch, btnPrimary, inputCls, selectCls, cn } from "./shared";
 import { TableSkeleton } from "./SharedUI";
 
@@ -82,8 +82,9 @@ function SectionCard({ title, description, children }: { title: string; descript
   );
 }
 
-export function OrgSettingsTab() {
-  const { orgId } = useOrgContext();
+export function OrgSettingsTab({ orgId: propOrgId }: { orgId?: string } = {}) {
+  const ctx = useOrgContextSafe();
+  const orgId = propOrgId ?? ctx?.orgId ?? "";
   const [settings, setSettings] = useState<OrgSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

@@ -184,7 +184,7 @@ export function BudgetLineForm({ periodId, userId, onClose, commodity, commodity
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="text-xs text-muted">Budgeted Volume (MT)</label>
+          <label className="text-xs text-muted">Budgeted Volume ({commodity?.volume_unit || "MT"})</label>
           <input
             type="number"
             step="0.01"
@@ -263,7 +263,7 @@ export function BudgetLineForm({ periodId, userId, onClose, commodity, commodity
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="text-xs text-muted">Forecast Volume (MT)</label>
+          <label className="text-xs text-muted">Forecast Volume ({commodity?.volume_unit || "MT"})</label>
           <input
             type="number"
             step="0.01"
@@ -290,7 +290,7 @@ export function BudgetLineForm({ periodId, userId, onClose, commodity, commodity
       <div className="space-y-1">
         <label className="text-xs text-muted">Cost Components</label>
         <div className="border border-b-input rounded-lg p-3 bg-surface/30">
-          <ComponentEditor components={components} onChange={handleComponentsChange} />
+          <ComponentEditor components={components} onChange={handleComponentsChange} commodity={commodity as import("@/hooks/usePositions").Commodity | null} />
         </div>
       </div>
 

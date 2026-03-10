@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { usePositionStore } from "@/store/positionStore";
-
-const USER_ID = "00000000-0000-0000-0000-000000000010"; // demo admin
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AllocateFormProps {
   orgId: string;
@@ -16,6 +15,7 @@ interface AllocateFormProps {
 
 export function AllocateForm({ orgId, sites, commodities, onClose, onSuccess }: AllocateFormProps) {
   const { allocate } = usePositionStore();
+  const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +39,7 @@ export function AllocateForm({ orgId, sites, commodities, onClose, onSuccess }: 
     try {
       await allocate({
         orgId,
-        userId: USER_ID,
+        userId: user!.id,
         siteId: form.siteId,
         commodityId: form.commodityId,
         allocatedVolume: Number(form.allocatedVolume),

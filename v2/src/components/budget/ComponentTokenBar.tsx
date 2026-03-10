@@ -1,21 +1,14 @@
 "use client";
 
 import type { BudgetComponent } from "@/types/budget";
+import type { Commodity } from "@/hooks/usePositions";
+import { toPerPriceUnit, formatPriceWithUnit } from "@/lib/commodity-units";
 
 interface ComponentTokenBarProps {
   components: BudgetComponent[];
+  commodity?: Commodity | null;
+  /** @deprecated Use commodity prop instead */
   bushelsPerMt?: number;
-}
-
-function toPerBu(value: number, unit: string, bushelsPerMt: number): number {
-  switch (unit) {
-    case "$/bu":
-      return value;
-    case "$/MT":
-      return bushelsPerMt > 0 ? value / bushelsPerMt : 0;
-    default:
-      return value;
-  }
 }
 
 const PILL_COLORS = [
@@ -28,17 +21,22 @@ const PILL_COLORS = [
   "bg-[#3a4e1a]/60 text-[#b8f07d]",
 ];
 
-export function ComponentTokenBar({ components, bushelsPerMt = 39.3683 }: ComponentTokenBarProps) {
+export function ComponentTokenBar({ components, commodity, bushelsPerMt }: ComponentTokenBarProps) {
   if (!components || components.length === 0) return null;
 
-  // Compute all-in total: first sum absolute values, then apply percentages
+  // Build a compat commodity object if only bushelsPerMt was passed (legacy callers)
+  const effectiveCommodity: Commodity | null = commodity ?? (bushelsPerMt
+    ? { id: "", name: "", category: "", unit: "", currency: "", exchange: "", config: { units_per_mt: bushelsPerMt } }
+    : null);
+
+  // Compute all-in total in native price unit
   let baseTotal = 0;
   let pctMultiplier = 1;
   for (const c of components) {
     if (c.unit === "%") {
       pctMultiplier *= 1 + Number(c.target_value || 0) / 100;
     } else {
-      baseTotal += toPerBu(Number(c.target_value), c.unit, bushelsPerMt);
+      baseTotal += toPerPriceUnit(Number(c.target_value), c.unit, effectiveCommodity);
     }
   }
   const allIn = baseTotal * pctMultiplier;
@@ -54,7 +52,7 @@ export function ComponentTokenBar({ components, bushelsPerMt = 39.3683 }: Compon
         </span>
       ))}
       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-profit/15 text-profit tabular-nums">
-        = ${allIn.toFixed(4)}/bu
+        = {formatPriceWithUnit(allIn, effectiveCommodity)}
       </span>
     </div>
   );

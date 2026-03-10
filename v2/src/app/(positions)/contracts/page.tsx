@@ -5,6 +5,7 @@ import { useContracts, useCounterparties, useContractStore } from "@/hooks/useCo
 import { useSites, useCommodities } from "@/hooks/usePositions";
 import { useCommodityContext } from "@/contexts/CommodityContext";
 import { useOrgContext } from "@/contexts/OrgContext";
+import { useAuth } from "@/contexts/AuthContext";
 import type {
   PhysicalContract,
   ContractStatus,
@@ -13,8 +14,6 @@ import type {
   ContractPricingType,
   ContractFilters,
 } from "@/types/contracts";
-
-const USER_ID = "00000000-0000-0000-0000-000000000010";
 
 const statusStyle: Record<string, string> = {
   draft: "bg-hover text-muted",
@@ -34,6 +33,7 @@ const statusActions: Record<string, { label: string; action: string; className: 
 export default function ContractsPage() {
   const { orgId } = useOrgContext();
   const { commodityId } = useCommodityContext();
+  const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState<ContractStatus | "">("");
   const [typeFilter, setTypeFilter] = useState<ContractType | "">("");
   const [counterpartyFilter, setCounterpartyFilter] = useState("");
@@ -79,7 +79,7 @@ export default function ContractsPage() {
     try {
       await createContract({
         orgId,
-        userId: USER_ID,
+        userId: user!.id,
         counterpartyId: form.counterpartyId || undefined,
         commodityId: form.commodityId || undefined,
         siteId: form.siteId || undefined,
@@ -132,7 +132,7 @@ export default function ContractsPage() {
       return;
     }
     try {
-      await transitionContract(contractId, USER_ID, action);
+      await transitionContract(contractId, user!.id, action);
       refetch();
     } catch {
       // error handled by store
@@ -142,7 +142,7 @@ export default function ContractsPage() {
   async function handleDeliver() {
     if (!deliverContractId || !deliverVolume) return;
     try {
-      await transitionContract(deliverContractId, USER_ID, "deliver", {
+      await transitionContract(deliverContractId, user!.id, "deliver", {
         volume: Number(deliverVolume),
       });
       setDeliverContractId(null);
@@ -155,7 +155,7 @@ export default function ContractsPage() {
 
   async function handleCancel(contractId: string) {
     if (!confirm("Cancel this contract?")) return;
-    await cancelContract(contractId, USER_ID);
+    await cancelContract(contractId, user!.id);
     refetch();
   }
 

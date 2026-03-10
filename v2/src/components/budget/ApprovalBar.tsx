@@ -10,7 +10,7 @@ interface ApprovalBarProps {
 }
 
 export function ApprovalBar({ period, userId }: ApprovalBarProps) {
-  const { submitBudget, approveBudget, lockBudget, unlockBudget, createSnapshot } = useBudgetStore();
+  const { lockBudget, unlockBudget, createSnapshot } = useBudgetStore();
   const [busy, setBusy] = useState(false);
 
   const act = async (fn: () => Promise<void>) => {
@@ -33,34 +33,14 @@ export function ApprovalBar({ period, userId }: ApprovalBarProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Snapshot button always available */}
-        <button
-          disabled={busy}
-          onClick={() => act(() => createSnapshot(period.id, userId))}
-          className="px-3 py-1.5 text-xs text-muted border border-b-input rounded-lg hover:bg-hover hover:text-secondary transition-colors disabled:opacity-50"
-        >
-          Save Snapshot
-        </button>
-
-        {/* Draft → Submit */}
-        {period.status === "draft" && !isLocked && (
+        {/* Snapshot — always available when not locked */}
+        {!isLocked && (
           <button
             disabled={busy}
-            onClick={() => act(() => submitBudget(period.id, userId))}
-            className="px-3 py-1.5 text-xs font-medium text-white bg-action rounded-lg hover:bg-action-hover transition-colors disabled:opacity-50"
+            onClick={() => act(() => createSnapshot(period.id, userId))}
+            className="px-3 py-1.5 text-xs text-muted border border-b-input rounded-lg hover:bg-hover hover:text-secondary transition-colors disabled:opacity-50"
           >
-            Submit for Approval
-          </button>
-        )}
-
-        {/* Submitted → Approve */}
-        {period.status === "submitted" && !isLocked && (
-          <button
-            disabled={busy}
-            onClick={() => act(() => approveBudget(period.id, userId))}
-            className="px-3 py-1.5 text-xs font-medium text-white bg-profit rounded-lg hover:bg-profit-hover transition-colors disabled:opacity-50"
-          >
-            Approve
+            Save Snapshot
           </button>
         )}
 
@@ -95,8 +75,6 @@ function StatusDot({ status, locked }: { status: string; locked: boolean }) {
     ? "bg-warning"
     : status === "approved"
     ? "bg-profit"
-    : status === "submitted"
-    ? "bg-action"
     : "bg-muted";
 
   return <span className={`inline-block h-2 w-2 rounded-full ${color}`} />;

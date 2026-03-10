@@ -32,8 +32,6 @@ interface BudgetState {
   upsertLineItem: (periodId: string, data: UpsertLineItemParams & { userId?: string }) => Promise<BudgetLineItem>;
   upsertLineItems: (periodId: string, items: UpsertLineItemParams[], userId?: string) => Promise<BudgetLineItem[]>;
   deleteLineItem: (periodId: string, lineItemId: string, userId?: string) => Promise<void>;
-  submitBudget: (periodId: string, userId: string) => Promise<void>;
-  approveBudget: (periodId: string, userId: string) => Promise<void>;
   lockBudget: (periodId: string, userId: string) => Promise<void>;
   unlockBudget: (periodId: string, userId: string) => Promise<void>;
   fetchForecastHistory: (periodId: string, lineItemId: string) => Promise<ForecastHistoryEntry[]>;
@@ -141,36 +139,6 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
       const params = userId ? `?userId=${userId}` : "";
       const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/line-items/${lineItemId}${params}`, {
         method: "DELETE",
-      });
-      if (!res.ok) throw new Error((await res.json()).error);
-      await get().fetchPeriod(periodId);
-    } catch (err) {
-      set({ error: (err as Error).message });
-      throw err;
-    }
-  },
-
-  submitBudget: async (periodId, userId) => {
-    try {
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/submit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error);
-      await get().fetchPeriod(periodId);
-    } catch (err) {
-      set({ error: (err as Error).message });
-      throw err;
-    }
-  },
-
-  approveBudget: async (periodId, userId) => {
-    try {
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
       await get().fetchPeriod(periodId);

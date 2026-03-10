@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { query } from "@/lib/db";
+import { query, queryOne } from "@/lib/db";
 import { auditLog } from "@/lib/audit";
 import { requirePlugin, PluginNotEnabledError } from "@/lib/orgHierarchy";
 import type { FormulaComponent } from "@/lib/pricingEngine";
@@ -111,6 +111,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Template not found" }, { status: 404 });
     }
 
+    // Resolve output unit and component units from commodity's price_unit if available
+    let resolvedOutputUnit = template.outputUnit;
+    let resolvedComponents = template.components;
+    if (commodityId) {
+      const commodity = await queryOne<{ price_unit: string | null }>(
+        `SELECT price_unit FROM commodities WHERE id = $1`,
+        [commodityId]
+      );
+      if (commodity?.price_unit) {
+        const priceUnit = `USD/${commodity.price_unit.replace("$/", "").replace("cents/", "")}`;
+        // Only remap grain-style templates (USD/bu based)
+        if (template.outputUnit === "USD/bu") {
+          resolvedOutputUnit = priceUnit;
+          resolvedComponents = template.components.map((c) => ({
+            ...c,
+            unit: c.unit === "USD/bu" ? priceUnit : c.unit,
+          }));
+        }
+      }
+    }
+
     const result = await query(
       `INSERT INTO pricing_formulas
          (org_id, name, description, commodity_id, formula_type, components,
@@ -123,8 +144,8 @@ export async function POST(request: Request) {
         template.description,
         commodityId ?? null,
         template.formulaType,
-        JSON.stringify(template.components),
-        template.outputUnit,
+        JSON.stringify(resolvedComponents),
+        resolvedOutputUnit,
         4,
       ]
     );
