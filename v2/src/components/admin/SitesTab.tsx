@@ -22,8 +22,8 @@ export function SitesTab({ orgId: propOrgId }: { orgId?: string } = {}) {
   const load = useCallback(async () => {
     try {
       const [sitesData, typesData] = await Promise.all([
-        apiFetch(`/api/v2/kernel/sites?orgId=${orgId}`),
-        apiFetch("/api/v2/kernel/site-types"),
+        apiFetch(`/api/kernel/sites?orgId=${orgId}`),
+        apiFetch("/api/kernel/site-types"),
       ]);
       setSites(sitesData);
       setSiteTypes(typesData ?? []);
@@ -51,9 +51,9 @@ export function SitesTab({ orgId: propOrgId }: { orgId?: string } = {}) {
     try {
       const payload = { orgId, code: form.code, name: form.name, region: form.region || null, siteTypeId: form.siteTypeId };
       if (editing) {
-        await apiFetch(`/api/v2/kernel/sites/${editing.id}`, { method: "PUT", body: JSON.stringify({ ...payload, id: editing.id }) });
+        await apiFetch(`/api/kernel/sites/${editing.id}`, { method: "PUT", body: JSON.stringify({ ...payload, id: editing.id }) });
       } else {
-        await apiFetch("/api/v2/kernel/sites", { method: "POST", body: JSON.stringify(payload) });
+        await apiFetch("/api/kernel/sites", { method: "POST", body: JSON.stringify(payload) });
       }
       cancelForm(); load();
     } catch (err) { setError((err as Error).message); }
@@ -63,7 +63,7 @@ export function SitesTab({ orgId: propOrgId }: { orgId?: string } = {}) {
   async function handleDelete() {
     if (!deleteTarget) return;
     try {
-      await apiFetch(`/api/v2/kernel/sites/${deleteTarget.id}`, { method: "DELETE" });
+      await apiFetch(`/api/kernel/sites/${deleteTarget.id}`, { method: "DELETE" });
       load();
     } catch (err) { setError((err as Error).message); }
     finally { setDeleteTarget(null); }

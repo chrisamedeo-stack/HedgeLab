@@ -36,7 +36,7 @@ interface BudgetState {
   unlockBudget: (periodId: string, userId: string) => Promise<void>;
   fetchForecastHistory: (periodId: string, lineItemId: string) => Promise<ForecastHistoryEntry[]>;
   batchForecastUpdate: (periodId: string, updates: { budgetMonth: string; forecastVolume?: number | null; forecastPrice?: number | null }[], note: string, userId: string) => Promise<void>;
-  fetchCoverage: (orgId: string, commodityId?: string, siteId?: string) => Promise<void>;
+  fetchCoverage: (orgId: string, commodityId?: string, siteId?: string, orgUnitId?: string) => Promise<void>;
   fetchVersions: (periodId: string) => Promise<void>;
   createSnapshot: (periodId: string, userId: string, name?: string) => Promise<void>;
   restoreVersion: (periodId: string, versionNumber: number, userId: string) => Promise<void>;
@@ -60,7 +60,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
       if (filters?.commodityId) params.set("commodityId", filters.commodityId);
       if (filters?.budgetYear) params.set("budgetYear", String(filters.budgetYear));
       if (filters?.status) params.set("status", filters.status);
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods?${params}`);
+      const res = await fetch(`${API_BASE}/api/budget/periods?${params}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const periods = await res.json();
       set({ periods, loading: false });
@@ -72,7 +72,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
   fetchPeriod: async (periodId) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}`);
+      const res = await fetch(`${API_BASE}/api/budget/periods/${periodId}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const period = await res.json();
       set({ selectedPeriod: period, loading: false });
@@ -84,7 +84,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
   createPeriod: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods`, {
+      const res = await fetch(`${API_BASE}/api/budget/periods`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
@@ -101,7 +101,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
 
   upsertLineItem: async (periodId, data) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/line-items`, {
+      const res = await fetch(`${API_BASE}/api/budget/periods/${periodId}/line-items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -119,7 +119,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
 
   upsertLineItems: async (periodId, items, userId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/line-items`, {
+      const res = await fetch(`${API_BASE}/api/budget/periods/${periodId}/line-items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items, userId }),
@@ -137,7 +137,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
   deleteLineItem: async (periodId, lineItemId, userId) => {
     try {
       const params = userId ? `?userId=${userId}` : "";
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/line-items/${lineItemId}${params}`, {
+      const res = await fetch(`${API_BASE}/api/budget/periods/${periodId}/line-items/${lineItemId}${params}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error((await res.json()).error);
@@ -150,7 +150,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
 
   lockBudget: async (periodId, userId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/lock`, {
+      const res = await fetch(`${API_BASE}/api/budget/periods/${periodId}/lock`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
@@ -165,7 +165,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
 
   unlockBudget: async (periodId, userId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/unlock`, {
+      const res = await fetch(`${API_BASE}/api/budget/periods/${periodId}/unlock`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
@@ -180,7 +180,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
 
   fetchForecastHistory: async (periodId, lineItemId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/line-items/${lineItemId}/forecast-history`);
+      const res = await fetch(`${API_BASE}/api/budget/periods/${periodId}/line-items/${lineItemId}/forecast-history`);
       if (!res.ok) throw new Error((await res.json()).error);
       const history: ForecastHistoryEntry[] = await res.json();
       set((s) => ({ forecastHistory: { ...s.forecastHistory, [lineItemId]: history } }));
@@ -193,7 +193,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
 
   batchForecastUpdate: async (periodId, updates, note, userId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/line-items/forecast-batch`, {
+      const res = await fetch(`${API_BASE}/api/budget/periods/${periodId}/line-items/forecast-batch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ updates, note, userId }),
@@ -206,13 +206,14 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
     }
   },
 
-  fetchCoverage: async (orgId, commodityId, siteId) => {
+  fetchCoverage: async (orgId, commodityId, siteId, orgUnitId) => {
     set({ loading: true, error: null });
     try {
       const params = new URLSearchParams({ orgId });
       if (commodityId) params.set("commodityId", commodityId);
       if (siteId) params.set("siteId", siteId);
-      const res = await fetch(`${API_BASE}/api/v2/budget/coverage?${params}`);
+      if (orgUnitId) params.set("orgUnitId", orgUnitId);
+      const res = await fetch(`${API_BASE}/api/budget/coverage?${params}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const coverage = await res.json();
       set({ coverage, loading: false });
@@ -223,7 +224,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
 
   fetchVersions: async (periodId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/versions`);
+      const res = await fetch(`${API_BASE}/api/budget/periods/${periodId}/versions`);
       if (!res.ok) throw new Error((await res.json()).error);
       const versions = await res.json();
       set({ versions });
@@ -234,7 +235,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
 
   createSnapshot: async (periodId, userId, name) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/versions`, {
+      const res = await fetch(`${API_BASE}/api/budget/periods/${periodId}/versions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, name }),
@@ -249,7 +250,7 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
 
   restoreVersion: async (periodId, versionNumber, userId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v2/budget/periods/${periodId}/versions/${versionNumber}/restore`, {
+      const res = await fetch(`${API_BASE}/api/budget/periods/${periodId}/versions/${versionNumber}/restore`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),

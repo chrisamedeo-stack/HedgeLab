@@ -275,6 +275,33 @@ export interface AllInSummaryEntry {
   currency: string;
 }
 
+// ─── Basis Aggregation Types ─────────────────────────────────────────────────
+
+export interface BasisBySite {
+  site_id: string;
+  name: string;
+  code: string;
+  avg_basis: number;
+  total_volume: number;
+  min_basis: number;
+  max_basis: number;
+}
+
+export interface BasisByMonth {
+  delivery_month: string;
+  locked_basis: number | null;
+  locked_volume: number;
+  physical_basis: number | null;
+  physical_volume: number;
+}
+
+export interface BasisSummary {
+  bySite: BasisBySite[];
+  byMonth: BasisByMonth[];
+}
+
+// ─── Position Chain ──────────────────────────────────────────────────────────
+
 export interface PositionChain {
   current_id: string;
   original_id: string;

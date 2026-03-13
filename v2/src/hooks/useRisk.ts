@@ -63,4 +63,14 @@ export function useExposureByCounterparty(orgId: string) {
   return { data: exposureByCounterparty, refetch: () => fetchExposureByCounterparty(orgId) };
 }
 
+export function usePnlAttribution(orgId: string, commodityId?: string) {
+  const { attribution, fetchAttribution } = useRiskStore();
+
+  useEffect(() => {
+    if (orgId) fetchAttribution(orgId, commodityId);
+  }, [orgId, commodityId, fetchAttribution]);
+
+  return { data: attribution, refetch: () => fetchAttribution(orgId, commodityId) };
+}
+
 export { useRiskStore } from "@/store/riskStore";

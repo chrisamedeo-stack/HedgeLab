@@ -38,7 +38,7 @@ function useFetch<T>(
 export function useOrgTree(orgId?: string) {
   return useFetch<OrgTreeNode[]>(async () => {
     if (!orgId) return [];
-    const res = await fetch(`${API_BASE}/api/v2/kernel/org-hierarchy?orgId=${orgId}`);
+    const res = await fetch(`${API_BASE}/api/kernel/org-hierarchy?orgId=${orgId}`);
     if (!res.ok) throw new Error((await res.json()).error);
     return res.json();
   }, [orgId]);
@@ -61,7 +61,7 @@ interface PluginStatus {
 export function useEnabledPlugins(orgId?: string) {
   return useFetch<PluginStatus[]>(async () => {
     if (!orgId) return [];
-    const res = await fetch(`${API_BASE}/api/v2/kernel/org-plugins?orgId=${orgId}`);
+    const res = await fetch(`${API_BASE}/api/kernel/org-plugins?orgId=${orgId}`);
     if (!res.ok) throw new Error((await res.json()).error);
     return res.json();
   }, [orgId]);
@@ -72,7 +72,7 @@ export function useEnabledPlugins(orgId?: string) {
 export function useNavConfig(orgId?: string) {
   return useFetch<NavSection[]>(async () => {
     if (!orgId) return [];
-    const res = await fetch(`${API_BASE}/api/v2/kernel/org-plugins?orgId=${orgId}`);
+    const res = await fetch(`${API_BASE}/api/kernel/org-plugins?orgId=${orgId}`);
     if (!res.ok) throw new Error((await res.json()).error);
     const plugins: PluginStatus[] = await res.json();
 
@@ -109,7 +109,7 @@ export function useNavConfig(orgId?: string) {
 export function useHierarchyLevels(orgId?: string) {
   return useFetch<HierarchyLevel[]>(async () => {
     if (!orgId) return [];
-    const res = await fetch(`${API_BASE}/api/v2/kernel/org-hierarchy/levels?orgId=${orgId}`);
+    const res = await fetch(`${API_BASE}/api/kernel/org-hierarchy/levels?orgId=${orgId}`);
     if (!res.ok) throw new Error((await res.json()).error);
     return res.json();
   }, [orgId]);
@@ -119,7 +119,7 @@ export function useHierarchyLevels(orgId?: string) {
 
 export function useCustomerProfiles() {
   return useFetch<CustomerProfile[]>(async () => {
-    const res = await fetch(`${API_BASE}/api/v2/kernel/customer-profiles`);
+    const res = await fetch(`${API_BASE}/api/kernel/customer-profiles`);
     if (!res.ok) throw new Error((await res.json()).error);
     return res.json();
   }, []);

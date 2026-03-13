@@ -111,19 +111,19 @@ export function TradeBlotter({ trades, commodities, sites, orgId, onRefresh }: T
         data={trades}
         keyField="id"
         onRowClick={(row) => setExpandedId(expandedId === row.id ? null : row.id)}
+        expandedKey={expandedId}
+        renderExpandedRow={(row) => (
+          <TradeDetail
+            tradeId={row.id}
+            commodities={commodities}
+            sites={sites}
+            orgId={orgId}
+            onClose={() => setExpandedId(null)}
+            onRefresh={onRefresh}
+          />
+        )}
         emptyMessage="No trades found"
       />
-
-      {expandedId && (
-        <TradeDetail
-          tradeId={expandedId}
-          commodities={commodities}
-          sites={sites}
-          orgId={orgId}
-          onClose={() => setExpandedId(null)}
-          onRefresh={onRefresh}
-        />
-      )}
     </div>
   );
 }

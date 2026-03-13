@@ -10,26 +10,18 @@ This is the single source of truth. Every table schema, service function, event,
 ## CRITICAL RULES
 
 ### Scalability — Nothing Hardcoded
-
-- **No hardcoded regions, geographies, or country names** in any code. The org hierarchy comes from `org_units` and `org_hierarchy_levels` tables.
+- **No hardcoded regions, geographies, or country names** in any code. Regions come from `site_groups` table.
 - **No hardcoded commodity names** (no "CORN" string literals in UI logic). Commodities come from the `commodities` table.
 - **No hardcoded site types.** Site types come from `site_types` table.
-- **No hardcoded plugins or features.** Check `org_plugins` before rendering any plugin's UI or processing its API requests. If a plugin isn't enabled for the org, it doesn't exist for that org.
-- Every dropdown, tab group, filter, and navigation element that displays regions, commodities, site types, or hierarchy levels must be **data-driven from the database**.
-- Navigation sidebar renders the org hierarchy tree dynamically — a multi-national sees corporate → country → region → site, a producer sees just sites. The depth comes from `org_hierarchy_levels`.
-- Clicking any non-site node in the hierarchy shows a roll-up dashboard aggregating all sites below it.
-- Seed data and customer profiles are starting points. The system must work with zero seed data if an org configures everything themselves.
+- Every dropdown, tab group, filter, and navigation element that displays regions, commodities, site types, or site groups must be **data-driven from the database**.
+- Seed data is example-only. The system must work with zero seed data if an org configures everything themselves.
 
 ### Architecture — Kernel + Plugins
-
 - Only the kernel is required. Every plugin is optional.
-- **Plugins are enabled per-org via the `org_plugins` table.** Check `isPluginEnabled(orgId, pluginId)` before rendering UI or processing requests.
 - **No foreign keys across module boundaries.** Use soft UUID references.
 - Every plugin must define fallback behavior when its dependencies are missing.
 - Plugins communicate through the event bus (`lib/eventBus.js`), never direct imports.
 - Table naming: kernel tables have no prefix. Plugin tables use their prefix (`tc_`, `pm_`, `bgt_`, etc.).
-- Org hierarchy (`org_units`, `org_hierarchy_levels`) drives all navigation, grouping, and roll-up aggregation. Never hardcode hierarchy levels.
-- Customer profiles (`customer_profiles`) pre-configure new orgs with the right plugins, hierarchy, and settings. All editable after creation.
 
 ### Data Integrity
 - All financial values: `NUMERIC` type. Never `FLOAT` or `DOUBLE`.
@@ -40,12 +32,10 @@ This is the single source of truth. Every table schema, service function, event,
 
 ### UI
 - Dark trading theme. Reference v1 for color scheme and layout patterns.
-- Navigation sidebar renders the org hierarchy tree dynamically from `org_units`. Expandable/collapsible nodes. Clicking a non-site node shows a roll-up dashboard. Clicking a site shows the 4-section site view.
-- Hedge book groups by the hierarchy level above sites — not hardcoded "region." A multi-national groups by country, a regional company groups by region, a single-site producer shows no grouping.
+- Region/site grouping tabs are rendered dynamically from database queries.
 - The 4-section site view layout (hedges → physical commitments → open board → all-in summary) is the core UX pattern.
 - EFP is handled behind the scenes — user clicks "lock", system executes EFP logic invisibly.
 - Offset only allowed from site level, never from hedge book.
-- Nav items and features are gated by `org_plugins`. If a plugin isn't enabled, its nav links, pages, and API routes don't render or respond.
 
 ## BUILD ORDER
 Follow this sequence. Do not skip steps.
@@ -78,6 +68,8 @@ hedgelab-v2/
 ├── CLAUDE.md                    ← You are here
 ├── docs/
 │   └── HEDGELAB_MASTER_v2.md    ← Master design document
+├── prisma/
+│   └── schema.prisma            ← Or use raw SQL migrations
 ├── src/
 │   ├── app/                     ← Next.js app router
 │   │   ├── api/                 ← API routes by module

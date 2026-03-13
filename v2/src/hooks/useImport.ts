@@ -55,7 +55,7 @@ interface ImportJob {
 export function useImportJobs(orgId: string) {
   return useFetch<ImportJob[]>(async () => {
     if (!orgId) return [];
-    const res = await fetch(`${API_BASE}/api/v2/kernel/import?orgId=${orgId}`);
+    const res = await fetch(`${API_BASE}/api/kernel/import?orgId=${orgId}`);
     if (!res.ok) throw new Error((await res.json()).error);
     return res.json();
   }, [orgId]);
@@ -83,7 +83,7 @@ interface ImportJobDetail {
 export function useImportJob(jobId: string | null) {
   return useFetch<ImportJobDetail | null>(async () => {
     if (!jobId) return null;
-    const res = await fetch(`${API_BASE}/api/v2/kernel/import?jobId=${jobId}`);
+    const res = await fetch(`${API_BASE}/api/kernel/import?jobId=${jobId}`);
     if (!res.ok) throw new Error((await res.json()).error);
     return res.json();
   }, [jobId]);
@@ -100,7 +100,7 @@ interface ImportTarget {
 
 export function useImportTargets() {
   return useFetch<ImportTarget[]>(async () => {
-    const res = await fetch(`${API_BASE}/api/v2/kernel/import`, {
+    const res = await fetch(`${API_BASE}/api/kernel/import`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "targets" }),
@@ -126,7 +126,7 @@ interface ImportTemplate {
 export function useImportTemplates(orgId: string) {
   return useFetch<ImportTemplate[]>(async () => {
     if (!orgId) return [];
-    const res = await fetch(`${API_BASE}/api/v2/import/templates?orgId=${orgId}`);
+    const res = await fetch(`${API_BASE}/api/import/templates?orgId=${orgId}`);
     if (!res.ok) throw new Error((await res.json()).error);
     return res.json();
   }, [orgId]);

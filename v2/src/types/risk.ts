@@ -122,3 +122,24 @@ export interface CounterpartyExposure {
   contractCount: number;
   remainingVolume: number;
 }
+
+// --- P&L Attribution ---
+
+export interface PnlAttribution {
+  id: string;
+  org_id: string;
+  attribution_date: string;
+  commodity_id: string | null;
+  prior_total_pnl: number;
+  current_total_pnl: number;
+  total_change: number;
+  price_change_pnl: number;
+  new_trades_pnl: number;
+  closed_positions_pnl: number;
+  roll_pnl: number;
+  basis_pnl: number;
+  residual_pnl: number;
+  currency: string;
+  created_at: string;
+  commodity_name?: string;
+}

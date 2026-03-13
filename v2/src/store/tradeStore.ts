@@ -46,7 +46,7 @@ export const useTradeStore = create<TradeState>((set) => ({
   fetchTrades: async (orgId, filters) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/trades${qs({ orgId, ...filters })}`);
+      const res = await fetch(`${API_BASE}/api/trades${qs({ orgId, ...filters })}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const trades = await res.json();
       set({ trades, loading: false });
@@ -58,7 +58,7 @@ export const useTradeStore = create<TradeState>((set) => ({
   fetchTrade: async (tradeId) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/trades/${tradeId}`);
+      const res = await fetch(`${API_BASE}/api/trades/${tradeId}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const selectedTrade = await res.json();
       set({ selectedTrade, loading: false });
@@ -70,7 +70,7 @@ export const useTradeStore = create<TradeState>((set) => ({
   createTrade: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/trades`, {
+      const res = await fetch(`${API_BASE}/api/trades`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
@@ -88,7 +88,7 @@ export const useTradeStore = create<TradeState>((set) => ({
   createTrades: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/trades`, {
+      const res = await fetch(`${API_BASE}/api/trades`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
@@ -106,7 +106,7 @@ export const useTradeStore = create<TradeState>((set) => ({
   updateTrade: async (tradeId, userId, changes) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/trades/${tradeId}`, {
+      const res = await fetch(`${API_BASE}/api/trades/${tradeId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, ...changes }),
@@ -128,7 +128,7 @@ export const useTradeStore = create<TradeState>((set) => ({
     set({ loading: true, error: null });
     try {
       const res = await fetch(
-        `${API_BASE}/api/v2/trades/${tradeId}?userId=${userId}${reason ? `&reason=${encodeURIComponent(reason)}` : ""}`,
+        `${API_BASE}/api/trades/${tradeId}?userId=${userId}${reason ? `&reason=${encodeURIComponent(reason)}` : ""}`,
         { method: "DELETE" }
       );
       if (!res.ok) throw new Error((await res.json()).error);

@@ -14,6 +14,7 @@ interface PlatformState {
   fetchStats: () => Promise<void>;
   updateOrg: (orgId: string, patch: Record<string, unknown>) => Promise<void>;
   deactivateOrg: (orgId: string) => Promise<void>;
+  hardDeleteOrg: (orgId: string) => Promise<void>;
   togglePlugin: (orgId: string, pluginId: string, enabled: boolean) => Promise<void>;
   clearError: () => void;
 }
@@ -91,6 +92,20 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to deactivate organization");
+      set({ selectedOrg: null, loading: false });
+      get().fetchOrgs();
+    } catch (err) {
+      set({ error: (err as Error).message, loading: false });
+    }
+  },
+
+  hardDeleteOrg: async (orgId: string) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await fetch(`${API_BASE}/api/platform/organizations/${orgId}?hard=true`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete organization");
       set({ selectedOrg: null, loading: false });
       get().fetchOrgs();
     } catch (err) {

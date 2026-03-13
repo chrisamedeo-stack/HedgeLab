@@ -81,13 +81,26 @@ export async function createOrganization(data: CreateOrganizationRequest): Promi
       [org.id, baseCurrency]
     );
 
+    // Try inserting user — if email exists, use org-scoped email
+    let user: { id: string; name: string; email: string };
+    let emailToUse = adminEmail;
+
+    const existingUser = await tx.query(
+      `SELECT id FROM users WHERE email = $1`,
+      [adminEmail]
+    );
+    if (existingUser.rows.length > 0) {
+      const [localPart, domain] = adminEmail.split("@");
+      emailToUse = `${localPart}+org${org.id.slice(0, 8)}@${domain}`;
+    }
+
     const userRow = await tx.query(
       `INSERT INTO users (org_id, email, name, role_id, is_active, password_hash)
        VALUES ($1, $2, $3, 'admin', true, $4)
        RETURNING id, name, email`,
-      [org.id, adminEmail, adminName, passwordHash]
+      [org.id, emailToUse, adminName, passwordHash]
     );
-    const user = userRow.rows[0] as { id: string; name: string; email: string };
+    user = userRow.rows[0] as { id: string; name: string; email: string };
 
     if (profileId) {
       await applyCustomerProfileInTx(tx, org.id, profileId, user.id, hierarchyLevels);
@@ -170,6 +183,78 @@ export async function deactivateOrganization(orgId: string): Promise<void> {
     entityId: orgId,
     action: "deactivate",
     after: { is_active: false },
+  });
+}
+
+// ─── Hard Delete Organization ───────────────────────────────────────────
+
+export async function deleteOrganization(orgId: string): Promise<void> {
+  const org = await queryOne<{ name: string }>(
+    `SELECT name FROM organizations WHERE id = $1`,
+    [orgId]
+  );
+  if (!org) throw new Error("Organization not found");
+
+  await transaction(async (tx) => {
+    // 1. Risk & P&L (no cascading children)
+    await tx.query(`DELETE FROM rsk_pnl_attribution WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM rsk_limit_checks WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM rsk_position_limits WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM rsk_mtm_snapshots WHERE org_id = $1`, [orgId]);
+
+    // 2. Forecast (scenario_results CASCADE from scenarios)
+    await tx.query(`DELETE FROM fct_scenarios WHERE org_id = $1`, [orgId]);
+
+    // 3. Contracts
+    await tx.query(`DELETE FROM ct_physical_contracts WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM ct_counterparties WHERE org_id = $1`, [orgId]);
+
+    // 4. Market data
+    await tx.query(`DELETE FROM md_watchlists WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM md_spreads WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM md_basis WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM md_symbol_map WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM md_providers WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM md_forward_curves WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM md_prices WHERE org_id = $1`, [orgId]);
+
+    // 5. Budget (line_items, versions, components, forecast_history CASCADE from periods)
+    await tx.query(`DELETE FROM bgt_comparisons WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM bgt_periods WHERE org_id = $1`, [orgId]);
+
+    // 6. Trades
+    await tx.query(`DELETE FROM tc_financial_trades WHERE org_id = $1`, [orgId]);
+
+    // 7. Position manager (soft-ref children first, then parents)
+    await tx.query(`DELETE FROM pm_rollover_costs WHERE rollover_id IN (SELECT id FROM pm_rollovers WHERE org_id = $1)`, [orgId]);
+    await tx.query(`DELETE FROM pm_rollover_legs WHERE rollover_id IN (SELECT id FROM pm_rollovers WHERE org_id = $1)`, [orgId]);
+    await tx.query(`DELETE FROM pm_rollovers WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM pm_locked_positions WHERE allocation_id IN (SELECT id FROM pm_allocations WHERE org_id = $1)`, [orgId]);
+    await tx.query(`DELETE FROM pm_physical_positions WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM pm_allocations WHERE org_id = $1`, [orgId]);
+
+    // 8. Org hierarchy & plugins
+    await tx.query(`DELETE FROM org_plugins WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM org_units WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM org_hierarchy_levels WHERE org_id = $1`, [orgId]);
+
+    // 9. Kernel tables
+    await tx.query(`DELETE FROM import_jobs WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM import_templates WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM pricing_rate_tables WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM pricing_formulas WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM crt_dashboards WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM custom_field_definitions WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM event_log WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM audit_log WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM commodity_groups WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM site_groups WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM sites WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM users WHERE org_id = $1`, [orgId]);
+    await tx.query(`DELETE FROM org_settings WHERE org_id = $1`, [orgId]);
+
+    // 10. Organization itself
+    await tx.query(`DELETE FROM organizations WHERE id = $1`, [orgId]);
   });
 }
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getOrganizationDetail, updateOrganization, deactivateOrganization } from "@/lib/platformService";
+import { getOrganizationDetail, updateOrganization, deactivateOrganization, deleteOrganization } from "@/lib/platformService";
 
 /** GET — Organization detail */
 export async function GET(
@@ -34,14 +34,21 @@ export async function PATCH(
   }
 }
 
-/** DELETE — Deactivate organization (soft delete) */
+/** DELETE — Deactivate (soft) or permanently delete organization */
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ orgId: string }> }
 ) {
   try {
     const { orgId } = await params;
-    await deactivateOrganization(orgId);
+    const { searchParams } = new URL(request.url);
+    const hard = searchParams.get("hard") === "true";
+
+    if (hard) {
+      await deleteOrganization(orgId);
+    } else {
+      await deactivateOrganization(orgId);
+    }
     return new NextResponse(null, { status: 204 });
   } catch (err) {
     console.error("[platform/organizations/detail] DELETE error:", err);

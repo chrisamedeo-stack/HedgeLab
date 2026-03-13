@@ -24,7 +24,7 @@ export function FiscalYearTab({ orgId: propOrgId }: { orgId?: string } = {}) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch(`/api/v2/kernel/org-settings?orgId=${orgId}`)
+    apiFetch(`/api/kernel/org-settings?orgId=${orgId}`)
       .then(data => {
         // Read flat field from org_settings row (not nested config)
         const fy = data?.fiscal_year_start;
@@ -45,7 +45,7 @@ export function FiscalYearTab({ orgId: propOrgId }: { orgId?: string } = {}) {
   async function handleSave() {
     setSaving(true);
     try {
-      await apiFetch(`/api/v2/kernel/org-settings`, {
+      await apiFetch(`/api/kernel/org-settings`, {
         method: "PATCH",
         body: JSON.stringify({ orgId, fiscal_year_start: month }),
       });

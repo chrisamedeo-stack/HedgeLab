@@ -173,14 +173,14 @@ export default function ContractsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Physical Contracts</h1>
-          <p className="mt-0.5 text-xs text-faint">
+          <h1 className="text-xl font-bold text-primary">Physical Contracts</h1>
+          <p className="text-sm text-muted mt-0.5">
             {contracts.length} contract{contracts.length !== 1 ? "s" : ""} &mdash; full lifecycle management
           </p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
+          className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -311,138 +311,136 @@ export default function ContractsPage() {
             </tbody>
           </table>
         </div>
-      ) : !loading && (
-        <div className="bg-surface border border-b-default rounded-lg px-6 py-12 text-center">
-          <p className="text-sm text-faint">No physical contracts yet</p>
-          <button onClick={() => setShowForm(true)} className="mt-2 text-sm text-action hover:underline">
-            Create your first contract
+      ) : !loading && contracts.length === 0 && (
+        <div className="rounded-lg border border-b-default bg-surface px-6 py-12 text-center">
+          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-input-bg text-faint">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          </div>
+          <p className="text-sm font-medium text-secondary">No physical contracts yet</p>
+          <p className="mt-1 text-xs text-faint">Create your first contract to start tracking deliveries.</p>
+          <button onClick={() => setShowForm(true)} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors">
+            New Contract
           </button>
         </div>
       )}
 
-      {/* Delivery Modal */}
+      {/* Inline Delivery Form */}
       {deliverContractId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setDeliverContractId(null)}>
-          <div className="w-full max-w-sm rounded-lg border border-b-default bg-main p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-primary mb-4">Record Delivery</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-faint mb-1">Volume Delivered</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={deliverVolume}
-                  onChange={(e) => setDeliverVolume(e.target.value)}
-                  className={inputClass}
-                  autoFocus
-                />
-              </div>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setDeliverContractId(null)}
-                  className="rounded-lg border border-b-input px-4 py-2 text-sm text-muted hover:bg-input-bg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeliver}
-                  disabled={!deliverVolume}
-                  className="rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors disabled:opacity-50"
-                >
-                  Record
-                </button>
-              </div>
-            </div>
+        <div className="animate-fade-in rounded-lg border border-b-default bg-surface p-4">
+          <h3 className="text-sm font-medium text-secondary mb-3">Record Delivery</h3>
+          <div className="flex items-end gap-3">
+            <label className="block space-y-1 flex-1 max-w-[200px]">
+              <span className="text-xs text-muted">Volume Delivered</span>
+              <input
+                type="number"
+                step="any"
+                value={deliverVolume}
+                onChange={(e) => setDeliverVolume(e.target.value)}
+                className={inputClass}
+                autoFocus
+              />
+            </label>
+            <button
+              onClick={handleDeliver}
+              disabled={!deliverVolume}
+              className="rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors disabled:opacity-50"
+            >
+              Record
+            </button>
+            <button
+              onClick={() => setDeliverContractId(null)}
+              className="rounded-lg border border-b-input px-4 py-2 text-sm text-muted hover:bg-input-bg transition-colors"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
 
-      {/* New Contract Modal */}
+      {/* Inline New Contract Form */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-lg rounded-lg border border-b-default bg-main p-6 shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-primary mb-4">New Physical Contract</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-faint mb-1">Contract Type *</label>
-                  <select
-                    required
-                    value={form.contractType}
-                    onChange={(e) => {
-                      const ct = e.target.value as ContractType;
-                      setForm({ ...form, contractType: ct, direction: ct === "purchase" ? "buy" : "sell" });
-                    }}
-                    className={inputClass}
-                  >
-                    <option value="purchase">Purchase</option>
-                    <option value="sale">Sale</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-faint mb-1">Counterparty</label>
-                  <select value={form.counterpartyId} onChange={(e) => setForm({ ...form, counterpartyId: e.target.value })} className={inputClass}>
-                    <option value="">Select counterparty</option>
-                    {counterparties.map((cp) => <option key={cp.id} value={cp.id}>{cp.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-faint mb-1">Commodity</label>
-                  <select value={form.commodityId} onChange={(e) => setForm({ ...form, commodityId: e.target.value })} className={inputClass}>
-                    <option value="">Select commodity</option>
-                    {(commodities ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-faint mb-1">Site</label>
-                  <select value={form.siteId} onChange={(e) => setForm({ ...form, siteId: e.target.value })} className={inputClass}>
-                    <option value="">Select site</option>
-                    {(sites ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-faint mb-1">Volume *</label>
-                  <input required type="number" step="any" value={form.totalVolume} onChange={(e) => setForm({ ...form, totalVolume: e.target.value })} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-faint mb-1">Pricing Type</label>
-                  <select value={form.pricingType} onChange={(e) => setForm({ ...form, pricingType: e.target.value as ContractPricingType })} className={inputClass}>
-                    <option value="fixed">Fixed</option>
-                    <option value="basis">Basis</option>
-                    <option value="formula">Formula</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-faint mb-1">Price</label>
-                  <input type="number" step="any" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-faint mb-1">Contract Ref</label>
-                  <input type="text" value={form.contractRef} onChange={(e) => setForm({ ...form, contractRef: e.target.value })} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-faint mb-1">Delivery Start</label>
-                  <input type="date" value={form.deliveryStart} onChange={(e) => setForm({ ...form, deliveryStart: e.target.value })} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-faint mb-1">Delivery End</label>
-                  <input type="date" value={form.deliveryEnd} onChange={(e) => setForm({ ...form, deliveryEnd: e.target.value })} className={inputClass} />
-                </div>
+        <div className="animate-fade-in rounded-lg border border-b-default bg-surface p-4">
+          <h3 className="text-sm font-medium text-secondary mb-3">New Physical Contract</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-faint mb-1">Contract Type *</label>
+                <select
+                  required
+                  value={form.contractType}
+                  onChange={(e) => {
+                    const ct = e.target.value as ContractType;
+                    setForm({ ...form, contractType: ct, direction: ct === "purchase" ? "buy" : "sell" });
+                  }}
+                  className={inputClass}
+                >
+                  <option value="purchase">Purchase</option>
+                  <option value="sale">Sale</option>
+                </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-faint mb-1">Notes</label>
-                <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className={inputClass} />
+                <label className="block text-xs font-medium text-faint mb-1">Counterparty</label>
+                <select value={form.counterpartyId} onChange={(e) => setForm({ ...form, counterpartyId: e.target.value })} className={inputClass}>
+                  <option value="">Select counterparty</option>
+                  {counterparties.map((cp) => <option key={cp.id} value={cp.id}>{cp.name}</option>)}
+                </select>
               </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-b-input px-4 py-2 text-sm text-muted hover:bg-input-bg transition-colors">
-                  Cancel
-                </button>
-                <button type="submit" disabled={submitting} className="rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors disabled:opacity-50">
-                  {submitting ? "Creating..." : "Create Contract"}
-                </button>
+              <div>
+                <label className="block text-xs font-medium text-faint mb-1">Commodity</label>
+                <select value={form.commodityId} onChange={(e) => setForm({ ...form, commodityId: e.target.value })} className={inputClass}>
+                  <option value="">Select commodity</option>
+                  {(commodities ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
               </div>
-            </form>
-          </div>
+              <div>
+                <label className="block text-xs font-medium text-faint mb-1">Site</label>
+                <select value={form.siteId} onChange={(e) => setForm({ ...form, siteId: e.target.value })} className={inputClass}>
+                  <option value="">Select site</option>
+                  {(sites ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-faint mb-1">Volume *</label>
+                <input required type="number" step="any" value={form.totalVolume} onChange={(e) => setForm({ ...form, totalVolume: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-faint mb-1">Pricing Type</label>
+                <select value={form.pricingType} onChange={(e) => setForm({ ...form, pricingType: e.target.value as ContractPricingType })} className={inputClass}>
+                  <option value="fixed">Fixed</option>
+                  <option value="basis">Basis</option>
+                  <option value="formula">Formula</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-faint mb-1">Price</label>
+                <input type="number" step="any" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-faint mb-1">Contract Ref</label>
+                <input type="text" value={form.contractRef} onChange={(e) => setForm({ ...form, contractRef: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-faint mb-1">Delivery Start</label>
+                <input type="date" value={form.deliveryStart} onChange={(e) => setForm({ ...form, deliveryStart: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-faint mb-1">Delivery End</label>
+                <input type="date" value={form.deliveryEnd} onChange={(e) => setForm({ ...form, deliveryEnd: e.target.value })} className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-faint mb-1">Notes</label>
+              <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className={inputClass} />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-b-input px-4 py-2 text-sm text-muted hover:bg-input-bg transition-colors">
+                Cancel
+              </button>
+              <button type="submit" disabled={submitting} className="rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors disabled:opacity-50">
+                {submitting ? "Creating..." : "Create Contract"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

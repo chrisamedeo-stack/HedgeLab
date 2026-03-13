@@ -9,6 +9,7 @@ import type {
   LimitCheck,
   ExposureBucket,
   CounterpartyExposure,
+  PnlAttribution,
 } from "@/types/risk";
 
 interface RiskState {
@@ -20,6 +21,7 @@ interface RiskState {
   limitChecks: LimitCheck[];
   exposureByTenor: ExposureBucket[];
   exposureByCounterparty: CounterpartyExposure[];
+  attribution: PnlAttribution[];
 
   // UI state
   loading: boolean;
@@ -42,6 +44,9 @@ interface RiskState {
   fetchExposureByTenor: (orgId: string, commodityId?: string) => Promise<void>;
   fetchExposureByCounterparty: (orgId: string) => Promise<void>;
 
+  // Attribution actions
+  fetchAttribution: (orgId: string, commodityId?: string) => Promise<void>;
+
   clearError: () => void;
 }
 
@@ -53,6 +58,7 @@ export const useRiskStore = create<RiskState>((set) => ({
   limitChecks: [],
   exposureByTenor: [],
   exposureByCounterparty: [],
+  attribution: [],
   loading: false,
   error: null,
 
@@ -211,6 +217,19 @@ export const useRiskStore = create<RiskState>((set) => ({
       if (!res.ok) throw new Error((await res.json()).error);
       const exposureByCounterparty = await res.json();
       set({ exposureByCounterparty });
+    } catch (err) {
+      set({ error: (err as Error).message });
+    }
+  },
+
+  fetchAttribution: async (orgId, commodityId) => {
+    try {
+      const params = new URLSearchParams({ orgId });
+      if (commodityId) params.set("commodityId", commodityId);
+      const res = await fetch(`${API_BASE}/api/risk/attribution?${params}`);
+      if (!res.ok) throw new Error((await res.json()).error);
+      const attribution = await res.json();
+      set({ attribution });
     } catch (err) {
       set({ error: (err as Error).message });
     }

@@ -21,6 +21,9 @@ import type {
   AllInSummaryEntry,
   HedgeBookEntry,
   PositionChain,
+  BasisBySite,
+  BasisByMonth,
+  BasisSummary,
 } from "@/types/positions";
 
 // ─── 1. Allocate to Site ─────────────────────────────────────────────────────
@@ -73,7 +76,9 @@ export async function allocateToSite(params: AllocateToSiteParams): Promise<Allo
     payload: {
       siteId: params.siteId,
       commodityId: params.commodityId,
-      volume: params.allocatedVolume,
+      allocatedVolume: params.allocatedVolume,
+      tradeId: params.tradeId ?? null,
+      tradePrice: params.tradePrice ?? null,
       budgetMonth: params.budgetMonth,
       contractMonth: params.contractMonth,
       direction: params.direction,
@@ -431,7 +436,8 @@ export async function executeRoll(params: ExecuteRollParams): Promise<Rollover> 
 
 export async function getRolloverCandidates(
   orgId: string,
-  commodityId?: string
+  commodityId?: string,
+  orgUnitId?: string
 ): Promise<RolloverCandidate[]> {
   let sql = `
     SELECT
@@ -458,6 +464,10 @@ export async function getRolloverCandidates(
   if (commodityId) {
     params.push(commodityId);
     sql += ` AND a.commodity_id = $${params.length}`;
+  }
+  if (orgUnitId) {
+    params.push(orgUnitId);
+    sql += ` AND a.site_id IN (SELECT site_id FROM get_sites_under_unit($${params.length}))`;
   }
 
   sql += ` ORDER BY cal.last_trade_date ASC`;
@@ -753,6 +763,8 @@ export async function createPhysicalPosition(params: CreatePhysicalParams): Prom
       commodityId: params.commodityId,
       direction: params.direction,
       volume: params.volume,
+      price: params.price ?? null,
+      budgetMonth: params.deliveryMonth,
       deliveryMonth: params.deliveryMonth,
     },
     orgId: params.orgId,
@@ -801,7 +813,10 @@ export async function cancelAllocation(params: CancelAllocationParams): Promise<
     payload: {
       siteId: before.site_id,
       commodityId: before.commodity_id,
-      volume: before.allocated_volume,
+      deallocatedVolume: Number(before.allocated_volume),
+      tradeId: before.trade_id ?? null,
+      tradePrice: before.trade_price ? Number(before.trade_price) : null,
+      budgetMonth: before.budget_month,
     },
     orgId: before.org_id ?? undefined,
     userId: params.userId,
@@ -823,4 +838,124 @@ export async function getPositionChain(allocationId: string): Promise<PositionCh
      ) ORDER BY roll_count`,
     [allocationId]
   );
+}
+
+// ─── Basis Summary ──────────────────────────────────────────────────────────
+
+export async function getBasisSummary(
+  orgId: string,
+  commodityId?: string,
+  orgUnitId?: string
+): Promise<BasisSummary> {
+  // ── Basis by Site ──────────────────────────────────────────────────────
+  let bySiteSql = `
+    SELECT s.id as site_id, s.name, s.code,
+      SUM(lp.basis_component * lp.volume) / NULLIF(SUM(lp.volume), 0) as avg_basis,
+      SUM(lp.volume) as total_volume,
+      MIN(lp.basis_component) as min_basis,
+      MAX(lp.basis_component) as max_basis
+    FROM pm_locked_positions lp
+    JOIN sites s ON s.id = lp.site_id
+    WHERE s.org_id = $1 AND lp.basis_component IS NOT NULL`;
+  const bySiteParams: unknown[] = [orgId];
+
+  if (commodityId) {
+    bySiteParams.push(commodityId);
+    bySiteSql += ` AND lp.commodity_id = $${bySiteParams.length}`;
+  }
+  if (orgUnitId) {
+    bySiteParams.push(orgUnitId);
+    bySiteSql += ` AND s.id IN (SELECT site_id FROM get_sites_under_unit($${bySiteParams.length}))`;
+  }
+  bySiteSql += ` GROUP BY s.id, s.name, s.code ORDER BY s.name`;
+
+  const bySiteRows = await queryAll<{
+    site_id: string; name: string; code: string;
+    avg_basis: string; total_volume: string; min_basis: string; max_basis: string;
+  }>(bySiteSql, bySiteParams);
+
+  const bySite: BasisBySite[] = bySiteRows.map((r) => ({
+    site_id: r.site_id,
+    name: r.name,
+    code: r.code,
+    avg_basis: Number(r.avg_basis),
+    total_volume: Number(r.total_volume),
+    min_basis: Number(r.min_basis),
+    max_basis: Number(r.max_basis),
+  }));
+
+  // ── Basis by Delivery Month ────────────────────────────────────────────
+  // Build locked subquery
+  let lockedSql = `
+    SELECT lp.delivery_month,
+      SUM(lp.basis_component * lp.volume) / NULLIF(SUM(lp.volume), 0) as avg_basis,
+      SUM(lp.volume) as total_vol
+    FROM pm_locked_positions lp
+    JOIN sites s ON s.id = lp.site_id
+    WHERE s.org_id = $1
+      AND lp.basis_component IS NOT NULL
+      AND lp.delivery_month IS NOT NULL`;
+  const monthParams: unknown[] = [orgId];
+
+  if (commodityId) {
+    monthParams.push(commodityId);
+    lockedSql += ` AND lp.commodity_id = $${monthParams.length}`;
+  }
+  if (orgUnitId) {
+    monthParams.push(orgUnitId);
+    lockedSql += ` AND s.id IN (SELECT site_id FROM get_sites_under_unit($${monthParams.length}))`;
+  }
+  lockedSql += ` GROUP BY lp.delivery_month`;
+
+  // Build physical subquery — reuse $1 for orgId, need new params for commodity/unit
+  let physSql = `
+    SELECT pp.delivery_month,
+      SUM(pp.basis_price * pp.volume) / NULLIF(SUM(pp.volume), 0) as avg_basis,
+      SUM(pp.volume) as total_vol
+    FROM pm_physical_positions pp
+    JOIN sites ps ON ps.id = pp.site_id
+    WHERE ps.org_id = $1
+      AND pp.pricing_type = 'basis'
+      AND pp.basis_price IS NOT NULL
+      AND pp.delivery_month IS NOT NULL`;
+
+  if (commodityId) {
+    // commodityId was already pushed as $2
+    physSql += ` AND pp.commodity_id = $2`;
+  }
+  if (orgUnitId) {
+    // orgUnitId param index depends on whether commodityId exists
+    const unitIdx = commodityId ? 3 : 2;
+    physSql += ` AND ps.id IN (SELECT site_id FROM get_sites_under_unit($${unitIdx}))`;
+  }
+  physSql += ` GROUP BY pp.delivery_month`;
+
+  const byMonthRows = await queryAll<{
+    delivery_month: string;
+    locked_basis: string | null;
+    locked_volume: string;
+    physical_basis: string | null;
+    physical_volume: string;
+  }>(
+    `SELECT
+       COALESCE(l.delivery_month, p.delivery_month) as delivery_month,
+       l.avg_basis as locked_basis,
+       COALESCE(l.total_vol, 0) as locked_volume,
+       p.avg_basis as physical_basis,
+       COALESCE(p.total_vol, 0) as physical_volume
+     FROM (${lockedSql}) l
+     FULL OUTER JOIN (${physSql}) p ON l.delivery_month = p.delivery_month
+     ORDER BY COALESCE(l.delivery_month, p.delivery_month)`,
+    monthParams
+  );
+
+  const byMonth: BasisByMonth[] = byMonthRows.map((r) => ({
+    delivery_month: r.delivery_month,
+    locked_basis: r.locked_basis != null ? Number(r.locked_basis) : null,
+    locked_volume: Number(r.locked_volume),
+    physical_basis: r.physical_basis != null ? Number(r.physical_basis) : null,
+    physical_volume: Number(r.physical_volume),
+  }));
+
+  return { bySite, byMonth };
 }

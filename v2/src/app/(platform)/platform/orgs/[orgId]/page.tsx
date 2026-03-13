@@ -3,12 +3,15 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 import { usePlatformOrg } from "@/hooks/usePlatform";
+import { usePlatformStore } from "@/store/platformStore";
 import { OrgPluginsManager } from "@/components/platform/OrgPluginsManager";
 import { SubscriptionEditor } from "@/components/platform/SubscriptionEditor";
 import { UsersTab } from "@/components/admin/UsersTab";
 import { SitesTab } from "@/components/admin/SitesTab";
 import { OrgSettingsTab } from "@/components/admin/OrgSettingsTab";
+import { ConfirmDialog } from "@/components/admin/SharedUI";
 
 const TABS = ["Overview", "Plugins", "Users", "Sites", "Settings"] as const;
 type Tab = (typeof TABS)[number];
@@ -17,11 +20,25 @@ export default function OrgManagePage({ params }: { params: Promise<{ orgId: str
   const { orgId } = use(params);
   const router = useRouter();
   const { data: org, loading } = usePlatformOrg(orgId);
+  const deactivateOrg = usePlatformStore((s) => s.deactivateOrg);
+  const hardDeleteOrg = usePlatformStore((s) => s.hardDeleteOrg);
   const [tab, setTab] = useState<Tab>("Overview");
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [showHardDeleteConfirm, setShowHardDeleteConfirm] = useState(false);
 
   function enterOrg() {
     localStorage.setItem("hedgelab-platform-org-id", orgId);
     router.push("/dashboard");
+  }
+
+  async function handleDeactivate() {
+    await deactivateOrg(orgId);
+    router.push("/platform");
+  }
+
+  async function handleHardDelete() {
+    await hardDeleteOrg(orgId);
+    router.push("/platform");
   }
 
   if (loading || !org) {
@@ -55,15 +72,30 @@ export default function OrgManagePage({ params }: { params: Promise<{ orgId: str
             </span>
           </p>
         </div>
-        <button
-          onClick={enterOrg}
-          className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-          </svg>
-          Enter Org
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowHardDeleteConfirm(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-loss px-4 py-2 text-sm font-medium text-white hover:bg-loss/80 transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </button>
+          <button
+            onClick={() => setShowDeactivateConfirm(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-destructive-30 px-4 py-2 text-sm font-medium text-loss hover:bg-destructive-10 transition-colors"
+          >
+            Deactivate
+          </button>
+          <button
+            onClick={enterOrg}
+            className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+            Enter Org
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -143,6 +175,24 @@ export default function OrgManagePage({ params }: { params: Promise<{ orgId: str
         {tab === "Sites" && <SitesTab orgId={orgId} />}
         {tab === "Settings" && <OrgSettingsTab orgId={orgId} />}
       </div>
+
+      {showDeactivateConfirm && (
+        <ConfirmDialog
+          title="Deactivate Organization"
+          desc={`Deactivate "${org.name}"? All users will lose access. This can be reversed by reactivating later.`}
+          onConfirm={handleDeactivate}
+          onCancel={() => setShowDeactivateConfirm(false)}
+        />
+      )}
+
+      {showHardDeleteConfirm && (
+        <ConfirmDialog
+          title="Permanently Delete Organization"
+          desc={`Permanently delete "${org.name}" and ALL of its data (users, sites, trades, positions, budgets, market data)? This cannot be undone.`}
+          onConfirm={handleHardDelete}
+          onCancel={() => setShowHardDeleteConfirm(false)}
+        />
+      )}
     </div>
   );
 }

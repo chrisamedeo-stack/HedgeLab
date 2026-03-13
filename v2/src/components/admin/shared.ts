@@ -1,17 +1,17 @@
 import { API_BASE } from "@/lib/api";
 
-// ─── Style constants ─────────────────────────────────────────────────────────
+// Re-export shared UI classes from centralized source
+// Note: admin "btnCancel" was historically a bordered secondary button, not ghost text
+import { btnPrimary as _btnPrimary, btnSecondary as _btnSecondary, btnDanger as _btnDanger, inputCls as _inputCls, selectCls as _selectCls, cn as _cn } from "@/lib/ui-classes";
+export const btnPrimary = _btnPrimary;
+export const btnCancel = _btnSecondary; // admin cancel = bordered secondary style
+export const btnSecondary = _btnSecondary;
+export const btnDanger = _btnDanger;
+export const inputCls = _inputCls;
+export const selectCls = _selectCls;
+export const cn = _cn;
 
-export const btnPrimary = "inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors disabled:opacity-50";
-export const btnCancel = "inline-flex items-center gap-2 rounded-lg bg-input-bg px-4 py-2 text-sm font-medium text-secondary hover:bg-hover transition-colors border border-b-input";
-export const inputCls = "w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph";
-export const selectCls = inputCls;
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-export function cn(...classes: (string | false | null | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
-}
+// ─── API Helper ──────────────────────────────────────────────────────────────
 
 export async function apiFetch(path: string, opts?: RequestInit) {
   const res = await fetch(`${API_BASE}${path}`, {

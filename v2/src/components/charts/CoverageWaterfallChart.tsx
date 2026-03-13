@@ -28,39 +28,40 @@ const TIME_RANGE_OPTIONS: { label: string; value: TimeRange }[] = [
   { label: "All", value: "all" },
 ];
 
-export function CoverageWaterfallChart({ data, height = 360 }: CoverageWaterfallChartProps) {
+export function CoverageWaterfallChart({ data, height = 300 }: CoverageWaterfallChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>("12");
 
   const filtered = useMemo(() => {
     if (timeRange === "all") return data;
     const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const months = Number(timeRange);
     const cutoff = new Date(now.getFullYear(), now.getMonth() + months, 1);
     return data.filter((d) => {
       const date = new Date(d.month + "-01");
-      return date >= now && date < cutoff;
+      return date >= startOfMonth && date < cutoff;
     });
   }, [data, timeRange]);
 
   if (data.length === 0) {
     return (
-      <div className="bg-surface border border-b-default rounded-lg p-5">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-surface border border-b-default rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Coverage Waterfall</h2>
         </div>
-        <div className="flex flex-col items-center justify-center" style={{ height }}>
-          <svg className="h-10 w-10 text-faint mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+        <div className="flex flex-col items-center justify-center py-6">
+          <svg className="h-5 w-5 text-faint mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
-          <span className="text-sm text-faint">No coverage data available</span>
+          <span className="text-xs text-faint">No coverage data available</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-surface border border-b-default rounded-lg p-5">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-surface border border-b-default rounded-lg p-4">
+      <div className="flex items-center justify-between mb-3">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Coverage Waterfall</h2>
         <div className="flex gap-1">
           {TIME_RANGE_OPTIONS.map((opt) => (

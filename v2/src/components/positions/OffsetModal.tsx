@@ -1,18 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Modal } from "@/components/ui/Modal";
 import { usePositionStore } from "@/store/positionStore";
 import { useAuth } from "@/contexts/AuthContext";
 import type { SitePositionHedge } from "@/types/positions";
 
-interface OffsetModalProps {
+interface OffsetFormProps {
   allocation: SitePositionHedge;
   onClose: () => void;
   onSuccess: () => void;
+  /** Render as modal (legacy) or inline. Defaults to inline. */
+  inline?: boolean;
 }
 
-export function OffsetModal({ allocation, onClose, onSuccess }: OffsetModalProps) {
+export function OffsetModal(props: OffsetFormProps) {
+  return <OffsetForm {...props} />;
+}
+
+export function OffsetForm({ allocation, onClose, onSuccess }: OffsetFormProps) {
   const { executeOffset } = usePositionStore();
   const { user } = useAuth();
   const [offsetPrice, setOffsetPrice] = useState("");
@@ -45,23 +50,21 @@ export function OffsetModal({ allocation, onClose, onSuccess }: OffsetModalProps
   };
 
   return (
-    <Modal open onClose={onClose} title="Offset Position">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="rounded-md bg-destructive-10 border border-destructive-15 px-3 py-2 text-sm text-loss">
-            {error}
-          </div>
-        )}
-
-        <div className="rounded-md bg-surface px-3 py-2 text-sm">
-          <div className="grid grid-cols-3 gap-2 text-muted">
-            <div>Contract: <span className="text-secondary">{allocation.contract_month ?? "—"}</span></div>
-            <div>Volume: <span className="text-secondary">{Number(allocation.allocated_volume).toLocaleString()}</span></div>
-            <div>Trade Price: <span className="text-secondary">{Number(allocation.trade_price)?.toFixed(2) ?? "—"}</span></div>
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-3">
+      {error && (
+        <div className="rounded-md bg-destructive-10 border border-destructive-15 px-3 py-2 text-sm text-loss">
+          {error}
         </div>
+      )}
 
-        <label className="block">
+      <div className="grid grid-cols-3 gap-2 text-xs text-muted">
+        <div>Contract: <span className="text-secondary">{allocation.contract_month ?? "—"}</span></div>
+        <div>Volume: <span className="text-secondary">{Number(allocation.allocated_volume).toLocaleString()}</span></div>
+        <div>Trade Price: <span className="text-secondary">{Number(allocation.trade_price)?.toFixed(2) ?? "—"}</span></div>
+      </div>
+
+      <div className="flex items-end gap-3">
+        <label className="block flex-1 max-w-[200px]">
           <span className="mb-1 block text-xs font-medium text-muted">Offset Price *</span>
           <input
             type="number"
@@ -69,37 +72,33 @@ export function OffsetModal({ allocation, onClose, onSuccess }: OffsetModalProps
             step="any"
             value={offsetPrice}
             onChange={(e) => setOffsetPrice(e.target.value)}
-            className="w-full rounded-md border border-b-input bg-input-bg px-3 py-2 text-sm text-primary focus:border-warning focus:outline-none"
+            className="w-full rounded-md border border-b-input bg-input-bg px-3 py-1.5 text-sm text-primary focus:border-warning focus:outline-none"
             placeholder="460.00"
           />
         </label>
-
         {projectedPnl !== null && (
-          <div className="rounded-md bg-surface px-3 py-2 text-sm">
-            Projected P&L:{" "}
+          <div className="text-sm pb-1">
+            P&L:{" "}
             <span className={projectedPnl >= 0 ? "font-semibold text-profit" : "font-semibold text-loss"}>
               ${projectedPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
         )}
-
-        <div className="flex justify-end gap-2 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-b-input px-4 py-2 text-sm text-secondary transition-colors hover:bg-hover"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-lg bg-warning px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-warning-hover disabled:opacity-50"
-          >
-            {submitting ? "Offsetting..." : "Offset"}
-          </button>
-        </div>
-      </form>
-    </Modal>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="rounded-lg bg-warning px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-warning-hover disabled:opacity-50"
+        >
+          {submitting ? "Offsetting..." : "Offset"}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg border border-b-input px-3 py-1.5 text-sm text-secondary transition-colors hover:bg-hover"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }

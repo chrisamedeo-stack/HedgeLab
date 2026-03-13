@@ -20,43 +20,42 @@ function coverageTextColor(pct: number): string {
 }
 
 export function CoverageMiniChart({ sites }: CoverageMiniChartProps) {
-  // Show top 5 sorted by lowest coverage first
   const sorted = [...sites].sort((a, b) => a.coveragePct - b.coveragePct).slice(0, 5);
 
   return (
-    <div className="bg-surface border border-b-default rounded-lg p-5 h-full">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Site Coverage</h2>
+    <div className="bg-surface border border-b-default rounded-lg p-6 h-full">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">Site Coverage</h2>
         <Link href="/coverage" className="text-xs font-medium text-action hover:underline">
           View All
         </Link>
       </div>
 
       {sorted.length === 0 ? (
-        <div className="flex items-center justify-center h-40">
+        <div className="flex items-center justify-center py-12">
           <span className="text-sm text-faint">No site coverage data</span>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-5">
           {sorted.map((site) => (
             <div key={site.siteId}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-secondary truncate mr-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-secondary truncate mr-2">
                   {site.siteName}
-                  <span className="text-faint ml-1">({site.siteCode})</span>
+                  <span className="text-faint ml-1.5">({site.siteCode})</span>
                 </span>
-                <span className={`text-xs font-bold tabular-nums ${coverageTextColor(site.coveragePct)}`}>
+                <span className={`text-sm font-bold tabular-nums ${coverageTextColor(site.coveragePct)}`}>
                   {site.coveragePct}%
                 </span>
               </div>
-              <div className="h-2 w-full rounded-sm bg-input-bg overflow-hidden">
+              <div className="h-2.5 w-full rounded-full bg-input-bg overflow-hidden">
                 <div
-                  className={`h-full rounded-sm transition-all ${coverageColor(site.coveragePct)}`}
+                  className={`h-full rounded-full transition-all ${coverageColor(site.coveragePct)}`}
                   style={{ width: `${Math.min(site.coveragePct, 100)}%` }}
                 />
               </div>
-              <div className="flex justify-between mt-0.5">
-                <span className="text-[10px] text-faint">
+              <div className="flex justify-between mt-1.5">
+                <span className="text-xs text-faint">
                   {site.coveredVolume.toLocaleString()} / {site.budgetedVolume.toLocaleString()}
                 </span>
               </div>

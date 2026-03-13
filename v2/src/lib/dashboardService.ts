@@ -1,109 +1,12 @@
-import { queryOne, queryAll } from "./db";
-import { auditLog } from "./audit";
-import type { DashboardLayout, CoverageSiteEntry, PositionByMonthDataPoint } from "@/types/dashboard";
-
-// ─── Dashboard CRUD ──────────────────────────────────────────────────────────
-
-export async function getDashboards(userId: string, orgId: string): Promise<DashboardLayout[]> {
-  return queryAll<DashboardLayout>(
-    `SELECT * FROM crt_dashboards WHERE user_id = $1 AND org_id = $2 ORDER BY is_default DESC, name`,
-    [userId, orgId]
-  );
-}
-
-export async function getDashboard(dashboardId: string): Promise<DashboardLayout | null> {
-  return queryOne<DashboardLayout>(
-    `SELECT * FROM crt_dashboards WHERE id = $1`,
-    [dashboardId]
-  );
-}
-
-export async function createDashboard(
-  userId: string,
-  orgId: string,
-  name?: string,
-  layout?: unknown[]
-): Promise<DashboardLayout> {
-  const row = await queryOne<DashboardLayout>(
-    `INSERT INTO crt_dashboards (user_id, org_id, name, layout)
-     VALUES ($1, $2, $3, $4) RETURNING *`,
-    [userId, orgId, name ?? "My Dashboard", JSON.stringify(layout ?? [])]
-  );
-  if (!row) throw new Error("Failed to create dashboard");
-
-  await auditLog({
-    orgId,
-    userId,
-    module: "dashboard",
-    entityType: "dashboard",
-    entityId: row.id,
-    action: "create",
-    after: row as unknown as Record<string, unknown>,
-  });
-
-  return row;
-}
-
-export async function updateDashboard(
-  dashboardId: string,
-  userId: string,
-  updates: { name?: string; layout?: unknown[]; isDefault?: boolean }
-): Promise<DashboardLayout> {
-  const before = await getDashboard(dashboardId);
-  if (!before) throw new Error("Dashboard not found");
-
-  const row = await queryOne<DashboardLayout>(
-    `UPDATE crt_dashboards SET
-       name = COALESCE($2, name),
-       layout = COALESCE($3, layout),
-       is_default = COALESCE($4, is_default),
-       updated_at = NOW()
-     WHERE id = $1 RETURNING *`,
-    [
-      dashboardId,
-      updates.name ?? null,
-      updates.layout ? JSON.stringify(updates.layout) : null,
-      updates.isDefault ?? null,
-    ]
-  );
-  if (!row) throw new Error("Failed to update dashboard");
-
-  await auditLog({
-    orgId: before.org_id,
-    userId,
-    module: "dashboard",
-    entityType: "dashboard",
-    entityId: dashboardId,
-    action: "update",
-    before: before as unknown as Record<string, unknown>,
-    after: row as unknown as Record<string, unknown>,
-  });
-
-  return row;
-}
-
-export async function deleteDashboard(dashboardId: string, userId: string): Promise<void> {
-  const before = await getDashboard(dashboardId);
-  if (!before) throw new Error("Dashboard not found");
-
-  await queryOne(`DELETE FROM crt_dashboards WHERE id = $1 RETURNING id`, [dashboardId]);
-
-  await auditLog({
-    orgId: before.org_id,
-    userId,
-    module: "dashboard",
-    entityType: "dashboard",
-    entityId: dashboardId,
-    action: "delete",
-    before: before as unknown as Record<string, unknown>,
-  });
-}
+import { queryAll } from "./db";
+import type { CoverageSiteEntry, PositionByMonthDataPoint } from "@/types/dashboard";
 
 // ─── Aggregation Queries ─────────────────────────────────────────────────────
 
 export async function getCoverageBySite(
   orgId: string,
-  commodityId?: string
+  commodityId?: string,
+  orgUnitId?: string
 ): Promise<CoverageSiteEntry[]> {
   let sql = `
     SELECT
@@ -122,6 +25,10 @@ export async function getCoverageBySite(
   if (commodityId) {
     params.push(commodityId);
     sql += ` AND p.commodity_id = $${params.length}`;
+  }
+  if (orgUnitId) {
+    params.push(orgUnitId);
+    sql += ` AND s.id IN (SELECT site_id FROM get_sites_under_unit($${params.length}))`;
   }
 
   sql += ` GROUP BY s.id, s.name, s.code ORDER BY s.name`;
@@ -150,7 +57,8 @@ export async function getCoverageBySite(
 
 export async function getPositionsByMonth(
   orgId: string,
-  commodityId?: string
+  commodityId?: string,
+  orgUnitId?: string
 ): Promise<PositionByMonthDataPoint[]> {
   let sql = `
     SELECT
@@ -170,6 +78,10 @@ export async function getPositionsByMonth(
   if (commodityId) {
     params.push(commodityId);
     sql += ` AND commodity_id = $${params.length}`;
+  }
+  if (orgUnitId) {
+    params.push(orgUnitId);
+    sql += ` AND site_id IN (SELECT site_id FROM get_sites_under_unit($${params.length}))`;
   }
 
   sql += ` GROUP BY contract_month ORDER BY contract_month`;

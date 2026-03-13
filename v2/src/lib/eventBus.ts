@@ -19,6 +19,27 @@ type EventHandler = ((event: KernelEvent) => Promise<void>) & {
 // ─── In-process listener registry ────────────────────────────────────────────
 
 const listeners: Record<string, EventHandler[]> = {};
+let listenersRegistered = false;
+
+/**
+ * Ensure cross-module event listeners are registered in this process.
+ * Called lazily on first emit() so listeners always exist in the same
+ * JS process/worker that fires events (Next.js may run API routes in
+ * a different worker than instrumentation.ts).
+ */
+async function ensureListeners(): Promise<void> {
+  if (listenersRegistered) return;
+  listenersRegistered = true;
+  try {
+    const { registerBudgetEventListeners } = await import("./budgetEvents");
+    const { registerPositionEventListeners } = await import("./positionEvents");
+    registerBudgetEventListeners();
+    registerPositionEventListeners();
+    console.log("[EventBus] Listeners auto-registered: budget, positions");
+  } catch (err) {
+    console.error("[EventBus] Failed to auto-register listeners:", err);
+  }
+}
 
 /** Register a handler for an event type */
 export function on(
@@ -42,6 +63,9 @@ export function off(eventType: string, moduleName: string): void {
 
 /** Emit an event — persists to event_log and invokes all registered handlers */
 export async function emit(event: KernelEvent): Promise<bigint> {
+  // Ensure listeners are registered in this process
+  await ensureListeners();
+
   // Persist to event_log
   const result = await query<{ id: string }>(
     `INSERT INTO event_log

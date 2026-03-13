@@ -35,7 +35,7 @@ export function PositionLifecycleFunnel({
   locked,
   offset,
   rolled,
-  height = 220,
+  height = 200,
 }: PositionLifecycleFunnelProps) {
   const data = [
     { stage: "Total", value: total },
@@ -47,18 +47,18 @@ export function PositionLifecycleFunnel({
 
   if (total === 0) {
     return (
-      <div className="bg-surface border border-b-default rounded-lg p-5 h-full">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-4">Position Lifecycle</h2>
-        <div className="flex items-center justify-center" style={{ height }}>
-          <span className="text-sm text-faint">No position data available</span>
+      <div className="bg-surface border border-b-default rounded-lg p-4 h-full">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Position Lifecycle</h2>
+        <div className="flex items-center justify-center py-6">
+          <span className="text-xs text-faint">No position data available</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-surface border border-b-default rounded-lg p-5 h-full">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-4">Position Lifecycle</h2>
+    <div className="bg-surface border border-b-default rounded-lg p-4 h-full">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Position Lifecycle</h2>
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={data} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} horizontal={false} />

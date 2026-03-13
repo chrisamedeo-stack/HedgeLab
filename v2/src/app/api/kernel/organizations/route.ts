@@ -96,12 +96,22 @@ export async function POST(request: Request) {
         [org.id, baseCurrency]
       );
 
-      // 3. Create admin user with hashed password
+      // 3. Create admin user with hashed password (handle duplicate email)
+      let emailToUse = adminEmail;
+      const existingUser = await tx.query(
+        `SELECT id FROM users WHERE email = $1`,
+        [adminEmail]
+      );
+      if (existingUser.rows.length > 0) {
+        const [localPart, domain] = adminEmail.split("@");
+        emailToUse = `${localPart}+org${org.id.slice(0, 8)}@${domain}`;
+      }
+
       const userRow = await tx.query(
         `INSERT INTO users (org_id, email, name, role_id, is_active, password_hash)
          VALUES ($1, $2, $3, 'admin', true, $4)
          RETURNING id, name, email`,
-        [org.id, adminEmail, adminName, passwordHash]
+        [org.id, emailToUse, adminName, passwordHash]
       );
       const user = userRow.rows[0];
 

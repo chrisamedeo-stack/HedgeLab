@@ -28,7 +28,7 @@ export function FuturesMonthsTab({ orgId: propOrgId }: { orgId?: string } = {}) 
   const [draft, setDraft] = useState<MappingState | null>(null);
 
   useEffect(() => {
-    apiFetch(`/api/v2/kernel/org-settings?orgId=${orgId}`)
+    apiFetch(`/api/kernel/org-settings?orgId=${orgId}`)
       .then(data => {
         // Read flat field from org_settings row (not nested config)
         const fm = data?.futures_month_mappings;
@@ -59,7 +59,7 @@ export function FuturesMonthsTab({ orgId: propOrgId }: { orgId?: string } = {}) 
     if (!draft) return;
     setSaving(true);
     try {
-      await apiFetch(`/api/v2/kernel/org-settings`, {
+      await apiFetch(`/api/kernel/org-settings`, {
         method: "PATCH",
         body: JSON.stringify({ orgId, futures_month_mappings: draft }),
       });

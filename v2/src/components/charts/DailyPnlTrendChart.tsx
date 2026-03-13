@@ -29,7 +29,7 @@ const TIME_RANGE_OPTIONS: { label: string; value: TimeRange }[] = [
 
 const DAY_MAP: Record<string, number> = { "3": 7, "6": 30, "12": 90 };
 
-export function DailyPnlTrendChart({ data, height = 320 }: DailyPnlTrendChartProps) {
+export function DailyPnlTrendChart({ data, height = 280 }: DailyPnlTrendChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>("6");
 
   const filtered = useMemo(() => {
@@ -47,21 +47,21 @@ export function DailyPnlTrendChart({ data, height = 320 }: DailyPnlTrendChartPro
 
   if (data.length === 0) {
     return (
-      <div className="bg-surface border border-b-default rounded-lg p-5">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-4">Daily P&L Trend</h2>
-        <div className="flex flex-col items-center justify-center" style={{ height }}>
-          <svg className="h-10 w-10 text-faint mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+      <div className="bg-surface border border-b-default rounded-lg p-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Daily P&L Trend</h2>
+        <div className="flex flex-col items-center justify-center py-6">
+          <svg className="h-5 w-5 text-faint mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
           </svg>
-          <span className="text-sm text-faint">Run MTM to generate P&L data</span>
+          <span className="text-xs text-faint">Run MTM to generate P&L data</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-surface border border-b-default rounded-lg p-5">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-surface border border-b-default rounded-lg p-4">
+      <div className="flex items-center justify-between mb-3">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Daily P&L Trend</h2>
         <div className="flex gap-1">
           {TIME_RANGE_OPTIONS.map((opt) => (

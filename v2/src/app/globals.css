@@ -34,18 +34,18 @@
   --color-profit:           #4AAD8B;
   --color-profit-hover:     #5CBFA0;
   --color-loss:             #D4645C;
-  --color-destructive:      #D49A4E;
-  --color-destructive-hover:#DDA95F;
-  --color-caution:          #C48B3F;
-  --color-warning:          #D49A4E;
-  --color-warning-hover:    #DDA95F;
+  --color-destructive:      #D4645C;
+  --color-destructive-hover:#E07A73;
+  --color-caution:          #007acc;
+  --color-warning:          #66a3ff;
+  --color-warning-hover:    #99c2ff;
   --color-accent:           #7B90AE;
   --color-neutral:          #7B90AE;
   --color-focus:            #1383F4;
 
   /* Chart — Corporate Blues */
   --chart-1: #00509e;  --chart-2: #007acc;  --chart-3: #66a3ff;
-  --chart-4: #cce0ff;  --chart-5: #003366;  --chart-6: #D49A4E;
+  --chart-4: #cce0ff;  --chart-5: #003366;  --chart-6: #1a4d80;
 }
 
 /* ── Tailwind v4 Theme ──────────────────────────────────────────── */
@@ -95,34 +95,39 @@
   --color-profit-30:    #4AAD8B4D;
   --color-profit-40:    #4AAD8B66;
 
-  /* Loss */
+  /* Loss + opacity variants */
   --color-loss: #D4645C;
+  --color-loss-5:  #D4645C0D;
+  --color-loss-10: #D4645C1A;
+  --color-loss-15: #D4645C26;
+  --color-loss-20: #D4645C33;
+  --color-loss-30: #D4645C4D;
 
-  /* Destructive (sandy gold) + opacity variants */
-  --color-destructive:       #D49A4E;
-  --color-destructive-hover: #DDA95F;
-  --color-destructive-5:     #D49A4E0D;
-  --color-destructive-10:    #D49A4E1A;
-  --color-destructive-15:    #D49A4E26;
-  --color-destructive-20:    #D49A4E33;
-  --color-destructive-30:    #D49A4E4D;
+  /* Destructive (red) + opacity variants */
+  --color-destructive:       #D4645C;
+  --color-destructive-hover: #E07A73;
+  --color-destructive-5:     #D4645C0D;
+  --color-destructive-10:    #D4645C1A;
+  --color-destructive-15:    #D4645C26;
+  --color-destructive-20:    #D4645C33;
+  --color-destructive-30:    #D4645C4D;
 
   /* Caution + opacity variants */
-  --color-caution:     #C48B3F;
-  --color-caution-5:   #C48B3F0D;
-  --color-caution-10:  #C48B3F1A;
-  --color-caution-20:  #C48B3F33;
-  --color-caution-30:  #C48B3F4D;
+  --color-caution:     #007acc;
+  --color-caution-5:   #007acc0D;
+  --color-caution-10:  #007acc1A;
+  --color-caution-20:  #007acc33;
+  --color-caution-30:  #007acc4D;
 
-  /* Warning + opacity variants */
-  --color-warning:       #D49A4E;
-  --color-warning-hover: #DDA95F;
-  --color-warning-5:     #D49A4E0D;
-  --color-warning-10:    #D49A4E1A;
-  --color-warning-15:    #D49A4E26;
-  --color-warning-20:    #D49A4E33;
-  --color-warning-25:    #D49A4E40;
-  --color-warning-30:    #D49A4E4D;
+  /* Warning (cornflower) + opacity variants */
+  --color-warning:       #66a3ff;
+  --color-warning-hover: #99c2ff;
+  --color-warning-5:     #66a3ff0D;
+  --color-warning-10:    #66a3ff1A;
+  --color-warning-15:    #66a3ff26;
+  --color-warning-20:    #66a3ff33;
+  --color-warning-25:    #66a3ff40;
+  --color-warning-30:    #66a3ff4D;
 
   /* Accent + opacity variants */
   --color-accent:     #7B90AE;
@@ -143,7 +148,7 @@
   --color-chart-3: #66a3ff;
   --color-chart-4: #cce0ff;
   --color-chart-5: #003366;
-  --color-chart-6: #D49A4E;
+  --color-chart-6: #1a4d80;
 
   /* Fonts */
   --font-inter: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -158,10 +163,14 @@
   --animate-shimmer: shimmer 1.5s ease-in-out infinite;
 }
 
-/* Border radius — sharp corporate style matching v1 */
-.rounded, .rounded-sm, .rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-3xl {
-  border-radius: 2px;
-}
+/* Border radius — sharp terminal style */
+.rounded-sm { border-radius: 2px; }
+.rounded, .rounded-md { border-radius: 2px; }
+.rounded-lg { border-radius: 2px; }
+.rounded-xl { border-radius: 2px; }
+.rounded-2xl { border-radius: 4px; }
+.rounded-3xl { border-radius: 4px; }
+.rounded-full { border-radius: 9999px; }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }

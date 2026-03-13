@@ -16,6 +16,7 @@ export async function GET(request: Request) {
       orgId,
       searchParams.get("commodityId") ?? undefined,
       searchParams.get("siteId") ?? undefined,
+      searchParams.get("orgUnitId") ?? undefined,
     );
 
     return NextResponse.json(summary);

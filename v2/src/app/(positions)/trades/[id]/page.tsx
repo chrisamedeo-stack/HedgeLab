@@ -4,7 +4,11 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { useTrade } from "@/hooks/useTrades";
-import { usePositionStore } from "@/store/positionStore";
+import { useSites } from "@/hooks/usePositions";
+import { useOrgContext } from "@/contexts/OrgContext";
+import { TradeAllocateForm } from "@/components/trades/TradeAllocateForm";
+import { TabGroup } from "@/components/ui/TabGroup";
+import { Spinner } from "@/components/ui/Spinner";
 import type { Allocation } from "@/types/positions";
 
 const statusStyle: Record<string, string> = {
@@ -25,7 +29,9 @@ const allocStatusStyle: Record<string, string> = {
 
 export default function TradeDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: tradeData, loading, error } = useTrade(id);
+  const { data: tradeData, loading, error, refetch } = useTrade(id);
+  const { orgId } = useOrgContext();
+  const { data: sites } = useSites(orgId);
   const [tab, setTab] = useState<"details" | "allocations">("details");
 
   if (loading || !tradeData) {
@@ -37,7 +43,7 @@ export default function TradeDetailPage() {
           </svg>
           Trades
         </Link>
-        <div className="text-faint text-sm py-8 text-center">Loading trade...</div>
+        <div className="flex items-center justify-center py-8"><Spinner /></div>
       </div>
     );
   }
@@ -45,6 +51,7 @@ export default function TradeDetailPage() {
   const trade = tradeData.trade;
   const allocations: Allocation[] = tradeData.allocations ?? [];
   const summary = tradeData.summary;
+  const unallocated = Number(trade.unallocated_volume) || 0;
 
   return (
     <div className="space-y-6 page-fade">
@@ -65,22 +72,14 @@ export default function TradeDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-b-default flex gap-6">
-        {(["details", "allocations"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`pb-3 text-sm font-medium capitalize border-b-2 transition-colors ${
-              tab === t
-                ? "border-action text-action"
-                : "border-transparent text-faint hover:text-secondary"
-            }`}
-          >
-            {t}
-            {t === "allocations" && ` (${allocations.length})`}
-          </button>
-        ))}
-      </div>
+      <TabGroup
+        tabs={[
+          { key: "details", label: "Details" },
+          { key: "allocations", label: `Allocations (${allocations.length})` },
+        ]}
+        active={tab}
+        onChange={(key) => setTab(key as "details" | "allocations")}
+      />
 
       {error && (
         <div className="rounded-md bg-destructive-10 border border-destructive-15 px-3 py-2 text-sm text-loss">{error}</div>
@@ -124,7 +123,7 @@ export default function TradeDetailPage() {
         <div className="space-y-4">
           {/* Summary bar */}
           {summary && (
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 ["Total Volume", summary.totalVolume?.toLocaleString()],
                 ["Allocated", summary.allocatedVolume?.toLocaleString()],
@@ -137,6 +136,29 @@ export default function TradeDetailPage() {
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Inline allocation form */}
+          {unallocated > 0 && trade.status !== "cancelled" && (
+            sites && sites.length > 0 ? (
+              <TradeAllocateForm
+                tradeId={trade.id}
+                orgId={trade.org_id}
+                commodityId={trade.commodity_id}
+                direction={trade.direction}
+                contractMonth={trade.contract_month}
+                tradePrice={Number(trade.trade_price)}
+                tradeDate={trade.trade_date}
+                currency={trade.currency}
+                remainingVolume={unallocated}
+                sites={sites}
+                onSuccess={refetch}
+              />
+            ) : (
+              <div className="rounded-lg border border-warning-20 bg-warning-10 px-4 py-3 text-xs text-warning">
+                Loading sites...
+              </div>
+            )
           )}
 
           {/* Allocations table */}

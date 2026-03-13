@@ -14,37 +14,37 @@ interface ExportOption {
 const EXPORTS: ExportOption[] = [
   {
     label: "Hedge Book CSV",
-    endpoint: "/api/v2/positions/hedge-book",
+    endpoint: "/api/positions/hedge-book",
     filename: "hedge-book.csv",
     description: "All open and closed allocations in the hedge book",
   },
   {
     label: "Physical Contracts CSV",
-    endpoint: "/api/v2/positions/physicals",
+    endpoint: "/api/positions/physicals",
     filename: "physical-contracts.csv",
     description: "All physical buy/sell contracts",
   },
   {
     label: "Trade Blotter CSV",
-    endpoint: "/api/v2/trades",
+    endpoint: "/api/trades",
     filename: "trades.csv",
     description: "All financial trades — futures, options, swaps",
   },
   {
     label: "Budget Periods CSV",
-    endpoint: "/api/v2/budget/periods",
+    endpoint: "/api/budget/periods",
     filename: "budget-periods.csv",
     description: "All budget periods with line item summaries",
   },
   {
     label: "Coverage Summary CSV",
-    endpoint: "/api/v2/budget/coverage",
+    endpoint: "/api/budget/coverage",
     filename: "coverage-summary.csv",
     description: "Monthly coverage breakdown — budgeted, committed, hedged, open",
   },
   {
     label: "Audit Log CSV",
-    endpoint: "/api/v2/kernel/audit",
+    endpoint: "/api/kernel/audit",
     filename: "audit-log.csv",
     description: "Full audit trail of all system actions (Admin only)",
   },
@@ -114,8 +114,8 @@ export default function ExportsPage() {
   return (
     <div className="space-y-6 page-fade">
       <div>
-        <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Exports</h1>
-        <p className="mt-0.5 text-xs text-faint">Download position data and reports</p>
+        <h1 className="text-xl font-bold text-primary">Exports</h1>
+        <p className="text-sm text-muted mt-0.5">Download position data and reports</p>
       </div>
 
       {/* Date filters */}

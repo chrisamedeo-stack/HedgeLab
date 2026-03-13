@@ -32,7 +32,7 @@ export function UsersTab({ orgId: propOrgId }: { orgId?: string } = {}) {
 
   const load = useCallback(async () => {
     try {
-      const data = await apiFetch(`/api/v2/kernel/users?orgId=${orgId}`);
+      const data = await apiFetch(`/api/kernel/users?orgId=${orgId}`);
       setUsers(data);
     } catch (err) { setError((err as Error).message); }
     finally { setLoading(false); }
@@ -54,7 +54,7 @@ export function UsersTab({ orgId: propOrgId }: { orgId?: string } = {}) {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault(); setSubmitting(true);
     try {
-      await apiFetch("/api/v2/kernel/users", {
+      await apiFetch("/api/kernel/users", {
         method: "POST",
         body: JSON.stringify({ orgId, name: form.name, email: form.email || null, roleId: form.role }),
       });
@@ -66,7 +66,7 @@ export function UsersTab({ orgId: propOrgId }: { orgId?: string } = {}) {
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault(); if (!editing) return; setSubmitting(true);
     try {
-      await apiFetch(`/api/v2/kernel/users/${editing.id}`, {
+      await apiFetch(`/api/kernel/users/${editing.id}`, {
         method: "PUT",
         body: JSON.stringify({ email: form.email || null, roleId: form.role, isActive: form.enabled }),
       });
@@ -78,7 +78,7 @@ export function UsersTab({ orgId: propOrgId }: { orgId?: string } = {}) {
   async function handleDelete() {
     if (!deleteTarget) return;
     try {
-      await apiFetch(`/api/v2/kernel/users/${deleteTarget.id}`, { method: "DELETE" });
+      await apiFetch(`/api/kernel/users/${deleteTarget.id}`, { method: "DELETE" });
       load();
     } catch (err) { setError((err as Error).message); }
     finally { setDeleteTarget(null); }

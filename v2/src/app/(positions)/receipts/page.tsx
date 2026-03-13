@@ -33,7 +33,7 @@ export default function ReceiptsPage() {
     try {
       const params = new URLSearchParams({ orgId });
       if (commodityId) params.set("commodityId", commodityId);
-      const res = await fetch(`${API_BASE}/api/v2/positions/physicals?${params}`);
+      const res = await fetch(`${API_BASE}/api/positions/physicals?${params}`);
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       // Use physicals as "receipts" - filter for filled buy contracts
@@ -57,8 +57,8 @@ export default function ReceiptsPage() {
     <div className="space-y-6 page-fade">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Receipts</h1>
-          <p className="mt-0.5 text-xs text-faint">
+          <h1 className="text-xl font-bold text-primary">Receipts</h1>
+          <p className="text-sm text-muted mt-0.5">
             {receipts.length} receipt{receipts.length !== 1 ? "s" : ""} &mdash; physical delivery receipts
           </p>
         </div>

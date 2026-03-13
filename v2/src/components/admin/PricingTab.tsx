@@ -45,7 +45,7 @@ export function PricingTab() {
     fetchFormulas(orgId);
     fetchRateTables(orgId);
     fetchTemplates();
-    apiFetch("/api/v2/kernel/commodities")
+    apiFetch("/api/kernel/commodities")
       .then((data: any[]) => setCommodities(data.map((c: any) => ({ id: c.id, name: c.name }))))
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps

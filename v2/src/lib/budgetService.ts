@@ -502,7 +502,8 @@ export async function restoreVersion(
 export async function getCoverageSummary(
   orgId: string,
   commodityId?: string,
-  siteId?: string
+  siteId?: string,
+  orgUnitId?: string
 ): Promise<CoverageSummary> {
   let sql = `
     SELECT
@@ -524,6 +525,10 @@ export async function getCoverageSummary(
   if (siteId) {
     params.push(siteId);
     sql += ` AND p.site_id = $${params.length}`;
+  }
+  if (orgUnitId) {
+    params.push(orgUnitId);
+    sql += ` AND p.site_id IN (SELECT site_id FROM get_sites_under_unit($${params.length}))`;
   }
 
   sql += ` GROUP BY li.budget_month ORDER BY li.budget_month`;

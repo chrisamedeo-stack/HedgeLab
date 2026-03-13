@@ -12,6 +12,7 @@ import type {
   ExecuteOffsetParams,
   ExecuteRollParams,
   CreatePhysicalParams,
+  BasisSummary,
 } from "@/types/positions";
 
 interface PositionState {
@@ -22,6 +23,7 @@ interface PositionState {
   lockedPositions: LockedPosition[];
   siteView: SitePositionView | null;
   rollCandidates: { candidates: RolloverCandidate[]; grouped: Record<string, RolloverCandidate[]> } | null;
+  basisSummary: BasisSummary | null;
 
   // Filters
   selectedRegion: string | null;
@@ -38,7 +40,8 @@ interface PositionState {
   fetchPhysicals: (params?: Record<string, string>) => Promise<void>;
   fetchLockedPositions: (params?: Record<string, string>) => Promise<void>;
   fetchSiteView: (siteId: string, commodityId?: string) => Promise<void>;
-  fetchRollCandidates: (orgId: string, commodityId?: string) => Promise<void>;
+  fetchRollCandidates: (orgId: string, commodityId?: string, orgUnitId?: string) => Promise<void>;
+  fetchBasisSummary: (orgId: string, commodityId?: string, orgUnitId?: string) => Promise<void>;
   allocate: (params: AllocateToSiteParams) => Promise<Allocation>;
   executeEFP: (params: ExecuteEFPParams) => Promise<LockedPosition>;
   executeOffset: (params: ExecuteOffsetParams) => Promise<Allocation>;
@@ -70,6 +73,7 @@ export const usePositionStore = create<PositionState>((set) => ({
   lockedPositions: [],
   siteView: null,
   rollCandidates: null,
+  basisSummary: null,
   selectedRegion: null,
   selectedOrgUnit: null,
   selectedCommodity: null,
@@ -79,7 +83,7 @@ export const usePositionStore = create<PositionState>((set) => ({
   fetchAllocations: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/positions/allocations${qs(params ?? {})}`);
+      const res = await fetch(`${API_BASE}/api/positions/allocations${qs(params ?? {})}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const allocations = await res.json();
       set({ allocations, loading: false });
@@ -91,7 +95,7 @@ export const usePositionStore = create<PositionState>((set) => ({
   fetchHedgeBook: async (orgId, commodityId, regionGroupId, orgUnitId) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/positions/hedge-book${qs({ orgId, commodityId, regionGroupId, orgUnitId })}`);
+      const res = await fetch(`${API_BASE}/api/positions/hedge-book${qs({ orgId, commodityId, regionGroupId, orgUnitId })}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const hedgeBook = await res.json();
       set({ hedgeBook, loading: false });
@@ -103,7 +107,7 @@ export const usePositionStore = create<PositionState>((set) => ({
   fetchPhysicals: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/positions/physicals${qs(params ?? {})}`);
+      const res = await fetch(`${API_BASE}/api/positions/physicals${qs(params ?? {})}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const physicals = await res.json();
       set({ physicals, loading: false });
@@ -115,7 +119,7 @@ export const usePositionStore = create<PositionState>((set) => ({
   fetchLockedPositions: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/positions/locked${qs(params ?? {})}`);
+      const res = await fetch(`${API_BASE}/api/positions/locked${qs(params ?? {})}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const lockedPositions = await res.json();
       set({ lockedPositions, loading: false });
@@ -127,7 +131,7 @@ export const usePositionStore = create<PositionState>((set) => ({
   fetchSiteView: async (siteId, commodityId) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/positions/site-view/${siteId}${qs({ commodityId })}`);
+      const res = await fetch(`${API_BASE}/api/positions/site-view/${siteId}${qs({ commodityId })}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const siteView = await res.json();
       set({ siteView, loading: false });
@@ -136,10 +140,10 @@ export const usePositionStore = create<PositionState>((set) => ({
     }
   },
 
-  fetchRollCandidates: async (orgId, commodityId) => {
+  fetchRollCandidates: async (orgId, commodityId, orgUnitId) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/positions/roll/candidates${qs({ orgId, commodityId })}`);
+      const res = await fetch(`${API_BASE}/api/positions/roll/candidates${qs({ orgId, commodityId, orgUnitId })}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const rollCandidates = await res.json();
       set({ rollCandidates, loading: false });
@@ -148,10 +152,24 @@ export const usePositionStore = create<PositionState>((set) => ({
     }
   },
 
+  fetchBasisSummary: async (orgId, commodityId, orgUnitId) => {
+    try {
+      const params = new URLSearchParams({ orgId });
+      if (commodityId) params.set("commodityId", commodityId);
+      if (orgUnitId) params.set("orgUnitId", orgUnitId);
+      const res = await fetch(`${API_BASE}/api/positions/basis?${params}`);
+      if (!res.ok) throw new Error((await res.json()).error);
+      const basisSummary = await res.json();
+      set({ basisSummary });
+    } catch (err) {
+      set({ error: (err as Error).message });
+    }
+  },
+
   allocate: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/positions/allocations`, {
+      const res = await fetch(`${API_BASE}/api/positions/allocations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
@@ -169,7 +187,7 @@ export const usePositionStore = create<PositionState>((set) => ({
   executeEFP: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/positions/efp`, {
+      const res = await fetch(`${API_BASE}/api/positions/efp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
@@ -187,7 +205,7 @@ export const usePositionStore = create<PositionState>((set) => ({
   executeOffset: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/positions/offset`, {
+      const res = await fetch(`${API_BASE}/api/positions/offset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
@@ -205,7 +223,7 @@ export const usePositionStore = create<PositionState>((set) => ({
   executeRoll: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/positions/roll`, {
+      const res = await fetch(`${API_BASE}/api/positions/roll`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
@@ -221,7 +239,7 @@ export const usePositionStore = create<PositionState>((set) => ({
   createPhysical: async (params) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/positions/physicals`, {
+      const res = await fetch(`${API_BASE}/api/positions/physicals`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
@@ -239,7 +257,7 @@ export const usePositionStore = create<PositionState>((set) => ({
   cancelAllocation: async (userId, allocationId) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/api/v2/positions/allocations/${allocationId}?userId=${userId}`, {
+      const res = await fetch(`${API_BASE}/api/positions/allocations/${allocationId}?userId=${userId}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error((await res.json()).error);

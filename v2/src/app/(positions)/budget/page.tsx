@@ -1,20 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useBudgetPeriods, useCoverage } from "@/hooks/useBudget";
-import { useCommodities, useSites } from "@/hooks/usePositions";
+import { useCommodities, useSites, type Commodity } from "@/hooks/usePositions";
 import { useCommodityContext } from "@/contexts/CommodityContext";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBudgetStore } from "@/store/budgetStore";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { KPICard } from "@/components/ui/KPICard";
-import { Modal } from "@/components/ui/Modal";
+import { TabGroup } from "@/components/ui/TabGroup";
+import { SkeletonTable, SkeletonKPIGrid } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { CoverageChart } from "@/components/budget/CoverageChart";
 import { BudgetVsCommittedChart } from "@/components/budget/BudgetVsCommittedChart";
+import { FiscalYearGrid } from "@/components/budget/FiscalYearGrid";
+import { btnPrimary, btnCancel, selectCls } from "@/lib/ui-classes";
 import Link from "next/link";
 
 type ChartMode = "coverage" | "budget-vs-committed";
+type TabMode = "periods" | "forecast" | "scenarios";
 
 export default function BudgetPage() {
   const { orgId } = useOrgContext();
@@ -25,60 +30,64 @@ export default function BudgetPage() {
   const [filterSite, setFilterSite] = useState<string | null>(null);
   const [filterYear, setFilterYear] = useState<number | null>(null);
   const [chartMode, setChartMode] = useState<ChartMode>("coverage");
-  const [showNew, setShowNew] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabMode>("periods");
+
+  // Inline new budget form state
+  const [showNewBudget, setShowNewBudget] = useState(false);
+  const [newSite, setNewSite] = useState("");
+  const [newYear, setNewYear] = useState(new Date().getFullYear());
+  const [creating, setCreating] = useState(false);
 
   const filters = {
     commodityId: commodityId ?? undefined,
     siteId: filterSite ?? undefined,
     budgetYear: filterYear ?? undefined,
   };
-  const { data: periods, loading } = useBudgetPeriods(orgId, filters);
+  const { data: periods, loading, refetch } = useBudgetPeriods(orgId, filters);
   const { data: coverage } = useCoverage(orgId, commodityId ?? undefined, filterSite ?? undefined);
   const { createPeriod } = useBudgetStore();
-
-  // New period form state
-  const [newSite, setNewSite] = useState("");
-  const [newYear, setNewYear] = useState(new Date().getFullYear());
-  const [newNotes, setNewNotes] = useState("");
-  const [creating, setCreating] = useState(false);
-
-  const handleCreate = async () => {
-    if (!newSite || !commodityId) return;
-    setCreating(true);
-    try {
-      await createPeriod({
-        orgId: orgId,
-        userId: user!.id,
-        siteId: newSite,
-        commodityId,
-        budgetYear: newYear,
-        notes: newNotes || undefined,
-      });
-      setShowNew(false);
-      setNewNotes("");
-    } catch {
-      // error shown via store
-    } finally {
-      setCreating(false);
-    }
-  };
 
   const currentYear = new Date().getFullYear();
   const yearOptions = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
 
-  const inputCls = "w-full border border-b-input bg-input-bg rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-focus";
+  const selectedCommodity = useMemo((): Commodity | null => {
+    return commodities?.find((c) => c.id === commodityId) ?? null;
+  }, [commodities, commodityId]);
+
+  // Create period + open fiscal year grid inline
+  const handleCreatePeriod = async () => {
+    if (!newSite || !commodityId) return;
+    setCreating(true);
+    try {
+      const period = await createPeriod({
+        orgId,
+        userId: user!.id,
+        siteId: newSite,
+        commodityId,
+        budgetYear: newYear,
+      });
+      // After creating, the grid will be shown inline for this period
+      setCreating(false);
+      setShowNewBudget(false);
+      refetch();
+      // Redirect to the period detail page with the grid
+      window.location.href = `/budget/${period.id}`;
+    } catch {
+      setCreating(false);
+    }
+  };
 
   return (
     <div className="space-y-6 page-fade">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Budget & Forecast</h1>
-          <p className="mt-0.5 text-xs text-faint">Manage budget periods, track coverage, and update forecasts</p>
+          <h1 className="text-xl font-bold text-primary">Budget & Forecast</h1>
+          <p className="text-sm text-muted mt-0.5">Manage budget periods, track coverage, and run scenarios</p>
         </div>
         <button
-          onClick={() => setShowNew(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-action rounded-lg hover:bg-action-hover transition-colors"
+          onClick={() => setShowNewBudget(!showNewBudget)}
+          className={btnPrimary}
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -87,9 +96,67 @@ export default function BudgetPage() {
         </button>
       </div>
 
+      {/* Inline New Budget Form */}
+      {showNewBudget && (
+        <div className="animate-fade-in rounded-lg border border-b-default bg-surface p-4 space-y-4">
+          <h3 className="text-sm font-medium text-secondary">Create Budget Period</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <label className="block space-y-1">
+              <span className="text-xs text-muted">Site</span>
+              <select
+                value={newSite}
+                onChange={(e) => setNewSite(e.target.value)}
+                className="w-full border border-b-input bg-input-bg rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-focus"
+              >
+                <option value="">Select site...</option>
+                {sites?.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
+                ))}
+              </select>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs text-muted">Commodity</span>
+              <input
+                type="text"
+                value={selectedCommodity?.name ?? "Select from sidebar"}
+                disabled
+                className="w-full border border-b-input bg-input-bg rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none opacity-50"
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs text-muted">Budget Year</span>
+              <select
+                value={newYear}
+                onChange={(e) => setNewYear(Number(e.target.value))}
+                className="w-full border border-b-input bg-input-bg rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-focus"
+              >
+                {yearOptions.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setShowNewBudget(false)}
+              className="px-4 py-2 text-sm text-faint hover:text-secondary transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreatePeriod}
+              disabled={creating || !newSite || !commodityId}
+              className="px-4 py-2 text-sm font-medium text-white bg-action rounded-lg hover:bg-action-hover transition-colors disabled:opacity-50"
+            >
+              {creating ? "Creating..." : "Create & Open Grid"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* KPIs */}
       {coverage && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICard
             label="Total Budget"
             value={`${coverage.totalBudgeted.toLocaleString()} MT`}
@@ -143,12 +210,23 @@ export default function BudgetPage() {
         </div>
       )}
 
+      {/* Tabs: Periods | Forecast | Scenarios */}
+      <TabGroup
+        tabs={[
+          { key: "periods", label: "Periods" },
+          { key: "forecast", label: "Forecast" },
+          { key: "scenarios", label: "Scenarios" },
+        ]}
+        active={activeTab}
+        onChange={(key) => setActiveTab(key as TabMode)}
+      />
+
       {/* Filters */}
       <div className="flex items-center gap-3">
         <select
           value={filterSite ?? ""}
           onChange={(e) => setFilterSite(e.target.value || null)}
-          className="border border-b-input bg-input-bg rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-focus"
+          className={selectCls + " w-auto"}
         >
           <option value="">All Sites</option>
           {sites?.map((s) => (
@@ -158,7 +236,7 @@ export default function BudgetPage() {
         <select
           value={filterYear ?? ""}
           onChange={(e) => setFilterYear(e.target.value ? Number(e.target.value) : null)}
-          className="border border-b-input bg-input-bg rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-focus"
+          className={selectCls + " w-auto"}
         >
           <option value="">All Years</option>
           {yearOptions.map((y) => (
@@ -167,99 +245,70 @@ export default function BudgetPage() {
         </select>
       </div>
 
-      {/* Period list */}
-      {loading ? (
-        <div className="text-center py-12 text-faint">Loading budget periods...</div>
-      ) : periods.length === 0 ? (
+      {/* Tab Content */}
+      {activeTab === "periods" && (
+        <>
+          {loading ? (
+            <SkeletonTable rows={4} />
+          ) : periods.length === 0 ? (
+            <EmptyState
+              title="No budget periods found"
+              description="Create a new budget period to get started."
+              actionLabel="New Budget"
+              onAction={() => setShowNewBudget(true)}
+            />
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-b-default bg-surface">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-tbl-border bg-tbl-header">
+                    <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted">Site</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted">Commodity</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium uppercase tracking-wider text-muted">Year</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium uppercase tracking-wider text-muted">Status</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted">Notes</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wider text-muted">Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {periods.map((p) => (
+                    <tr key={p.id} className="border-b border-tbl-border hover:bg-row-hover transition-colors">
+                      <td className="px-4 py-3">
+                        <Link href={`/budget/${p.id}`} className="text-secondary hover:text-primary transition-colors">
+                          {p.site_name ?? p.site_id.slice(0, 8)}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-muted">{p.commodity_name ?? "—"}</td>
+                      <td className="px-4 py-3 text-center text-secondary tabular-nums">{p.budget_year}</td>
+                      <td className="px-4 py-3 text-center">
+                        <StatusBadge status={p.locked_at ? "locked" : p.status} />
+                      </td>
+                      <td className="px-4 py-3 text-faint text-xs truncate max-w-[200px]">{p.notes ?? "—"}</td>
+                      <td className="px-4 py-3 text-right text-faint text-xs tabular-nums">{new Date(p.updated_at).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === "forecast" && (
         <div className="rounded-lg border border-b-default bg-surface px-6 py-12 text-center">
-          <p className="text-faint">No budget periods found.</p>
-          <p className="text-xs text-ph mt-1">Create a new budget period to get started.</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-b-default bg-surface">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-tbl-border bg-tbl-header">
-                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted">Site</th>
-                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted">Commodity</th>
-                <th className="px-4 py-2 text-center text-xs font-medium uppercase tracking-wider text-muted">Year</th>
-                <th className="px-4 py-2 text-center text-xs font-medium uppercase tracking-wider text-muted">Status</th>
-                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted">Notes</th>
-                <th className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wider text-muted">Updated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {periods.map((p) => (
-                <tr key={p.id} className="border-b border-tbl-border hover:bg-row-hover transition-colors">
-                  <td className="px-4 py-3">
-                    <Link href={`/budget/${p.id}`} className="text-secondary hover:text-primary transition-colors">
-                      {p.site_name ?? p.site_id.slice(0, 8)}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-muted">{p.commodity_name ?? "—"}</td>
-                  <td className="px-4 py-3 text-center text-secondary tabular-nums">{p.budget_year}</td>
-                  <td className="px-4 py-3 text-center">
-                    <StatusBadge status={p.locked_at ? "locked" : p.status} />
-                  </td>
-                  <td className="px-4 py-3 text-faint text-xs truncate max-w-[200px]">{p.notes ?? "—"}</td>
-                  <td className="px-4 py-3 text-right text-faint text-xs tabular-nums">{new Date(p.updated_at).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <p className="text-faint">Select a budget period to view its forecast tab.</p>
+          <p className="text-xs text-ph mt-1">Click on any period above to access forecast details.</p>
         </div>
       )}
 
-      {/* New Budget Modal */}
-      <Modal open={showNew} onClose={() => setShowNew(false)} title="New Budget Period">
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-xs text-muted">Site</label>
-            <select value={newSite} onChange={(e) => setNewSite(e.target.value)} className={inputCls}>
-              <option value="">Select site...</option>
-              {sites?.map((s) => (
-                <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-muted">Commodity</label>
-            <input
-              type="text"
-              value={commodities?.find((c) => c.id === commodityId)?.name ?? "Select from sidebar"}
-              disabled
-              className={`${inputCls} opacity-50`}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-muted">Budget Year</label>
-            <select value={newYear} onChange={(e) => setNewYear(Number(e.target.value))} className={inputCls}>
-              {yearOptions.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-muted">Notes</label>
-            <textarea
-              value={newNotes}
-              onChange={(e) => setNewNotes(e.target.value)}
-              className={`${inputCls} h-16 resize-none`}
-              placeholder="Optional notes..."
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setShowNew(false)} className="px-4 py-2 text-sm text-faint hover:text-secondary transition-colors">Cancel</button>
-            <button
-              onClick={handleCreate}
-              disabled={creating || !newSite || !commodityId}
-              className="px-4 py-2 text-sm font-medium text-white bg-action rounded-lg hover:bg-action-hover transition-colors disabled:opacity-50"
-            >
-              {creating ? "Creating..." : "Create Period"}
-            </button>
-          </div>
+      {activeTab === "scenarios" && (
+        <div className="rounded-lg border border-b-default bg-surface px-6 py-12 text-center">
+          <p className="text-faint">Scenario analysis is available from the forecast page.</p>
+          <Link href="/forecast" className="text-xs text-action hover:text-action-hover mt-1 inline-block">
+            Open Scenario Manager
+          </Link>
         </div>
-      </Modal>
+      )}
     </div>
   );
 }

@@ -107,18 +107,33 @@ export function usePhysicals(params?: Record<string, string>) {
 
 // ─── Roll Candidates ─────────────────────────────────────────────────────────
 
-export function useRollCandidates(orgId: string, commodityId?: string) {
+export function useRollCandidates(orgId: string, commodityId?: string, orgUnitId?: string) {
   const { rollCandidates, loading, error, fetchRollCandidates } = usePositionStore();
 
   useEffect(() => {
-    if (orgId) fetchRollCandidates(orgId, commodityId);
-  }, [orgId, commodityId, fetchRollCandidates]);
+    if (orgId) fetchRollCandidates(orgId, commodityId, orgUnitId);
+  }, [orgId, commodityId, orgUnitId, fetchRollCandidates]);
 
   return {
     data: rollCandidates,
     loading,
     error,
-    refetch: () => fetchRollCandidates(orgId, commodityId),
+    refetch: () => fetchRollCandidates(orgId, commodityId, orgUnitId),
+  };
+}
+
+// ─── Basis Summary ───────────────────────────────────────────────────────────
+
+export function useBasisSummary(orgId: string, commodityId?: string, orgUnitId?: string) {
+  const { basisSummary, fetchBasisSummary } = usePositionStore();
+
+  useEffect(() => {
+    if (orgId) fetchBasisSummary(orgId, commodityId, orgUnitId);
+  }, [orgId, commodityId, orgUnitId, fetchBasisSummary]);
+
+  return {
+    data: basisSummary,
+    refetch: () => fetchBasisSummary(orgId, commodityId, orgUnitId),
   };
 }
 
@@ -143,7 +158,7 @@ export function useSiteGroups(orgId?: string, groupType?: string) {
     const params = new URLSearchParams();
     if (orgId) params.set("orgId", orgId);
     if (groupType) params.set("type", groupType);
-    const res = await fetch(`${API_BASE}/api/v2/kernel/site-groups?${params}`);
+    const res = await fetch(`${API_BASE}/api/kernel/site-groups?${params}`);
     if (!res.ok) throw new Error((await res.json()).error);
     return res.json();
   }, [orgId, groupType]);
@@ -173,7 +188,7 @@ export interface Commodity {
 
 export function useCommodities() {
   return useFetch<Commodity[]>(async () => {
-    const res = await fetch(`${API_BASE}/api/v2/kernel/commodities`);
+    const res = await fetch(`${API_BASE}/api/kernel/commodities`);
     if (!res.ok) throw new Error((await res.json()).error);
     return res.json();
   }, []);
@@ -194,7 +209,7 @@ export function useSites(orgId?: string) {
   return useFetch<Site[]>(async () => {
     const params = new URLSearchParams();
     if (orgId) params.set("orgId", orgId);
-    const res = await fetch(`${API_BASE}/api/v2/kernel/sites?${params}`);
+    const res = await fetch(`${API_BASE}/api/kernel/sites?${params}`);
     if (!res.ok) throw new Error((await res.json()).error);
     return res.json();
   }, [orgId]);

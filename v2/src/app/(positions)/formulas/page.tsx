@@ -70,7 +70,7 @@ export default function FormulasPage() {
     fetchFormulas(orgId);
     fetchRateTables(orgId);
     fetchTemplates();
-    apiFetch("/api/v2/kernel/commodities")
+    apiFetch("/api/kernel/commodities")
       .then((data: any[]) => setCommodities(data.map((c: any) => ({ id: c.id, name: c.name }))))
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,7 +196,7 @@ export default function FormulasPage() {
     return (
       <div className="space-y-6 page-fade">
         <div>
-          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Formula Pricing</h1>
+          <h1 className="text-xl font-bold text-primary">Formula Pricing</h1>
           <p className="mt-0.5 text-xs text-faint">Formula pricing plugin is not enabled for this organization.</p>
         </div>
       </div>
@@ -206,7 +206,7 @@ export default function FormulasPage() {
   return (
     <div className="space-y-6 page-fade">
       <div>
-        <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Formula Pricing</h1>
+        <h1 className="text-xl font-bold text-primary">Formula Pricing</h1>
         <p className="mt-0.5 text-xs text-faint">Manage pricing formulas, rate tables, and evaluate pricing models</p>
       </div>
 
@@ -217,13 +217,12 @@ export default function FormulasPage() {
       )}
 
       {/* Sub-tabs */}
-      <div className="flex gap-4 border-b border-b-default">
+      <div className="inline-flex gap-1 rounded-lg bg-input-bg p-1">
         {subTabs.map((st) => (
           <button key={st.key} onClick={() => setSubTab(st.key)}
-            className={cn(
-              "pb-2 px-1 text-sm font-medium transition-colors border-b-2 -mb-px",
-              subTab === st.key ? "border-action text-action" : "border-transparent text-faint hover:text-secondary"
-            )}>
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              subTab === st.key ? "bg-surface text-secondary shadow-sm" : "text-muted hover:text-secondary"
+            }`}>
             {st.label}
           </button>
         ))}

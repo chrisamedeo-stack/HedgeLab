@@ -115,9 +115,9 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const [pluginsRes, treeRes, levelsRes] = await Promise.all([
-        fetch(`/api/v2/kernel/org-plugins?orgId=${orgId}`),
-        fetch(`/api/v2/kernel/org-hierarchy?orgId=${orgId}`),
-        fetch(`/api/v2/kernel/org-hierarchy/levels?orgId=${orgId}`),
+        fetch(`/api/kernel/org-plugins?orgId=${orgId}`),
+        fetch(`/api/kernel/org-hierarchy?orgId=${orgId}`),
+        fetch(`/api/kernel/org-hierarchy/levels?orgId=${orgId}`),
       ]);
 
       if (pluginsRes.ok) {

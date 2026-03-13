@@ -8,7 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { KPICard } from "@/components/ui/KPICard";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { AllocateForm } from "@/components/positions/AllocateForm";
+import { TradeAllocateForm } from "@/components/trades/TradeAllocateForm";
+import { btnPrimary, btnSecondary, btnDanger } from "@/lib/ui-classes";
 import type { Allocation } from "@/types/positions";
 
 interface TradeDetailProps {
@@ -24,20 +25,20 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
   const { data, loading, refetch } = useTrade(tradeId);
   const { cancelTrade, updateTrade } = useTradeStore();
   const { user } = useAuth();
-  const [showAllocate, setShowAllocate] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editPrice, setEditPrice] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
   if (loading || !data) {
     return (
-      <div className="mt-2 rounded-lg border border-b-default bg-surface p-4">
+      <div className="bg-surface p-4">
         <div className="text-sm text-faint">Loading trade details...</div>
       </div>
     );
   }
 
   const { trade, allocations, summary } = data;
+  const unallocated = Number(trade.unallocated_volume) || 0;
 
   const handleCancel = async () => {
     if (!confirm("Cancel this trade? Open allocations will also be cancelled.")) return;
@@ -97,8 +98,13 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
     },
   ];
 
+  const handleAllocateSuccess = () => {
+    refetch();
+    onRefresh();
+  };
+
   return (
-    <div className="mt-2 rounded-lg border border-b-default bg-surface p-4 space-y-4">
+    <div className="bg-surface p-4 space-y-4">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -119,14 +125,6 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
         <div className="flex items-center gap-2">
           {trade.status !== "cancelled" && (
             <>
-              {Number(trade.unallocated_volume) > 0 && (
-                <button
-                  onClick={() => setShowAllocate(true)}
-                  className="rounded-md bg-action px-3 py-1.5 text-xs font-medium text-white hover:bg-action-hover"
-                >
-                  Allocate
-                </button>
-              )}
               {!editing && trade.status !== "fully_allocated" && (
                 <button
                   onClick={() => {
@@ -182,7 +180,7 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Total Volume" value={summary.totalVolume.toLocaleString()} />
         <KPICard label="Allocated" value={summary.allocatedVolume.toLocaleString()} />
         <KPICard
@@ -192,6 +190,29 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
         />
         <KPICard label="Allocations" value={String(summary.allocationCount)} />
       </div>
+
+      {/* Inline allocation form */}
+      {unallocated > 0 && trade.status !== "cancelled" && (
+        sites.length > 0 ? (
+          <TradeAllocateForm
+            tradeId={trade.id}
+            orgId={orgId}
+            commodityId={trade.commodity_id}
+            direction={trade.direction}
+            contractMonth={trade.contract_month}
+            tradePrice={Number(trade.trade_price)}
+            tradeDate={trade.trade_date}
+            currency={trade.currency}
+            remainingVolume={unallocated}
+            sites={sites}
+            onSuccess={handleAllocateSuccess}
+          />
+        ) : (
+          <div className="rounded-lg border border-warning-20 bg-warning-10 px-4 py-3 text-xs text-warning">
+            No sites available. Add sites in Settings before allocating.
+          </div>
+        )
+      )}
 
       {/* Allocations table */}
       <div>
@@ -203,21 +224,6 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
           emptyMessage="No allocations yet"
         />
       </div>
-
-      {/* Allocate modal */}
-      {showAllocate && (
-        <AllocateForm
-          orgId={orgId}
-          sites={sites}
-          commodities={commodities}
-          onClose={() => setShowAllocate(false)}
-          onSuccess={() => {
-            setShowAllocate(false);
-            refetch();
-            onRefresh();
-          }}
-        />
-      )}
     </div>
   );
 }

@@ -1,23 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import {
-  ComposedChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  Customized,
-} from "recharts";
+  Chart,
+  BarController,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip as ChartTooltip,
+  type ChartConfiguration,
+  type Plugin,
+} from "chart.js";
 import type { CoverageResponse } from "@/hooks/useCorn";
 import { useCommodity } from "@/contexts/CommodityContext";
 import { BarChart3 } from "lucide-react";
-import { chartTheme } from "@/lib/chart-theme";
-import { fmtK } from "@/lib/chart-utils";
-import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+Chart.register(BarController, BarElement, CategoryScale, LinearScale, ChartTooltip);
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -27,19 +26,16 @@ interface ChartRow {
   month: string;
   label: string;
   basis: number;
-  fixed: number;
-  unfixed: number;
-  options: number;
+  board: number;
+  forecast: number;
   budget: number;
-  priceCov: number;
-  volCov: number;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function monthLabel(ym: string) {
   if (!ym || ym.length < 7) return ym;
-  return new Date(ym + "-01").toLocaleString("en-US", { month: "short" });
+  return new Date(ym + "-01").toLocaleString("en-US", { month: "short", year: "2-digit" });
 }
 
 function currentMonth(): string {
@@ -53,76 +49,121 @@ function addMonths(ym: string, n: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-// ─── Budget dashed line overlay ─────────────────────────────────────────────
+function fmtK(v: number): string {
+  if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(v) >= 1_000) return `${Math.round(v / 1_000)}k`;
+  return String(v);
+}
 
-function BudgetLineOverlay(props: Record<string, unknown>) {
-  const { xAxisMap, yAxisMap, formattedGraphicalItems } = props as {
-    xAxisMap?: Record<string, { scale: (v: string) => number; bandSize?: number }>;
-    yAxisMap?: Record<string, { scale: (v: number) => number }>;
-    formattedGraphicalItems?: { props?: { data?: { payload?: ChartRow }[] } }[];
+function fmtComma(v: number): string {
+  return v.toLocaleString("en-US");
+}
+
+// ─── Theme ──────────────────────────────────────────────────────────────────
+
+function isDark(): boolean {
+  if (typeof window === "undefined") return true;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches || true;
+}
+
+function themeColors() {
+  const dark = isDark();
+  return {
+    basisBar: "#B5D4F4",
+    boardBar: "#1a6b7a",
+    budgetLine: "#0C447C",
+    forecastFill: dark ? "rgba(181,212,244,0.1)" : "rgba(181,212,244,0.22)",
+    forecastBorder: dark ? "rgba(181,212,244,0.2)" : "rgba(181,212,244,0.4)",
+    gridColor: dark ? "rgba(181,212,244,0.08)" : "rgba(0,0,0,0.08)",
+    tickColor: dark ? "#7B90AE" : "#555",
+    tooltipBg: dark ? "#003366" : "#fff",
+    tooltipBorder: dark ? "#00509e" : "#ccc",
+    tooltipText: dark ? "#cce0ff" : "#111",
   };
-
-  if (!xAxisMap || !yAxisMap || !formattedGraphicalItems) return null;
-
-  const xAxis = Object.values(xAxisMap)[0];
-  const yAxis = Object.values(yAxisMap)[0];
-  if (!xAxis || !yAxis) return null;
-
-  const bandSize = xAxis.bandSize ?? 40;
-  const firstBarSeries = formattedGraphicalItems[0];
-  const dataPoints = firstBarSeries?.props?.data;
-  if (!dataPoints) return null;
-
-  return (
-    <g>
-      {dataPoints.map((point, i) => {
-        const row = point.payload;
-        if (!row || row.budget <= 0) return null;
-        const x = xAxis.scale(row.label);
-        const y = yAxis.scale(row.budget);
-        if (x == null || y == null || isNaN(x) || isNaN(y)) return null;
-        return (
-          <line
-            key={i}
-            x1={x - bandSize * 0.1}
-            x2={x + bandSize * 1.1}
-            y1={y}
-            y2={y}
-            stroke={chartTheme.budgetLine}
-            strokeWidth={2.5}
-            strokeDasharray="6 3"
-          />
-        );
-      })}
-    </g>
-  );
 }
 
-// ─── Custom tick with coverage % labels ─────────────────────────────────────
+// ─── Forecast container plugin ──────────────────────────────────────────────
 
-interface CovTickProps {
-  x?: number;
-  y?: number;
-  payload?: { value: string };
-  data: ChartRow[];
-}
+const forecastContainerPlugin: Plugin<"bar"> = {
+  id: "forecastContainer",
+  beforeDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const meta0 = chart.getDatasetMeta(0);
+    const meta1 = chart.getDatasetMeta(1);
+    if (!meta0?.data?.length || !meta1?.data?.length) return;
 
-function CoverageTick({ x, y, payload, data }: CovTickProps) {
-  if (x == null || y == null || !payload) return null;
-  const row = data.find((d) => d.label === payload.value);
-  return (
-    <g>
-      <text x={x} y={y + 2} textAnchor="middle" fontSize={9} fill={chartTheme.tick}>
-        {payload.value}
-      </text>
-      {row && (
-        <text x={x} y={y + 14} textAnchor="middle" fontSize={8} fill={chartTheme.tick} opacity={0.7}>
-          {row.priceCov}% / {row.volCov}%
-        </text>
-      )}
-    </g>
-  );
-}
+    const colors = themeColors();
+    const yScale = chart.scales.y;
+    const forecastData = (chart.config as unknown as { _forecastValues?: number[] })._forecastValues;
+    if (!forecastData) return;
+
+    for (let i = 0; i < meta0.data.length; i++) {
+      const bar0 = meta0.data[i] as unknown as { x: number; width: number };
+      const bar1 = meta1.data[i] as unknown as { x: number; width: number };
+      if (!bar0 || !bar1) continue;
+
+      const forecastVal = forecastData[i] ?? 0;
+      if (forecastVal <= 0) continue;
+
+      const yTop = yScale.getPixelForValue(forecastVal);
+      const yBottom = yScale.getPixelForValue(0);
+
+      const leftX = Math.min(bar0.x - bar0.width / 2, bar1.x - bar1.width / 2);
+      const rightX = Math.max(bar0.x + bar0.width / 2, bar1.x + bar1.width / 2);
+
+      const pad = 4;
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(leftX - pad, yTop, rightX - leftX + pad * 2, yBottom - yTop, 4);
+      ctx.fillStyle = colors.forecastFill;
+      ctx.fill();
+      ctx.strokeStyle = colors.forecastBorder;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+    }
+  },
+};
+
+// ─── Budget line plugin ─────────────────────────────────────────────────────
+
+const budgetLinePlugin: Plugin<"bar"> = {
+  id: "budgetLine",
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const meta0 = chart.getDatasetMeta(0);
+    const meta1 = chart.getDatasetMeta(1);
+    if (!meta0?.data?.length || !meta1?.data?.length) return;
+
+    const colors = themeColors();
+    const yScale = chart.scales.y;
+    const budgetData = (chart.config as unknown as { _budgetValues?: number[] })._budgetValues;
+    if (!budgetData) return;
+
+    for (let i = 0; i < meta0.data.length; i++) {
+      const bar0 = meta0.data[i] as unknown as { x: number; width: number };
+      const bar1 = meta1.data[i] as unknown as { x: number; width: number };
+      if (!bar0 || !bar1) continue;
+
+      const budgetVal = budgetData[i] ?? 0;
+      if (budgetVal <= 0) continue;
+
+      const yPos = yScale.getPixelForValue(budgetVal);
+      const leftX = Math.min(bar0.x - bar0.width / 2, bar1.x - bar1.width / 2);
+      const rightX = Math.max(bar0.x + bar0.width / 2, bar1.x + bar1.width / 2);
+      const pad = 4;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(leftX - pad, yPos);
+      ctx.lineTo(rightX + pad, yPos);
+      ctx.strokeStyle = colors.budgetLine;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+  },
+};
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -134,6 +175,8 @@ export function CoverageStackedChart({ coverage }: Props) {
   const { config } = useCommodity();
   const BUSHELS_PER_MT = config.bushelsPerMt;
   const [timeRange, setTimeRange] = useState<TimeRange>("12");
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const chartRef = useRef<Chart<"bar"> | null>(null);
 
   const allData = useMemo(() => {
     const buckets = new Map<
@@ -156,24 +199,12 @@ export function CoverageStackedChart({ coverage }: Props) {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, d]): ChartRow => {
         const basis = d.efpdMt * BUSHELS_PER_MT;
-        const fixed = d.hedgedMt * BUSHELS_PER_MT;
-        const unfixed = Math.max(0, d.committedMt - d.hedgedMt) * BUSHELS_PER_MT;
+        const board = d.hedgedMt * BUSHELS_PER_MT;
+        const forecast = d.budgetedMt * BUSHELS_PER_MT;
         const budget = d.budgetedMt * BUSHELS_PER_MT;
-        const priceCov = d.budgetedMt > 0 ? Math.round((d.hedgedMt / d.budgetedMt) * 100) : 0;
-        const volCov = d.budgetedMt > 0 ? Math.round(((d.hedgedMt + d.efpdMt) / d.budgetedMt) * 100) : 0;
-        return {
-          month,
-          label: monthLabel(month),
-          basis,
-          fixed,
-          unfixed,
-          options: 0,
-          budget,
-          priceCov,
-          volCov,
-        };
+        return { month, label: monthLabel(month), basis, board, forecast, budget };
       });
-  }, [coverage]);
+  }, [coverage, BUSHELS_PER_MT]);
 
   const data = useMemo(() => {
     if (timeRange === "all") return allData;
@@ -181,6 +212,122 @@ export function CoverageStackedChart({ coverage }: Props) {
     const end = addMonths(cur, parseInt(timeRange));
     return allData.filter((d) => d.month >= cur && d.month < end);
   }, [allData, timeRange]);
+
+  const buildChart = useCallback(() => {
+    if (!canvasRef.current || data.length === 0) return;
+
+    if (chartRef.current) {
+      chartRef.current.destroy();
+      chartRef.current = null;
+    }
+
+    const colors = themeColors();
+    const labels = data.map((d) => d.label);
+    const basisValues = data.map((d) => d.basis);
+    const boardValues = data.map((d) => d.board);
+    const forecastValues = data.map((d) => d.forecast);
+    const budgetValues = data.map((d) => d.budget);
+
+    const config: ChartConfiguration<"bar"> = {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Basis",
+            data: basisValues,
+            backgroundColor: colors.basisBar,
+            borderRadius: 3,
+            barPercentage: 0.65,
+            categoryPercentage: 0.85,
+            order: 2,
+          },
+          {
+            label: "Board",
+            data: boardValues,
+            backgroundColor: colors.boardBar,
+            borderRadius: 3,
+            barPercentage: 0.65,
+            categoryPercentage: 0.85,
+            order: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: colors.tooltipBg,
+            borderColor: colors.tooltipBorder,
+            borderWidth: 1,
+            titleColor: colors.tooltipText,
+            bodyColor: colors.tooltipText,
+            titleFont: { size: 12, weight: "bold" },
+            bodyFont: { size: 11 },
+            padding: 10,
+            cornerRadius: 2,
+            callbacks: {
+              label(ctx) {
+                return ` ${ctx.dataset.label}: ${fmtComma(ctx.parsed.y ?? 0)} bu`;
+              },
+              afterBody(items) {
+                if (!items[0]) return [];
+                const idx = items[0].dataIndex;
+                const lines: string[] = [];
+                if (forecastValues[idx]) lines.push(` Forecast: ${fmtComma(forecastValues[idx])} bu`);
+                if (budgetValues[idx]) lines.push(` Budget: ${fmtComma(budgetValues[idx])} bu`);
+                return lines;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: colors.tickColor, font: { size: 11 }, autoSkip: false, maxRotation: 45, minRotation: 0 },
+            border: { display: false },
+          },
+          y: {
+            grid: { color: colors.gridColor },
+            ticks: {
+              color: colors.tickColor,
+              font: { size: 11 },
+              callback(tickValue) { return fmtK(Number(tickValue)); },
+            },
+            border: { display: false },
+            beginAtZero: true,
+          },
+        },
+      },
+      plugins: [forecastContainerPlugin, budgetLinePlugin],
+    };
+
+    const chart = new Chart(canvasRef.current, config);
+    (chart.config as unknown as { _forecastValues: number[] })._forecastValues = forecastValues;
+    (chart.config as unknown as { _budgetValues: number[] })._budgetValues = budgetValues;
+    chart.update();
+    chartRef.current = chart;
+  }, [data]);
+
+  useEffect(() => {
+    buildChart();
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
+    };
+  }, [buildChart]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => buildChart();
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [buildChart]);
 
   // ─── Empty state ──────────────────────────────────────────────────────────
   if (allData.length === 0) {
@@ -229,79 +376,31 @@ export function CoverageStackedChart({ coverage }: Props) {
         </div>
       </div>
 
+      {/* Custom legend */}
       <div className="flex items-center gap-4 mb-3 text-[10px] text-muted">
         <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-2 rounded-sm" style={{ background: chartTheme.basisRatio }} />
-          Basis/Ratio
+          <span className="inline-block w-3 h-2 rounded-sm" style={{ background: "#B5D4F4" }} />
+          Basis
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-2 rounded-sm" style={{ background: chartTheme.fixed }} />
-          Fixed
+          <span className="inline-block w-3 h-2 rounded-sm" style={{ background: "#1a6b7a" }} />
+          Board
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-2 rounded-sm" style={{ background: chartTheme.forecast }} />
+          <span
+            className="inline-block w-3 h-2 rounded-sm"
+            style={{ background: "rgba(181,212,244,0.1)", border: "1px solid rgba(181,212,244,0.3)" }}
+          />
           Forecast
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-1 border-t-2 border-dashed" style={{ borderColor: chartTheme.budgetLine }} />
+          <span className="inline-block w-4 h-0" style={{ borderTop: "2.5px solid #0C447C" }} />
           Budget
         </span>
       </div>
 
       <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 5, right: 10, left: 5, bottom: 20 }}>
-            <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={(props: Record<string, unknown>) => (
-                <CoverageTick
-                  x={props.x as number}
-                  y={props.y as number}
-                  payload={props.payload as { value: string }}
-                  data={data}
-                />
-              )}
-              axisLine={false}
-              tickLine={false}
-              interval={0}
-            />
-            <YAxis
-              tick={{ fontSize: 9, fill: chartTheme.tick }}
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={fmtK}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: chartTheme.tooltipBg,
-                border: `1px solid ${chartTheme.tooltipBorder}`,
-                color: chartTheme.tooltipText,
-                fontSize: 11,
-              }}
-              formatter={(value: number, name: string) => {
-                const labels: Record<string, string> = {
-                  basis: "Basis/Ratio",
-                  fixed: "Fixed",
-                  unfixed: "Forecast (Unfixed)",
-                  options: "Options",
-                };
-                return [formatNumber(Math.round(value)) + " bu", labels[name] ?? name];
-              }}
-            />
-
-            {/* Basis/Ratio — standalone bar (left column) */}
-            <Bar dataKey="basis" fill={chartTheme.basisRatio} radius={[2, 2, 0, 0]} barSize={20} />
-
-            {/* Forecast stack (right column): Fixed + Unfixed + Options */}
-            <Bar dataKey="fixed" stackId="fc" fill={chartTheme.fixed} barSize={20} />
-            <Bar dataKey="unfixed" stackId="fc" fill={chartTheme.forecast} barSize={20} />
-            <Bar dataKey="options" stackId="fc" fill={chartTheme.options} radius={[2, 2, 0, 0]} barSize={20} hide />
-
-            {/* Budget dashed line overlay */}
-            <Customized component={BudgetLineOverlay} />
-          </ComposedChart>
-        </ResponsiveContainer>
+        <canvas ref={canvasRef} />
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ export function CommoditiesTab() {
 
   const load = useCallback(async () => {
     try {
-      const data = await apiFetch("/api/v2/kernel/commodities");
+      const data = await apiFetch("/api/kernel/commodities");
       setCommodities(data);
     } catch (err) { setError((err as Error).message); }
     finally { setLoading(false); }

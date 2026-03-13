@@ -13,6 +13,7 @@ import type {
   LimitCheckResult,
   ExposureBucket,
   CounterpartyExposure,
+  PnlAttribution,
 } from "@/types/risk";
 
 // ─── MTM Engine ─────────────────────────────────────────────────────────────
@@ -112,6 +113,13 @@ export async function runMtm(orgId: string, userId: string): Promise<MtmSnapshot
     orgId,
     userId,
   });
+
+  // Non-blocking P&L attribution after MTM
+  try {
+    await computePnlAttribution(orgId, userId);
+  } catch (err) {
+    console.warn("[risk] P&L attribution failed (non-blocking):", (err as Error).message);
+  }
 
   return snapshots;
 }
@@ -475,6 +483,127 @@ export async function getExposureByTenor(orgId: string, commodityId?: string): P
     netExposure: Number(r.long_exposure) - Number(r.short_exposure),
   }));
 }
+
+// ─── P&L Attribution Engine ──────────────────────────────────────────────────
+
+export async function computePnlAttribution(orgId: string, userId: string): Promise<PnlAttribution[]> {
+  const today = new Date().toISOString().split("T")[0];
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().split("T")[0];
+
+  // Get today's and yesterday's MTM snapshots
+  const todaySnapshots = await queryAll<MtmSnapshot>(
+    `SELECT * FROM rsk_mtm_snapshots WHERE org_id = $1 AND snapshot_date = $2`,
+    [orgId, today]
+  );
+
+  const yesterdaySnapshots = await queryAll<MtmSnapshot>(
+    `SELECT * FROM rsk_mtm_snapshots WHERE org_id = $1 AND snapshot_date = $2`,
+    [orgId, yesterday]
+  );
+
+  const yesterdayMap = new Map(
+    yesterdaySnapshots.map((s) => [s.commodity_id ?? "__all__", s])
+  );
+
+  const attributions: PnlAttribution[] = [];
+
+  for (const snap of todaySnapshots) {
+    const commodityId = snap.commodity_id;
+    const prior = yesterdayMap.get(commodityId ?? "__all__");
+    const priorPnl = prior ? Number(prior.futures_pnl) + Number(prior.physical_pnl) : 0;
+    const currentPnl = Number(snap.futures_pnl) + Number(snap.physical_pnl);
+
+    // Closed P&L: offsets executed today
+    let closedSql = `SELECT COALESCE(SUM(offset_pnl), 0) as pnl FROM pm_allocations WHERE org_id = $1 AND offset_date = $2`;
+    const closedParams: unknown[] = [orgId, today];
+    if (commodityId) { closedParams.push(commodityId); closedSql += ` AND commodity_id = $${closedParams.length}`; }
+    const closedRow = await queryOne<{ pnl: string }>(closedSql, closedParams);
+    const closedPnl = Number(closedRow?.pnl ?? 0);
+
+    // Roll P&L: roll costs incurred today
+    let rollSql = `SELECT COALESCE(SUM(rc.total_cost), 0) as cost FROM pm_rollover_costs rc JOIN pm_rollovers r ON r.id = rc.rollover_id WHERE r.org_id = $1 AND r.roll_date = $2`;
+    const rollParams: unknown[] = [orgId, today];
+    if (commodityId) { rollParams.push(commodityId); rollSql += ` AND r.commodity_id = $${rollParams.length}`; }
+    const rollRow = await queryOne<{ cost: string }>(rollSql, rollParams);
+    const rollPnl = -Number(rollRow?.cost ?? 0);
+
+    // Basis P&L: locked positions created today with basis
+    let basisSql = `SELECT COALESCE(SUM(basis_component * volume), 0) as pnl FROM pm_locked_positions WHERE lock_date = $1 AND basis_component IS NOT NULL AND site_id IN (SELECT id FROM sites WHERE org_id = $2)`;
+    const basisParams: unknown[] = [today, orgId];
+    if (commodityId) { basisParams.push(commodityId); basisSql += ` AND commodity_id = $${basisParams.length}`; }
+    const basisRow = await queryOne<{ pnl: string }>(basisSql, basisParams);
+    const basisPnl = Number(basisRow?.pnl ?? 0);
+
+    // New Trades P&L: allocations created today, valued at current market
+    let newTradesSql = `SELECT COALESCE(SUM(
+         (CASE WHEN a.direction = 'long' THEN 1 ELSE -1 END)
+         * a.allocated_volume
+         * (COALESCE((SELECT p.price FROM md_prices p WHERE p.commodity_id = a.commodity_id ORDER BY p.price_date DESC LIMIT 1), 0) - COALESCE(a.trade_price, 0))
+       ), 0) as pnl FROM pm_allocations a WHERE a.org_id = $1 AND a.allocation_date = $2 AND a.status NOT IN ('cancelled')`;
+    const newTradesParams: unknown[] = [orgId, today];
+    if (commodityId) { newTradesParams.push(commodityId); newTradesSql += ` AND a.commodity_id = $${newTradesParams.length}`; }
+    const newTradesRow = await queryOne<{ pnl: string }>(newTradesSql, newTradesParams);
+    const newTradesPnl = Number(newTradesRow?.pnl ?? 0);
+
+    // Price Change P&L = residual (total change minus all identified components)
+    const totalChange = currentPnl - priorPnl;
+    const priceChangePnl = totalChange - closedPnl - rollPnl - basisPnl - newTradesPnl;
+
+    // Upsert
+    const row = await queryOne<PnlAttribution>(
+      `INSERT INTO rsk_pnl_attribution
+         (org_id, attribution_date, commodity_id,
+          prior_total_pnl, current_total_pnl,
+          price_change_pnl, new_trades_pnl, closed_positions_pnl,
+          roll_pnl, basis_pnl, residual_pnl)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0)
+       ON CONFLICT (org_id, attribution_date, commodity_id)
+       DO UPDATE SET
+         prior_total_pnl = EXCLUDED.prior_total_pnl,
+         current_total_pnl = EXCLUDED.current_total_pnl,
+         price_change_pnl = EXCLUDED.price_change_pnl,
+         new_trades_pnl = EXCLUDED.new_trades_pnl,
+         closed_positions_pnl = EXCLUDED.closed_positions_pnl,
+         roll_pnl = EXCLUDED.roll_pnl,
+         basis_pnl = EXCLUDED.basis_pnl,
+         residual_pnl = 0
+       RETURNING *`,
+      [orgId, today, commodityId, priorPnl, currentPnl, priceChangePnl, newTradesPnl, closedPnl, rollPnl, basisPnl]
+    );
+
+    if (row) attributions.push(row);
+  }
+
+  return attributions;
+}
+
+export async function getLatestAttribution(orgId: string, commodityId?: string): Promise<PnlAttribution[]> {
+  // Get latest attribution date
+  const dateRow = await queryOne<{ d: string }>(
+    `SELECT MAX(attribution_date) as d FROM rsk_pnl_attribution WHERE org_id = $1`,
+    [orgId]
+  );
+
+  if (!dateRow?.d) return [];
+
+  let sql = `
+    SELECT a.*, c.name as commodity_name
+    FROM rsk_pnl_attribution a
+    LEFT JOIN commodities c ON c.id = a.commodity_id
+    WHERE a.org_id = $1 AND a.attribution_date = $2`;
+  const params: unknown[] = [orgId, dateRow.d];
+
+  if (commodityId) {
+    params.push(commodityId);
+    sql += ` AND a.commodity_id = $${params.length}`;
+  }
+
+  sql += ` ORDER BY c.name`;
+
+  return queryAll<PnlAttribution>(sql, params);
+}
+
+// ─── Exposure Aggregations ──────────────────────────────────────────────────
 
 export async function getExposureByCounterparty(orgId: string): Promise<CounterpartyExposure[]> {
   const rows = await queryAll<{

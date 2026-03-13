@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { useBudgetPeriod, useBudgetVersions } from "@/hooks/useBudget";
 import { useCommodities } from "@/hooks/usePositions";
 import { useBudgetStore } from "@/store/budgetStore";
-import { Modal } from "@/components/ui/Modal";
 import { LineItemTable } from "@/components/budget/LineItemTable";
 import { ForecastTab } from "@/components/budget/ForecastTab";
 import { ForecastUpdateGrid } from "@/components/budget/ForecastUpdateGrid";
@@ -16,12 +15,16 @@ import { BudgetVsCommittedChart } from "@/components/budget/BudgetVsCommittedCha
 import { ApprovalBar } from "@/components/budget/ApprovalBar";
 import { VersionPanel } from "@/components/budget/VersionPanel";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { TabGroup } from "@/components/ui/TabGroup";
+import { Spinner } from "@/components/ui/Spinner";
 import { useAuth } from "@/contexts/AuthContext";
+import { btnPrimary, btnSecondary } from "@/lib/ui-classes";
 import Link from "next/link";
 import type { BudgetLineItem, CoverageDataPoint } from "@/types/budget";
 import { formatPriceWithUnit } from "@/lib/commodity-units";
 
 type Tab = "budget" | "forecast" | "coverage" | "versions";
+type FormMode = "none" | "add-month" | "edit-month" | "fy-grid" | "forecast-grid";
 
 function fmt(n: number | null | undefined): string {
   if (n == null || n === 0) return "—";
@@ -44,13 +47,15 @@ export default function BudgetDetailPage() {
   const { user } = useAuth();
 
   const [tab, setTab] = useState<Tab>("budget");
-  const [showAddMonth, setShowAddMonth] = useState(false);
-  const [showFYGrid, setShowFYGrid] = useState(false);
-  const [showForecastGrid, setShowForecastGrid] = useState(false);
+  const [formMode, setFormMode] = useState<FormMode>("none");
   const [editItem, setEditItem] = useState<BudgetLineItem | null>(null);
 
   if (loading || !period) {
-    return <div className="text-center py-12 text-faint">{loading ? "Loading..." : "Period not found"}</div>;
+    return (
+      <div className="flex items-center justify-center py-12">
+        {loading ? <Spinner /> : <span className="text-faint">Period not found</span>}
+      </div>
+    );
   }
 
   const items = period.line_items ?? [];
@@ -89,6 +94,11 @@ export default function BudgetDetailPage() {
     overHedgedCount,
   };
 
+  const closeForm = () => {
+    setFormMode("none");
+    setEditItem(null);
+  };
+
   const tabs: { key: Tab; label: string }[] = [
     { key: "budget", label: "Budget" },
     { key: "forecast", label: "Forecast" },
@@ -111,7 +121,7 @@ export default function BudgetDetailPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Budget Period</h1>
+          <h1 className="text-xl font-bold text-primary">Budget Period</h1>
           <p className="mt-0.5 text-lg font-semibold text-primary">
             {period.site_name} · {period.budget_year}
           </p>
@@ -120,26 +130,26 @@ export default function BudgetDetailPage() {
             <StatusBadge status={isLocked ? "locked" : period.status} />
           </div>
         </div>
-        {!isLocked && tab === "budget" && (
+        {!isLocked && tab === "budget" && formMode === "none" && (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowAddMonth(true)}
-              className="px-3 py-1.5 text-xs text-muted border border-b-input rounded-lg hover:bg-hover hover:text-secondary transition-colors"
+              onClick={() => setFormMode("add-month")}
+              className={btnSecondary + " text-xs"}
             >
               + Add Month
             </button>
             <button
-              onClick={() => setShowFYGrid(true)}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-action rounded-lg hover:bg-action-hover transition-colors"
+              onClick={() => setFormMode("fy-grid")}
+              className={btnPrimary + " text-xs"}
             >
               Fiscal Year Grid
             </button>
           </div>
         )}
-        {!isLocked && tab === "forecast" && (
+        {!isLocked && tab === "forecast" && formMode === "none" && (
           <button
-            onClick={() => setShowForecastGrid(true)}
-            className="px-3 py-1.5 text-xs font-medium text-white bg-action rounded-lg hover:bg-action-hover transition-colors"
+            onClick={() => setFormMode("forecast-grid")}
+            className={btnPrimary + " text-xs"}
           >
             Bulk Update Forecasts
           </button>
@@ -147,7 +157,7 @@ export default function BudgetDetailPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-lg border border-b-default bg-surface p-3">
           <div className="text-xs text-muted">Avg All-in Price</div>
           <div className="text-lg font-semibold text-primary tabular-nums">
@@ -175,29 +185,75 @@ export default function BudgetDetailPage() {
       {/* Approval Bar */}
       <ApprovalBar period={period} userId={user!.id} />
 
+      {/* Inline form area — replaces all modals */}
+      {formMode === "add-month" && (
+        <div className="animate-fade-in rounded-lg border border-b-default bg-surface p-4">
+          <h3 className="text-sm font-medium text-secondary mb-3">Add Budget Month</h3>
+          <BudgetLineForm periodId={periodId} userId={user!.id} onClose={closeForm} commodity={commodity} commodityId={period.commodity_id} />
+        </div>
+      )}
+
+      {formMode === "edit-month" && editItem && (
+        <div className="animate-fade-in rounded-lg border border-b-default bg-surface p-4">
+          <h3 className="text-sm font-medium text-secondary mb-3">Edit Budget Month</h3>
+          <BudgetLineForm
+            periodId={periodId}
+            userId={user!.id}
+            onClose={closeForm}
+            commodity={commodity}
+            commodityId={period.commodity_id}
+            existing={{
+              budgetMonth: editItem.budget_month,
+              budgetedVolume: Number(editItem.budgeted_volume),
+              budgetPrice: editItem.budget_price ? Number(editItem.budget_price) : null,
+              forecastVolume: editItem.forecast_volume ? Number(editItem.forecast_volume) : null,
+              forecastPrice: editItem.forecast_price ? Number(editItem.forecast_price) : null,
+              futuresMonth: editItem.futures_month,
+              components: editItem.components ?? [],
+              notes: editItem.notes,
+            }}
+          />
+        </div>
+      )}
+
+      {formMode === "fy-grid" && (
+        <div className="animate-fade-in rounded-lg border border-b-default bg-surface p-4">
+          <h3 className="text-sm font-medium text-secondary mb-3">Fiscal Year Grid</h3>
+          <FiscalYearGrid
+            periodId={periodId}
+            budgetYear={period.budget_year}
+            userId={user!.id}
+            onDone={closeForm}
+            commodity={commodity}
+          />
+        </div>
+      )}
+
+      {formMode === "forecast-grid" && (
+        <div className="animate-fade-in rounded-lg border border-b-default bg-surface p-4">
+          <h3 className="text-sm font-medium text-secondary mb-3">Update Forecasts</h3>
+          <ForecastUpdateGrid
+            periodId={periodId}
+            items={items}
+            userId={user!.id}
+            onDone={closeForm}
+          />
+        </div>
+      )}
+
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-b-default">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              tab === t.key
-                ? "border-action text-secondary"
-                : "border-transparent text-muted hover:text-secondary"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <TabGroup
+        tabs={tabs}
+        active={tab}
+        onChange={(key) => { setTab(key as Tab); closeForm(); }}
+      />
 
       {/* Tab Content */}
       {tab === "budget" && (
         <LineItemTable
           items={items}
           locked={isLocked}
-          onEdit={!isLocked ? (li) => setEditItem(li) : undefined}
+          onEdit={!isLocked ? (li) => { setEditItem(li); setFormMode("edit-month"); } : undefined}
           onDelete={!isLocked ? (id) => {
             if (confirm("Delete this line item?")) {
               deleteLineItem(periodId, id, user!.id);
@@ -220,55 +276,6 @@ export default function BudgetDetailPage() {
       {tab === "versions" && (
         <VersionPanel periodId={periodId} versions={versions} userId={user!.id} locked={isLocked} />
       )}
-
-      {/* Add Month Modal */}
-      <Modal open={showAddMonth} onClose={() => setShowAddMonth(false)} title="Add Budget Month">
-        <BudgetLineForm periodId={periodId} userId={user!.id} onClose={() => setShowAddMonth(false)} commodity={commodity} commodityId={period.commodity_id} />
-      </Modal>
-
-      {/* Edit Item Modal */}
-      <Modal open={!!editItem} onClose={() => setEditItem(null)} title="Edit Budget Month">
-        {editItem && (
-          <BudgetLineForm
-            periodId={periodId}
-            userId={user!.id}
-            onClose={() => setEditItem(null)}
-            commodity={commodity}
-            commodityId={period.commodity_id}
-            existing={{
-              budgetMonth: editItem.budget_month,
-              budgetedVolume: Number(editItem.budgeted_volume),
-              budgetPrice: editItem.budget_price ? Number(editItem.budget_price) : null,
-              forecastVolume: editItem.forecast_volume ? Number(editItem.forecast_volume) : null,
-              forecastPrice: editItem.forecast_price ? Number(editItem.forecast_price) : null,
-              futuresMonth: editItem.futures_month,
-              components: editItem.components ?? [],
-              notes: editItem.notes,
-            }}
-          />
-        )}
-      </Modal>
-
-      {/* Fiscal Year Grid Modal */}
-      <Modal open={showFYGrid} onClose={() => setShowFYGrid(false)} title="Fiscal Year Grid" width="max-w-7xl">
-        <FiscalYearGrid
-          periodId={periodId}
-          budgetYear={period.budget_year}
-          userId={user!.id}
-          onDone={() => setShowFYGrid(false)}
-          commodity={commodity}
-        />
-      </Modal>
-
-      {/* Forecast Update Grid Modal */}
-      <Modal open={showForecastGrid} onClose={() => setShowForecastGrid(false)} title="Update Forecasts" width="max-w-3xl">
-        <ForecastUpdateGrid
-          periodId={periodId}
-          items={items}
-          userId={user!.id}
-          onDone={() => setShowForecastGrid(false)}
-        />
-      </Modal>
     </div>
   );
 }

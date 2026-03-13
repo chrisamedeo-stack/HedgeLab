@@ -18,6 +18,7 @@ interface SetupState {
   creating: boolean;
   error: string | null;
   createdOrgId: string | null;
+  createdUserEmail: string | null;
 
   // Actions
   setStep: (step: number) => void;
@@ -44,6 +45,7 @@ const initialState = {
   creating: false,
   error: null as string | null,
   createdOrgId: null as string | null,
+  createdUserEmail: null as string | null,
 };
 
 export const useSetupStore = create<SetupState>((set, get) => ({
@@ -96,7 +98,7 @@ export const useSetupStore = create<SetupState>((set, get) => ({
       }
 
       const data: CreateOrganizationResponse = await res.json();
-      set({ createdOrgId: data.org.id, creating: false, step: 6 });
+      set({ createdOrgId: data.org.id, createdUserEmail: data.user.email, creating: false, step: 6 });
     } catch (err) {
       set({ error: (err as Error).message, creating: false });
     }

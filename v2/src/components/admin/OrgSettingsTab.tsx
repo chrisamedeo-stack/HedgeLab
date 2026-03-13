@@ -92,7 +92,7 @@ export function OrgSettingsTab({ orgId: propOrgId }: { orgId?: string } = {}) {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    apiFetch(`/api/v2/kernel/org-settings?orgId=${orgId}`)
+    apiFetch(`/api/kernel/org-settings?orgId=${orgId}`)
       .then(data => setSettings(data))
       .catch(err => setError((err as Error).message))
       .finally(() => setLoading(false));
@@ -123,7 +123,7 @@ export function OrgSettingsTab({ orgId: propOrgId }: { orgId?: string } = {}) {
       for (const f of fields) {
         payload[f] = settings[f];
       }
-      const updated = await apiFetch(`/api/v2/kernel/org-settings`, {
+      const updated = await apiFetch(`/api/kernel/org-settings`, {
         method: "PATCH",
         body: JSON.stringify(payload),
       });

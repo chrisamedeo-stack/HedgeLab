@@ -26,13 +26,13 @@ interface PnlByCommodityChartProps {
   height?: number;
 }
 
-export function PnlByCommodityChart({ data, height = 300 }: PnlByCommodityChartProps) {
+export function PnlByCommodityChart({ data, height = 260 }: PnlByCommodityChartProps) {
   if (data.length === 0) {
     return (
-      <div className="bg-surface border border-b-default rounded-lg p-5">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-4">P&L by Commodity</h2>
-        <div className="flex items-center justify-center" style={{ height }}>
-          <span className="text-sm text-faint">No P&L data available</span>
+      <div className="bg-surface border border-b-default rounded-lg p-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-3">P&L by Commodity</h2>
+        <div className="flex items-center justify-center py-6">
+          <span className="text-xs text-faint">No P&L data available</span>
         </div>
       </div>
     );
@@ -46,8 +46,8 @@ export function PnlByCommodityChart({ data, height = 300 }: PnlByCommodityChartP
     .sort((a, b) => b.pnl - a.pnl);
 
   return (
-    <div className="bg-surface border border-b-default rounded-lg p-5">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-4">P&L by Commodity</h2>
+    <div className="bg-surface border border-b-default rounded-lg p-4">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-3">P&L by Commodity</h2>
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} horizontal={false} />

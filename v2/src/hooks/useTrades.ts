@@ -62,7 +62,7 @@ export function useContractCalendar(commodityId?: string) {
     setLoading(true);
     try {
       const params = new URLSearchParams({ commodityId });
-      const res = await fetch(`${API_BASE}/api/v2/kernel/contract-calendar?${params}`);
+      const res = await fetch(`${API_BASE}/api/kernel/contract-calendar?${params}`);
       if (!res.ok) throw new Error((await res.json()).error);
       const result = await res.json();
       setData(result);

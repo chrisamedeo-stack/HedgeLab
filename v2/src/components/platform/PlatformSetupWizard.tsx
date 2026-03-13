@@ -30,6 +30,7 @@ interface PlatformSetupState {
   creating: boolean;
   error: string | null;
   createdOrgId: string | null;
+  createdUserEmail: string | null;
 
   setStep: (step: number) => void;
   setOrgInfo: (info: { orgName: string; baseCurrency: string; adminName: string; adminEmail: string; adminPassword: string }) => void;
@@ -55,6 +56,7 @@ const initialState = {
   creating: false,
   error: null as string | null,
   createdOrgId: null as string | null,
+  createdUserEmail: null as string | null,
 };
 
 export const usePlatformSetupStore = create<PlatformSetupState>((set, get) => ({
@@ -103,7 +105,7 @@ export const usePlatformSetupStore = create<PlatformSetupState>((set, get) => ({
       }
 
       const data: CreateOrganizationResponse = await res.json();
-      set({ createdOrgId: data.org.id, creating: false, step: 6 });
+      set({ createdOrgId: data.org.id, createdUserEmail: data.user.email, creating: false, step: 6 });
     } catch (err) {
       set({ error: (err as Error).message, creating: false });
     }
@@ -186,7 +188,7 @@ function PlatformReviewStep() {
 
 function PlatformCompletionStep() {
   const router = useRouter();
-  const { createdOrgId, reset } = usePlatformSetupStore();
+  const { createdOrgId, createdUserEmail, adminEmail, reset } = usePlatformSetupStore();
 
   function goToOrg() {
     if (createdOrgId) {
@@ -200,6 +202,9 @@ function PlatformCompletionStep() {
     reset();
   }
 
+  const loginEmail = createdUserEmail || adminEmail;
+  const emailChanged = createdUserEmail && createdUserEmail !== adminEmail;
+
   return (
     <div className="flex flex-col items-center py-12 text-center space-y-6">
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-profit-20">
@@ -210,6 +215,19 @@ function PlatformCompletionStep() {
       <div>
         <h2 className="text-lg font-semibold text-primary">Organization Created</h2>
         <p className="text-sm text-muted mt-1">The new organization is ready to use.</p>
+      </div>
+      <div className="rounded-lg bg-input-bg border border-b-input p-4 text-left w-full max-w-sm space-y-2">
+        <p className="text-xs text-muted uppercase tracking-wider">Admin Login Credentials</p>
+        <div className="flex justify-between">
+          <span className="text-sm text-muted">Email</span>
+          <span className="text-sm text-primary font-mono">{loginEmail}</span>
+        </div>
+        {emailChanged && (
+          <p className="text-xs text-warning">
+            Email was adjusted to avoid a duplicate. Use the email above to log in.
+          </p>
+        )}
+        <p className="text-xs text-muted mt-2">Password is the one you entered during setup.</p>
       </div>
       <div className="flex gap-3">
         <button onClick={goToList} className="inline-flex items-center gap-2 rounded-lg bg-input-bg px-4 py-2 text-sm font-medium text-secondary hover:bg-hover transition-colors border border-b-input">
@@ -249,10 +267,11 @@ function useStoreSync() {
       creating: ps.creating,
       error: ps.error,
       createdOrgId: ps.createdOrgId,
+      createdUserEmail: ps.createdUserEmail,
     });
   }, [ps.step, ps.orgName, ps.baseCurrency, ps.adminName, ps.adminEmail, ps.adminPassword,
       ps.profileId, ps.profile, ps.hierarchyLevels, ps.selectedCommodities,
-      ps.creating, ps.error, ps.createdOrgId]);
+      ps.creating, ps.error, ps.createdOrgId, ps.createdUserEmail]);
 
   // Setup → Platform: subscribe to changes made by the step components
   useEffect(() => {

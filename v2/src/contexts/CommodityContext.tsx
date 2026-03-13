@@ -34,7 +34,7 @@ export function CommodityProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     async function fetchCommodities() {
       try {
-        const res = await fetch(`${API_BASE}/api/v2/kernel/commodities`);
+        const res = await fetch(`${API_BASE}/api/kernel/commodities`);
         if (res.ok) {
           const data = await res.json();
           if (!cancelled) setCommodities(data);

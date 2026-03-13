@@ -11,7 +11,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
     }
 
-    const candidates = await getRolloverCandidates(orgId, commodityId ?? undefined);
+    const orgUnitId = searchParams.get("orgUnitId");
+    const candidates = await getRolloverCandidates(orgId, commodityId ?? undefined, orgUnitId ?? undefined);
 
     // Group by urgency
     const grouped = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 
 export interface Column<T> {
   key: string;
@@ -16,6 +16,8 @@ interface DataTableProps<T> {
   data: T[];
   keyField?: string;
   onRowClick?: (row: T) => void;
+  expandedKey?: string | null;
+  renderExpandedRow?: (row: T) => React.ReactNode;
   emptyMessage?: string;
   className?: string;
 }
@@ -27,6 +29,8 @@ export function DataTable<T extends object>({
   data,
   keyField = "id",
   onRowClick,
+  expandedKey,
+  renderExpandedRow,
   emptyMessage = "No data",
   className = "",
 }: DataTableProps<T>) {
@@ -63,12 +67,12 @@ export function DataTable<T extends object>({
     <div className={`overflow-x-auto ${className}`}>
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-tbl-border bg-tbl-header">
+          <tr className="border-b border-b-default bg-input-bg/50">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={`px-3 py-2 text-xs font-medium uppercase tracking-wider text-muted ${alignCls(col.align)} ${
-                  col.sortable !== false ? "cursor-pointer select-none hover:text-secondary" : ""
+                className={`px-4 py-3 text-xs font-medium uppercase tracking-wider text-muted whitespace-nowrap ${alignCls(col.align)} ${
+                  col.sortable !== false ? "cursor-pointer select-none hover:text-secondary transition-colors" : ""
                 }`}
                 style={col.width ? { width: col.width } : undefined}
                 onClick={() => col.sortable !== false && handleSort(col.key)}
@@ -85,37 +89,47 @@ export function DataTable<T extends object>({
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-b-default">
           {sorted.length === 0 ? (
             <tr>
               <td
                 colSpan={columns.length}
-                className="px-3 py-8 text-center text-muted"
+                className="px-4 py-8 text-center text-muted"
               >
                 {emptyMessage}
               </td>
             </tr>
           ) : (
-            sorted.map((row, i) => (
-              <tr
-                key={String((row as Record<string, unknown>)[keyField] ?? i)}
-                className={`border-b border-tbl-border transition-colors ${
-                  onRowClick
-                    ? "cursor-pointer hover:bg-row-hover"
-                    : "hover:bg-row-hover"
-                }`}
-                onClick={() => onRowClick?.(row)}
-              >
-                {columns.map((col) => (
-                  <td
-                    key={col.key}
-                    className={`px-3 py-3 tabular-nums ${alignCls(col.align)}`}
+            sorted.map((row, i) => {
+              const rowKey = String((row as Record<string, unknown>)[keyField] ?? i);
+              const isExpanded = expandedKey != null && rowKey === expandedKey;
+              return (
+                <React.Fragment key={rowKey}>
+                  <tr
+                    className={`transition-colors ${
+                      onRowClick ? "cursor-pointer hover:bg-row-hover" : "hover:bg-row-hover"
+                    } ${isExpanded ? "bg-row-hover" : ""}`}
+                    onClick={() => onRowClick?.(row)}
                   >
-                    {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? "\u2014")}
-                  </td>
-                ))}
-              </tr>
-            ))
+                    {columns.map((col) => (
+                      <td
+                        key={col.key}
+                        className={`px-4 py-3 ${alignCls(col.align)}`}
+                      >
+                        {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? "\u2014")}
+                      </td>
+                    ))}
+                  </tr>
+                  {isExpanded && renderExpandedRow && (
+                    <tr>
+                      <td colSpan={columns.length} className="p-0 border-t border-tbl-border">
+                        {renderExpandedRow(row)}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })
           )}
         </tbody>
       </table>
