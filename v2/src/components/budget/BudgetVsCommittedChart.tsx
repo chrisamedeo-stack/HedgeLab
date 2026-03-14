@@ -55,7 +55,7 @@ export function BudgetVsCommittedChart({ data, lineItems, height = 320 }: Budget
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#B3C0D3" }}
+            labelStyle={{ color: "#8B95A5" }}
           />
           <Legend wrapperStyle={legendStyle} />
           <Bar dataKey="budgeted" name="Budget" fill={chartTheme.budgeted} radius={[2, 2, 0, 0]} />

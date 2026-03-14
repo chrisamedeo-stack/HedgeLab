@@ -67,6 +67,8 @@ export interface PhysicalPosition {
   basis_month: string | null;
   delivery_month: string | null;
   counterparty: string | null;
+  supplier_id: string | null;
+  contract_ref: string | null;
   currency: string;
   status: PhysicalStatus;
   formula_id: string | null;
@@ -200,6 +202,8 @@ export interface CreatePhysicalParams {
   basisMonth?: string;
   deliveryMonth?: string;
   counterparty?: string;
+  supplierId?: string;
+  contractRef?: string;
   currency?: string;
   formulaId?: string;
   formulaInputs?: Record<string, number>;

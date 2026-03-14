@@ -113,7 +113,7 @@ export function PnlWaterfallChart({ data, height = 300 }: PnlWaterfallChartProps
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#B3C0D3" }}
+            labelStyle={{ color: "#8B95A5" }}
             formatter={(_value, _name, props) => {
               const bar = (props as unknown as { payload: WaterfallBar }).payload;
               const raw = rawValues[bar.label] ?? 0;

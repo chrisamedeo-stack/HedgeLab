@@ -106,7 +106,7 @@ export function DailyPnlTrendChart({ data, height = 280 }: DailyPnlTrendChartPro
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#B3C0D3" }}
+            labelStyle={{ color: "#8B95A5" }}
             formatter={(value) => [`$${Number(value ?? 0).toLocaleString()}`, "P&L"]}
           />
           <ReferenceLine y={0} stroke={chartColors.muted} strokeDasharray="3 3" />

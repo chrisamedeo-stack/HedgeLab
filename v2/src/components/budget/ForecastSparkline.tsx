@@ -24,7 +24,7 @@ export function ForecastSparkline({ history }: ForecastSparklineProps) {
           <Line
             type="monotone"
             dataKey="v"
-            stroke="#66a3ff"
+            stroke="#378ADD"
             strokeWidth={1.5}
             dot={false}
             isAnimationActive={false}

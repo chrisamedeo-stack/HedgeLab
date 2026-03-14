@@ -2,97 +2,98 @@
 // Matches globals.css design tokens. All chart components import from here.
 
 export const chartColors = {
-  chart1: "#00509e",   // Royal blue
-  chart2: "#007acc",   // Ocean blue
-  chart3: "#66a3ff",   // Cornflower
-  chart4: "#cce0ff",   // Ice blue
-  chart5: "#003366",   // Dark navy
-  chart6: "#1a4d80",   // Mid-navy
-  profit: "#4AAD8B",   // Jade green
-  loss: "#D4645C",     // Terra cotta
-  warning: "#66a3ff",  // Cornflower
-  action: "#1383F4",   // Light blue
-  muted: "#7B90AE",    // Sat 500
-  faint: "#5C7495",    // Sat 600
-  grid: "#1a4d80",     // Mid-navy grid lines
-  tick: "#66a3ff",     // Cornflower axis labels
-  tooltipBg: "#003366",     // Dark navy tooltip bg
-  tooltipBorder: "#00509e", // Royal blue tooltip border
-  tooltipText: "#cce0ff",   // Ice blue tooltip text
-  surface: "#040C17",
-  border: "#2B4362",
+  chart1: "#378ADD",   // Action blue
+  chart2: "#6A9FCC",   // Basis blue
+  chart3: "#1a6b7a",   // Board teal
+  chart4: "#EF9F27",   // Budget amber
+  chart5: "#1D9E75",   // Gain green
+  chart6: "#D85A30",   // Loss orange
+  profit: "#1D9E75",   // Gain green
+  loss: "#D85A30",     // Loss orange
+  warning: "#BA7517",  // Warning amber
+  danger: "#E24B4A",   // Danger red
+  action: "#378ADD",   // Action blue
+  muted: "#8B95A5",    // Secondary text
+  faint: "#556170",    // Faint text
+  grid: "#1E3A5F",     // Border / grid lines
+  tick: "#8B95A5",     // Axis labels
+  tooltipBg: "#111D32",     // Surface tooltip bg
+  tooltipBorder: "#1E3A5F", // Border tooltip border
+  tooltipText: "#E8ECF1",   // Primary text tooltip
+  surface: "#111D32",
+  border: "#1E3A5F",
 } as const;
 
 export const chartTheme = {
-  // Core chart assignments (V1 parity)
-  primary: chartColors.chart1,    // Royal blue
-  accent: chartColors.chart3,     // Cornflower
-  board: chartColors.chart1,      // Royal blue
-  basis: chartColors.chart3,      // Cornflower
-  basisRatio: chartColors.chart2, // Ocean blue
-  budget: chartColors.chart3,     // Cornflower
-  budgetLine: chartColors.chart4, // Ice blue
-  fixed: chartColors.profit,      // Jade green
-  options: chartColors.chart3,    // Cornflower
-  orange: chartColors.chart2,     // Ocean blue
+  // Core chart assignments
+  primary: chartColors.chart1,    // Action blue
+  accent: chartColors.chart2,     // Basis blue
+  board: chartColors.chart3,      // Board teal
+  basis: chartColors.chart2,      // Basis blue
+  basisRatio: chartColors.chart2, // Basis blue
+  budget: chartColors.chart4,     // Budget amber
+  budgetLine: chartColors.chart4, // Budget amber
+  fixed: chartColors.profit,      // Gain green
+  options: chartColors.chart2,    // Basis blue
+  orange: chartColors.chart4,     // Budget amber
 
   // Stacked bar colors — coverage
-  committed: chartColors.chart5,
+  committed: chartColors.chart3,
   hedged: chartColors.chart1,
-  unhedged: chartColors.chart4,
-  open: chartColors.chart4,
-  budgeted: chartColors.chart3,
-  forecast: "#003d7a",
-  scenarioBase: "#5C7495",
+  unhedged: "rgba(181,212,244,0.22)",
+  open: "rgba(181,212,244,0.22)",
+  budgeted: chartColors.chart4,
+  forecast: "rgba(181,212,244,0.1)",
+  scenarioBase: "#556170",
   scenarioProjected: "#8b5cf6",
 
   // Position status colors
-  statusOpen: chartColors.chart3,
-  statusLocked: chartColors.chart2,
-  statusOffset: chartColors.chart5,
+  statusOpen: chartColors.chart2,
+  statusLocked: chartColors.chart1,
+  statusOffset: chartColors.chart3,
   statusRolled: chartColors.muted,
 
   // Urgency
-  urgencyCritical: chartColors.loss,
+  urgencyCritical: chartColors.danger,
   urgencyUrgent: chartColors.warning,
   urgencyUpcoming: chartColors.muted,
 
   // P&L / Risk
   pnlPositive: chartColors.profit,
   pnlNegative: chartColors.loss,
-  exposureLong: "#007acc",
-  exposureShort: "#D4645C",
-  exposureNet: "#66a3ff",
+  exposureLong: chartColors.chart1,
+  exposureShort: chartColors.loss,
+  exposureNet: chartColors.chart2,
   limitOk: chartColors.profit,
   limitWarning: chartColors.warning,
-  limitBreached: chartColors.loss,
+  limitBreached: chartColors.danger,
 
   // Forward curve
-  forwardCurrent: chartColors.chart2,
-  forwardCompare: chartColors.chart4,
+  forwardCurrent: chartColors.chart1,
+  forwardCompare: chartColors.chart2,
 
   // Basis
   basisPositive: chartColors.profit,
-  basisNegative: chartColors.chart2,
+  basisNegative: chartColors.loss,
 
   // Waterfall
   waterfallTotal: chartColors.chart1,
 
   // Candlestick
-  candleUp: "#22c55e",
-  candleDown: "#ef4444",
+  candleUp: chartColors.profit,
+  candleDown: chartColors.danger,
   candleWick: "rgba(255,255,255,0.3)",
 
   // Counterparty palette
   counterparty: [
-    "#007acc",
-    "#00509e",
-    "#66a3ff",
-    "#003366",
-    "#cce0ff",
-    "#1a4d80",
-    "#4A9DF7",
-    "#0D4E8A",
+    "#378ADD",
+    "#6A9FCC",
+    "#1a6b7a",
+    "#EF9F27",
+    "#1D9E75",
+    "#D85A30",
+    "#BA7517",
+    "#5CA3E8",
   ] as readonly string[],
 } as const;
 

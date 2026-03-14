@@ -6,6 +6,8 @@ export type ContractType = "purchase" | "sale";
 export type ContractDirection = "buy" | "sell";
 export type ContractPricingType = "fixed" | "basis" | "formula";
 export type CounterpartyType = "commercial" | "broker" | "exchange" | "producer" | "consumer" | "trader";
+export type EntityType = "supplier" | "counterparty" | "both";
+export type CreditStatus = "good" | "warning" | "exceeded" | "suspended";
 
 // --- Counterparty ---
 
@@ -22,6 +24,9 @@ export interface Counterparty {
   contact_email: string | null;
   contact_phone: string | null;
   address: string | null;
+  entity_type: EntityType;
+  credit_used: number;
+  credit_status: CreditStatus;
   is_active: boolean;
   notes: string | null;
   created_at: string;
@@ -34,6 +39,7 @@ export interface CreateCounterpartyParams {
   name: string;
   shortName?: string;
   counterpartyType?: CounterpartyType;
+  entityType?: EntityType;
   creditLimit?: number;
   creditRating?: string;
   paymentTermsDays?: number;
@@ -48,6 +54,7 @@ export interface UpdateCounterpartyParams {
   name?: string;
   shortName?: string;
   counterpartyType?: CounterpartyType;
+  entityType?: EntityType;
   creditLimit?: number;
   creditRating?: string;
   paymentTermsDays?: number;
@@ -157,4 +164,5 @@ export interface ContractFilters {
 export interface CounterpartyFilters {
   orgId: string;
   isActive?: boolean;
+  entityType?: EntityType;
 }

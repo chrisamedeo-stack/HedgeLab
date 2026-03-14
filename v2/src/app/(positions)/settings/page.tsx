@@ -9,6 +9,7 @@ import {
   ArrowLeftRight,
   Shield,
   Calculator,
+  Truck,
 } from "lucide-react";
 
 import { OrgSettingsTab } from "@/components/admin/OrgSettingsTab";
@@ -18,8 +19,9 @@ import { FiscalYearTab } from "@/components/admin/FiscalYearTab";
 import { FuturesMonthsTab } from "@/components/admin/FuturesMonthsTab";
 import { UsersTab } from "@/components/admin/UsersTab";
 import { PricingTab } from "@/components/admin/PricingTab";
+import { SuppliersTab } from "@/components/admin/SuppliersTab";
 
-type Tab = "org-settings" | "sites" | "commodities" | "fiscal-year" | "futures-months" | "users" | "pricing";
+type Tab = "org-settings" | "sites" | "commodities" | "fiscal-year" | "futures-months" | "users" | "suppliers" | "pricing";
 
 const TABS: { key: Tab; label: string; icon: typeof Settings }[] = [
   { key: "org-settings", label: "Org Settings", icon: Settings },
@@ -28,6 +30,7 @@ const TABS: { key: Tab; label: string; icon: typeof Settings }[] = [
   { key: "fiscal-year", label: "Fiscal Year", icon: Calendar },
   { key: "futures-months", label: "Futures Months", icon: ArrowLeftRight },
   { key: "users", label: "Users", icon: Shield },
+  { key: "suppliers", label: "Suppliers & Counterparties", icon: Truck },
   { key: "pricing", label: "Pricing", icon: Calculator },
 ];
 
@@ -63,6 +66,7 @@ export default function SettingsPage() {
       {tab === "fiscal-year" && <FiscalYearTab />}
       {tab === "futures-months" && <FuturesMonthsTab />}
       {tab === "users" && <UsersTab />}
+      {tab === "suppliers" && <SuppliersTab />}
       {tab === "pricing" && <PricingTab />}
     </div>
   );

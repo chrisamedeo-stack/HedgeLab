@@ -3,159 +3,157 @@
 :root {
   /* ── HedgeLab Design Tokens ─────────────────────────────────────── */
 
-  /* Surfaces — lighter canvas, darker cards, darkest sidebar */
-  --bg-main:       #0D1C30;
-  --bg-surface:    #040C17;
-  --bg-sidebar:    #020812;
-  --bg-overlay:    #1A2E49;
-  --bg-input:      #0A1525;
-  --bg-hover:      #162842;
-  --bg-row-hover:  #162842A0;
+  /* Surfaces — dark trading theme, midnight navy base with layered surfaces */
+  --bg-main:       #0B1426;
+  --bg-surface:    #111D32;
+  --bg-sidebar:    #111D32;
+  --bg-overlay:    #1A2740;
+  --bg-input:      #1A2740;
+  --bg-hover:      #1A2740;
+  --bg-row-hover:  #1A2740A0;
 
   /* Borders */
-  --border-default: #2B4362;
-  --border-input:   #425A7C;
+  --border-default: #1E3A5F;
+  --border-input:   #2D4F72;
 
   /* Table */
-  --table-header:    #081220;
-  --table-stripe:    #060E1B;
-  --table-border:    #1A2A40;
+  --table-header:    #0D1830;
+  --table-stripe:    #0E1829;
+  --table-border:    #1E3A5F;
 
   /* Text */
-  --text-primary:     #F3F8FE;
-  --text-secondary:   #B3C0D3;
-  --text-muted:       #7B90AE;
-  --text-faint:       #5C7495;
-  --text-placeholder: #425A7C;
+  --text-primary:     #E8ECF1;
+  --text-secondary:   #B0BAC5;
+  --text-muted:       #8B95A5;
+  --text-faint:       #556170;
+  --text-placeholder: #3E5068;
 
   /* Semantic */
-  --color-action:           #1383F4;
-  --color-action-hover:     #4A9DF7;
-  --color-profit:           #4AAD8B;
-  --color-profit-hover:     #5CBFA0;
-  --color-loss:             #D4645C;
-  --color-destructive:      #D4645C;
-  --color-destructive-hover:#E07A73;
-  --color-caution:          #007acc;
-  --color-warning:          #66a3ff;
-  --color-warning-hover:    #99c2ff;
-  --color-accent:           #7B90AE;
-  --color-neutral:          #7B90AE;
-  --color-focus:            #1383F4;
+  --color-action:           #378ADD;
+  --color-action-hover:     #5CA3E8;
+  --color-profit:           #1D9E75;
+  --color-profit-hover:     #2DB88A;
+  --color-loss:             #D85A30;
+  --color-destructive:      #E24B4A;
+  --color-destructive-hover:#E86565;
+  --color-caution:          #BA7517;
+  --color-warning:          #BA7517;
+  --color-warning-hover:    #D48A2A;
+  --color-accent:           #8B95A5;
+  --color-neutral:          #8B95A5;
+  --color-focus:            #378ADD;
 
-  /* Chart — Corporate Blues */
-  --chart-1: #00509e;  --chart-2: #007acc;  --chart-3: #66a3ff;
-  --chart-4: #cce0ff;  --chart-5: #003366;  --chart-6: #1a4d80;
+  /* Chart */
+  --chart-1: #378ADD;  --chart-2: #6A9FCC;  --chart-3: #1a6b7a;
+  --chart-4: #EF9F27;  --chart-5: #1D9E75;  --chart-6: #D85A30;
 }
 
 /* ── Tailwind v4 Theme ──────────────────────────────────────────── */
 @theme inline {
   /* Surfaces */
-  --color-main:       #0D1C30;
-  --color-surface:    #040C17;
-  --color-sidebar:    #020812;
-  --color-overlay:    #1A2E49;
-  --color-input-bg:   #0A1525;
-  --color-hover:      #162842;
-  --color-row-hover:  #162842A0;
+  --color-main:       #0B1426;
+  --color-surface:    #111D32;
+  --color-sidebar:    #111D32;
+  --color-overlay:    #1A2740;
+  --color-input-bg:   #1A2740;
+  --color-hover:      #1A2740;
+  --color-row-hover:  #1A2740A0;
 
   /* Borders */
-  --color-b-default:  #2B4362;
-  --color-b-input:    #425A7C;
+  --color-b-default:  #1E3A5F;
+  --color-b-input:    #2D4F72;
 
   /* Table */
-  --color-tbl-header: #081220;
-  --color-tbl-stripe: #060E1B;
-  --color-tbl-border: #1A2A40;
+  --color-tbl-header: #0D1830;
+  --color-tbl-stripe: #0E1829;
+  --color-tbl-border: #1E3A5F;
 
   /* Text */
-  --color-primary:    #F3F8FE;
-  --color-secondary:  #B3C0D3;
-  --color-muted:      #7B90AE;
-  --color-faint:      #5C7495;
-  --color-ph:         #425A7C;
+  --color-primary:    #E8ECF1;
+  --color-secondary:  #B0BAC5;
+  --color-muted:      #8B95A5;
+  --color-faint:      #556170;
+  --color-ph:         #3E5068;
 
   /* Action (blue) + opacity variants */
-  --color-action:       #1383F4;
-  --color-action-hover: #4A9DF7;
-  --color-action-5:     #1383F40D;
-  --color-action-10:    #1383F41A;
-  --color-action-15:    #1383F426;
-  --color-action-20:    #1383F433;
-  --color-action-30:    #1383F44D;
+  --color-action:       #378ADD;
+  --color-action-hover: #5CA3E8;
+  --color-action-5:     #378ADD0D;
+  --color-action-10:    #378ADD1A;
+  --color-action-15:    #378ADD26;
+  --color-action-20:    #378ADD33;
+  --color-action-30:    #378ADD4D;
 
-  /* Profit (jade green) + opacity variants */
-  --color-profit:       #4AAD8B;
-  --color-profit-hover: #5CBFA0;
-  --color-profit-5:     #4AAD8B0D;
-  --color-profit-10:    #4AAD8B1A;
-  --color-profit-15:    #4AAD8B26;
-  --color-profit-20:    #4AAD8B33;
-  --color-profit-25:    #4AAD8B40;
-  --color-profit-30:    #4AAD8B4D;
-  --color-profit-40:    #4AAD8B66;
+  /* Profit (green) + opacity variants */
+  --color-profit:       #1D9E75;
+  --color-profit-hover: #2DB88A;
+  --color-profit-5:     #1D9E750D;
+  --color-profit-10:    #1D9E751A;
+  --color-profit-15:    #1D9E7526;
+  --color-profit-20:    #1D9E7533;
+  --color-profit-25:    #1D9E7540;
+  --color-profit-30:    #1D9E754D;
+  --color-profit-40:    #1D9E7566;
 
   /* Loss + opacity variants */
-  --color-loss: #D4645C;
-  --color-loss-5:  #D4645C0D;
-  --color-loss-10: #D4645C1A;
-  --color-loss-15: #D4645C26;
-  --color-loss-20: #D4645C33;
-  --color-loss-30: #D4645C4D;
+  --color-loss: #D85A30;
+  --color-loss-5:  #D85A300D;
+  --color-loss-10: #D85A301A;
+  --color-loss-15: #D85A3026;
+  --color-loss-20: #D85A3033;
+  --color-loss-30: #D85A304D;
 
-  /* Destructive (red) + opacity variants */
-  --color-destructive:       #D4645C;
-  --color-destructive-hover: #E07A73;
-  --color-destructive-5:     #D4645C0D;
-  --color-destructive-10:    #D4645C1A;
-  --color-destructive-15:    #D4645C26;
-  --color-destructive-20:    #D4645C33;
-  --color-destructive-30:    #D4645C4D;
+  /* Destructive (danger red) + opacity variants */
+  --color-destructive:       #E24B4A;
+  --color-destructive-hover: #E86565;
+  --color-destructive-5:     #E24B4A0D;
+  --color-destructive-10:    #E24B4A1A;
+  --color-destructive-15:    #E24B4A26;
+  --color-destructive-20:    #E24B4A33;
+  --color-destructive-30:    #E24B4A4D;
 
-  /* Caution + opacity variants */
-  --color-caution:     #007acc;
-  --color-caution-5:   #007acc0D;
-  --color-caution-10:  #007acc1A;
-  --color-caution-20:  #007acc33;
-  --color-caution-30:  #007acc4D;
+  /* Caution (amber) + opacity variants */
+  --color-caution:     #BA7517;
+  --color-caution-5:   #BA75170D;
+  --color-caution-10:  #BA75171A;
+  --color-caution-20:  #BA751733;
+  --color-caution-30:  #BA75174D;
 
-  /* Warning (cornflower) + opacity variants */
-  --color-warning:       #66a3ff;
-  --color-warning-hover: #99c2ff;
-  --color-warning-5:     #66a3ff0D;
-  --color-warning-10:    #66a3ff1A;
-  --color-warning-15:    #66a3ff26;
-  --color-warning-20:    #66a3ff33;
-  --color-warning-25:    #66a3ff40;
-  --color-warning-30:    #66a3ff4D;
+  /* Warning (amber) + opacity variants */
+  --color-warning:       #BA7517;
+  --color-warning-hover: #D48A2A;
+  --color-warning-5:     #BA75170D;
+  --color-warning-10:    #BA75171A;
+  --color-warning-15:    #BA751726;
+  --color-warning-20:    #BA751733;
+  --color-warning-25:    #BA751740;
+  --color-warning-30:    #BA75174D;
 
   /* Accent + opacity variants */
-  --color-accent:     #7B90AE;
-  --color-accent-10:  #7B90AE1A;
-  --color-accent-15:  #7B90AE26;
-  --color-accent-20:  #7B90AE33;
-  --color-accent-40:  #7B90AE66;
+  --color-accent:     #8B95A5;
+  --color-accent-10:  #8B95A51A;
+  --color-accent-15:  #8B95A526;
+  --color-accent-20:  #8B95A533;
+  --color-accent-40:  #8B95A566;
 
   /* Neutral + opacity variants */
-  --color-neutral:     #7B90AE;
-  --color-neutral-15:  #7B90AE26;
-  --color-neutral-20:  #7B90AE33;
+  --color-neutral:     #8B95A5;
+  --color-neutral-15:  #8B95A526;
+  --color-neutral-20:  #8B95A533;
 
   /* Focus + chart */
-  --color-focus:   #1383F4;
-  --color-chart-1: #00509e;
-  --color-chart-2: #007acc;
-  --color-chart-3: #66a3ff;
-  --color-chart-4: #cce0ff;
-  --color-chart-5: #003366;
-  --color-chart-6: #1a4d80;
+  --color-focus:   #378ADD;
+  --color-chart-1: #378ADD;
+  --color-chart-2: #6A9FCC;
+  --color-chart-3: #1a6b7a;
+  --color-chart-4: #EF9F27;
+  --color-chart-5: #1D9E75;
+  --color-chart-6: #D85A30;
 
   /* Fonts */
   --font-inter: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-sans: var(--font-inter);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-
-  /* Border radius — defined in @theme block below */
 
   /* Animations */
   --animate-fade-in: fadeIn 0.2s ease-out;
@@ -207,6 +205,13 @@ body {
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background-color: var(--bg-main); }
 ::-webkit-scrollbar-thumb { background-color: var(--bg-hover); border-radius: 9999px; }
+
+/* ── Date/month picker icon visibility on dark theme ─────────── */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
 
 .page-fade { animation: fadeIn 0.2s ease-out; }
 .toast-slide { animation: slideIn 0.2s ease-out; }

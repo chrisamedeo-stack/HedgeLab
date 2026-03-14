@@ -35,16 +35,16 @@ function isDark(): boolean {
 function themeColors() {
   const dark = isDark();
   return {
-    basisBar: "#B5D4F4",
+    basisBar: "#6A9FCC",
     boardBar: "#1a6b7a",
-    budgetLine: "#0C447C",
+    budgetLine: "#EF9F27",
     forecastFill: dark ? "rgba(181,212,244,0.1)" : "rgba(181,212,244,0.22)",
     forecastBorder: dark ? "rgba(181,212,244,0.2)" : "rgba(181,212,244,0.4)",
     gridColor: dark ? "rgba(181,212,244,0.08)" : "rgba(0,0,0,0.08)",
-    tickColor: dark ? "#7B90AE" : "#555",
-    tooltipBg: dark ? "#003366" : "#fff",
-    tooltipBorder: dark ? "#00509e" : "#ccc",
-    tooltipText: dark ? "#cce0ff" : "#111",
+    tickColor: dark ? "#8B95A5" : "#555",
+    tooltipBg: dark ? "#111D32" : "#fff",
+    tooltipBorder: dark ? "#1E3A5F" : "#ccc",
+    tooltipText: dark ? "#E8ECF1" : "#111",
   };
 }
 
@@ -82,8 +82,8 @@ const forecastContainerPlugin: Plugin<"bar"> = {
     if (!forecastData) return;
 
     for (let i = 0; i < meta0.data.length; i++) {
-      const bar0 = meta0.data[i];
-      const bar1 = meta1.data[i];
+      const bar0 = meta0.data[i] as unknown as { x: number; width: number };
+      const bar1 = meta1.data[i] as unknown as { x: number; width: number };
       if (!bar0 || !bar1) continue;
 
       const forecastVal = forecastData[i] ?? 0;
@@ -93,8 +93,8 @@ const forecastContainerPlugin: Plugin<"bar"> = {
       const yBottom = yScale.getPixelForValue(0);
 
       // Get combined bar group bounds
-      const leftX = Math.min(bar0.x - (bar0.width ?? 0) / 2, bar1.x - (bar1.width ?? 0) / 2);
-      const rightX = Math.max(bar0.x + (bar0.width ?? 0) / 2, bar1.x + (bar1.width ?? 0) / 2);
+      const leftX = Math.min(bar0.x - bar0.width / 2, bar1.x - bar1.width / 2);
+      const rightX = Math.max(bar0.x + bar0.width / 2, bar1.x + bar1.width / 2);
 
       const pad = 4;
       const x = leftX - pad;
@@ -132,8 +132,8 @@ const budgetLinePlugin: Plugin<"bar"> = {
     if (!budgetData) return;
 
     for (let i = 0; i < meta0.data.length; i++) {
-      const bar0 = meta0.data[i];
-      const bar1 = meta1.data[i];
+      const bar0 = meta0.data[i] as unknown as { x: number; width: number };
+      const bar1 = meta1.data[i] as unknown as { x: number; width: number };
       if (!bar0 || !bar1) continue;
 
       const budgetVal = budgetData[i] ?? 0;
@@ -141,8 +141,8 @@ const budgetLinePlugin: Plugin<"bar"> = {
 
       const yPos = yScale.getPixelForValue(budgetVal);
 
-      const leftX = Math.min(bar0.x - (bar0.width ?? 0) / 2, bar1.x - (bar1.width ?? 0) / 2);
-      const rightX = Math.max(bar0.x + (bar0.width ?? 0) / 2, bar1.x + (bar1.width ?? 0) / 2);
+      const leftX = Math.min(bar0.x - bar0.width / 2, bar1.x - bar1.width / 2);
+      const rightX = Math.max(bar0.x + bar0.width / 2, bar1.x + bar1.width / 2);
 
       const pad = 4;
 
@@ -164,7 +164,7 @@ function CoverageLegend() {
   return (
     <div className="flex items-center gap-5 mb-3 px-1">
       <div className="flex items-center gap-1.5">
-        <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: "#B5D4F4" }} />
+        <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: "#6A9FCC" }} />
         <span className="text-xs text-muted">Basis</span>
       </div>
       <div className="flex items-center gap-1.5">
@@ -184,7 +184,7 @@ function CoverageLegend() {
       <div className="flex items-center gap-1.5">
         <span
           className="inline-block w-4 h-0 rounded"
-          style={{ borderTop: "2.5px solid #0C447C" }}
+          style={{ borderTop: "2.5px solid #EF9F27" }}
         />
         <span className="text-xs text-muted">Budget</span>
       </div>

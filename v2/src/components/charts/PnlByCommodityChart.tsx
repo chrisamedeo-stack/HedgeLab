@@ -68,7 +68,7 @@ export function PnlByCommodityChart({ data, height = 260 }: PnlByCommodityChartP
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#B3C0D3" }}
+            labelStyle={{ color: "#8B95A5" }}
             formatter={(value) => [`$${Number(value ?? 0).toLocaleString()}`, "P&L"]}
           />
           <Bar dataKey="pnl" radius={[0, 4, 4, 0]} barSize={22}>

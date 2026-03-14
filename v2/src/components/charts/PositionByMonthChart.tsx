@@ -53,7 +53,7 @@ export function PositionByMonthChart({ data, height = 280 }: PositionByMonthChar
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#B3C0D3" }}
+            labelStyle={{ color: "#8B95A5" }}
             formatter={(value, name) => [Number(value ?? 0).toLocaleString(), name]}
           />
           <Legend wrapperStyle={legendStyle} />

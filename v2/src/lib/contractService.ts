@@ -11,6 +11,7 @@ import type {
   CreateContractParams,
   UpdateContractParams,
   ContractFilters,
+  CreditStatus,
 } from "@/types/contracts";
 
 // ─── Counterparty CRUD ──────────────────────────────────────────────────────
@@ -20,15 +21,16 @@ export async function createCounterparty(params: CreateCounterpartyParams): Prom
 
   const row = await queryOne<Counterparty>(
     `INSERT INTO ct_counterparties
-       (org_id, name, short_name, counterparty_type, credit_limit, credit_rating,
+       (org_id, name, short_name, counterparty_type, entity_type, credit_limit, credit_rating,
         payment_terms_days, contact_name, contact_email, contact_phone, address, notes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
      RETURNING *`,
     [
       params.orgId,
       params.name,
       params.shortName ?? null,
       params.counterpartyType ?? "commercial",
+      params.entityType ?? "both",
       params.creditLimit ?? null,
       params.creditRating ?? null,
       params.paymentTermsDays ?? 30,
@@ -66,6 +68,11 @@ export async function listCounterparties(filters: CounterpartyFilters): Promise<
     sql += ` AND is_active = $${params.length}`;
   }
 
+  if (filters.entityType) {
+    params.push(filters.entityType);
+    sql += ` AND entity_type IN ($${params.length}, 'both')`;
+  }
+
   sql += ` ORDER BY name`;
   return queryAll<Counterparty>(sql, params);
 }
@@ -87,6 +94,7 @@ export async function updateCounterparty(
     ["name", "name"],
     ["shortName", "short_name"],
     ["counterpartyType", "counterparty_type"],
+    ["entityType", "entity_type"],
     ["creditLimit", "credit_limit"],
     ["creditRating", "credit_rating"],
     ["paymentTermsDays", "payment_terms_days"],
@@ -146,6 +154,52 @@ export async function deleteCounterparty(id: string, userId: string): Promise<vo
     action: "deactivate",
     before: before as unknown as Record<string, unknown>,
   });
+}
+
+// ─── Credit Tracking ────────────────────────────────────────────────────────
+
+export async function getCreditSummary(counterpartyId: string) {
+  const row = await queryOne<Counterparty>(
+    `SELECT * FROM ct_counterparties WHERE id = $1`,
+    [counterpartyId]
+  );
+  if (!row) throw new Error("Counterparty not found");
+
+  const creditLimit = row.credit_limit ? Number(row.credit_limit) : null;
+  const creditUsed = Number(row.credit_used);
+  return {
+    credit_limit: creditLimit,
+    credit_used: creditUsed,
+    credit_available: creditLimit != null ? creditLimit - creditUsed : null,
+    credit_status: row.credit_status,
+  };
+}
+
+export async function updateCreditUsed(counterpartyId: string, delta: number): Promise<void> {
+  const row = await queryOne<{ credit_limit: string | null; credit_used: string }>(
+    `UPDATE ct_counterparties
+     SET credit_used = GREATEST(credit_used + $2, 0),
+         updated_at = NOW()
+     WHERE id = $1
+     RETURNING credit_limit, credit_used`,
+    [counterpartyId, delta]
+  );
+  if (!row) return;
+
+  const limit = row.credit_limit ? Number(row.credit_limit) : null;
+  const used = Number(row.credit_used);
+
+  let status: CreditStatus = "good";
+  if (limit != null && limit > 0) {
+    const ratio = used / limit;
+    if (ratio > 1) status = "exceeded";
+    else if (ratio >= 0.8) status = "warning";
+  }
+
+  await queryOne(
+    `UPDATE ct_counterparties SET credit_status = $2, updated_at = NOW() WHERE id = $1`,
+    [counterpartyId, status]
+  );
 }
 
 // ─── Physical Contract CRUD ─────────────────────────────────────────────────

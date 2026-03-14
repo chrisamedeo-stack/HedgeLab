@@ -700,9 +700,9 @@ export async function createPhysicalPosition(params: CreatePhysicalParams): Prom
     `INSERT INTO pm_physical_positions
        (org_id, site_id, commodity_id, direction, volume, price,
         pricing_type, basis_price, basis_month, delivery_month,
-        counterparty, currency, status,
+        counterparty, supplier_id, contract_ref, currency, status,
         formula_id, formula_inputs, formula_result)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'open',$13,$14,$15)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'open',$15,$16,$17)
      RETURNING *`,
     [
       params.orgId,
@@ -716,6 +716,8 @@ export async function createPhysicalPosition(params: CreatePhysicalParams): Prom
       params.basisMonth ?? null,
       params.deliveryMonth ?? null,
       params.counterparty ?? null,
+      params.supplierId ?? null,
+      params.contractRef ?? null,
       params.currency ?? "USD",
       params.formulaId ?? null,
       params.formulaInputs ? JSON.stringify(params.formulaInputs) : null,
@@ -771,7 +773,35 @@ export async function createPhysicalPosition(params: CreatePhysicalParams): Prom
     userId: params.userId,
   });
 
+  // Update supplier credit usage
+  if (params.supplierId && params.price) {
+    try {
+      const { updateCreditUsed } = await import("./contractService");
+      await updateCreditUsed(params.supplierId, params.volume * params.price);
+    } catch {
+      // Non-critical: credit tracking is best-effort
+    }
+  }
+
   return physical;
+}
+
+// ─── 8b. Create Multi-Month Physicals ──────────────────────────────────────
+
+export async function createMultiMonthPhysicals(
+  baseParams: Omit<CreatePhysicalParams, "volume" | "deliveryMonth">,
+  months: { month: string; volume: number }[]
+): Promise<PhysicalPosition[]> {
+  const results: PhysicalPosition[] = [];
+  for (const entry of months) {
+    const physical = await createPhysicalPosition({
+      ...baseParams,
+      volume: entry.volume,
+      deliveryMonth: entry.month,
+    });
+    results.push(physical);
+  }
+  return results;
 }
 
 // ─── 9. Cancel Allocation ────────────────────────────────────────────────────

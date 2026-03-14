@@ -69,16 +69,16 @@ function isDark(): boolean {
 function themeColors() {
   const dark = isDark();
   return {
-    basisBar: "#B5D4F4",
+    basisBar: "#6A9FCC",
     boardBar: "#1a6b7a",
-    budgetLine: "#0C447C",
+    budgetLine: "#EF9F27",
     forecastFill: dark ? "rgba(181,212,244,0.1)" : "rgba(181,212,244,0.22)",
     forecastBorder: dark ? "rgba(181,212,244,0.2)" : "rgba(181,212,244,0.4)",
     gridColor: dark ? "rgba(181,212,244,0.08)" : "rgba(0,0,0,0.08)",
-    tickColor: dark ? "#7B90AE" : "#555",
-    tooltipBg: dark ? "#003366" : "#fff",
-    tooltipBorder: dark ? "#00509e" : "#ccc",
-    tooltipText: dark ? "#cce0ff" : "#111",
+    tickColor: dark ? "#8B95A5" : "#555",
+    tooltipBg: dark ? "#111D32" : "#fff",
+    tooltipBorder: dark ? "#1E3A5F" : "#ccc",
+    tooltipText: dark ? "#E8ECF1" : "#111",
   };
 }
 
@@ -379,7 +379,7 @@ export function CoverageStackedChart({ coverage }: Props) {
       {/* Custom legend */}
       <div className="flex items-center gap-4 mb-3 text-[10px] text-muted">
         <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-2 rounded-sm" style={{ background: "#B5D4F4" }} />
+          <span className="inline-block w-3 h-2 rounded-sm" style={{ background: "#6A9FCC" }} />
           Basis
         </span>
         <span className="flex items-center gap-1">
@@ -394,7 +394,7 @@ export function CoverageStackedChart({ coverage }: Props) {
           Forecast
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block w-4 h-0" style={{ borderTop: "2.5px solid #0C447C" }} />
+          <span className="inline-block w-4 h-0" style={{ borderTop: "2.5px solid #EF9F27" }} />
           Budget
         </span>
       </div>

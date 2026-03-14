@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { queryAll } from "@/lib/db";
-import { createPhysicalPosition } from "@/lib/positionService";
+import { createPhysicalPosition, createMultiMonthPhysicals } from "@/lib/positionService";
 
 export async function GET(request: Request) {
   try {
@@ -13,10 +13,12 @@ export async function GET(request: Request) {
     let sql = `
       SELECT p.*,
              s.name as site_name, s.code as site_code,
-             c.name as commodity_name
+             c.name as commodity_name,
+             cp.name as supplier_name
       FROM pm_physical_positions p
       LEFT JOIN sites s ON s.id = p.site_id
       LEFT JOIN commodities c ON c.id = p.commodity_id
+      LEFT JOIN ct_counterparties cp ON cp.id = p.supplier_id
       WHERE 1=1
     `;
     const params: unknown[] = [];
@@ -51,13 +53,44 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { orgId, userId, siteId, commodityId, direction, volume,
+    const { orgId, userId, siteId, commodityId, direction,
             price, pricingType, basisPrice, basisMonth,
-            deliveryMonth, counterparty, currency } = body;
+            counterparty, supplierId, contractRef, currency,
+            months } = body;
 
-    if (!orgId || !userId || !siteId || !commodityId || !direction || !volume) {
+    if (!orgId || !userId || !siteId || !commodityId || !direction) {
       return NextResponse.json(
-        { error: "Missing required fields: orgId, userId, siteId, commodityId, direction, volume" },
+        { error: "Missing required fields: orgId, userId, siteId, commodityId, direction" },
+        { status: 400 }
+      );
+    }
+
+    // Multi-month entry
+    if (months && Array.isArray(months) && months.length > 0) {
+      const baseParams = {
+        orgId, userId, siteId, commodityId, direction,
+        price: price ? Number(price) : undefined,
+        pricingType, basisPrice: basisPrice ? Number(basisPrice) : undefined,
+        basisMonth, counterparty,
+        supplierId: supplierId || undefined,
+        contractRef: contractRef || undefined,
+        currency,
+      };
+      const physicals = await createMultiMonthPhysicals(
+        baseParams,
+        months.map((m: { month: string; volume: number }) => ({
+          month: m.month,
+          volume: Number(m.volume),
+        }))
+      );
+      return NextResponse.json(physicals, { status: 201 });
+    }
+
+    // Single-month entry
+    const { volume, deliveryMonth } = body;
+    if (!volume) {
+      return NextResponse.json(
+        { error: "Missing required field: volume (or months array)" },
         { status: 400 }
       );
     }
@@ -67,7 +100,10 @@ export async function POST(request: Request) {
       volume: Number(volume),
       price: price ? Number(price) : undefined,
       pricingType, basisPrice: basisPrice ? Number(basisPrice) : undefined,
-      basisMonth, deliveryMonth, counterparty, currency,
+      basisMonth, deliveryMonth, counterparty,
+      supplierId: supplierId || undefined,
+      contractRef: contractRef || undefined,
+      currency,
     });
 
     return NextResponse.json(physical, { status: 201 });

@@ -315,14 +315,14 @@ function LineChartFallback({ prices, contractMonth }: { prices: MarketPrice[]; c
       </h3>
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1A2A40" />
-          <XAxis dataKey="date" stroke="#5C7495" fontSize={11} tickLine={false} />
-          <YAxis stroke="#5C7495" fontSize={11} tickLine={false} tickFormatter={(v: number) => `$${v.toFixed(2)}`} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
+          <XAxis dataKey="date" stroke="#8B95A5" fontSize={11} tickLine={false} />
+          <YAxis stroke="#8B95A5" fontSize={11} tickLine={false} tickFormatter={(v: number) => `$${v.toFixed(2)}`} />
           <Tooltip
-            contentStyle={{ backgroundColor: "#040C17", border: "1px solid #2B4362", borderRadius: 2, fontSize: 12 }}
+            contentStyle={{ backgroundColor: "#111D32", border: "1px solid #1E3A5F", borderRadius: 2, fontSize: 12 }}
             formatter={(value: number | undefined) => value != null ? [`$${value.toFixed(4)}`, "Price"] : ["—", "Price"]}
           />
-          <Line dataKey="price" stroke="#007acc" strokeWidth={2} dot={false} />
+          <Line dataKey="price" stroke="#378ADD" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

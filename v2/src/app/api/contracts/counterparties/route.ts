@@ -11,9 +11,11 @@ export async function GET(request: Request) {
     await requirePlugin(orgId, "contracts");
 
     const isActive = searchParams.get("isActive");
+    const entityType = searchParams.get("entityType") as "supplier" | "counterparty" | undefined;
     const counterparties = await listCounterparties({
       orgId,
       isActive: isActive !== null ? isActive === "true" : undefined,
+      entityType: entityType || undefined,
     });
 
     return NextResponse.json(counterparties);
@@ -44,6 +46,7 @@ export async function POST(request: Request) {
       name: body.name,
       shortName: body.shortName,
       counterpartyType: body.counterpartyType,
+      entityType: body.entityType,
       creditLimit: body.creditLimit ? Number(body.creditLimit) : undefined,
       creditRating: body.creditRating,
       paymentTermsDays: body.paymentTermsDays ? Number(body.paymentTermsDays) : undefined,

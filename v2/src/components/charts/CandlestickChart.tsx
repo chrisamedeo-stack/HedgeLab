@@ -64,7 +64,7 @@ export function CandlestickChart({
       height,
       layout: {
         background: { type: ColorType.Solid, color: chartColors.surface },
-        textColor: "#7B90AE",
+        textColor: "#8B95A5",
         fontSize: 11,
       },
       grid: {

@@ -69,7 +69,7 @@ export function PositionLimitUsageChart({ limits, checks, height = 280 }: Positi
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#B3C0D3" }}
+            labelStyle={{ color: "#8B95A5" }}
             formatter={(value) => [`${Number(value ?? 0).toFixed(1)}%`, "Utilization"]}
           />
           <ReferenceLine x={100} stroke={chartTheme.limitBreached} strokeDasharray="3 3" strokeWidth={2} />

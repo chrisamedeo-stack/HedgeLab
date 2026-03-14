@@ -106,7 +106,7 @@ export function CoverageWaterfallChart({ data, height = 300 }: CoverageWaterfall
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#B3C0D3" }}
+            labelStyle={{ color: "#8B95A5" }}
             formatter={(value, name) => {
               const v = Number(value ?? 0);
               if (name === "Coverage %") return [`${v}%`, name];

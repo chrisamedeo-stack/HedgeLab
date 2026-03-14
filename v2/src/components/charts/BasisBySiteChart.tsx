@@ -65,7 +65,7 @@ export function BasisBySiteChart({ data, height = 260 }: BasisBySiteChartProps) 
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#B3C0D3" }}
+            labelStyle={{ color: "#8B95A5" }}
             formatter={(value, _name, props) => {
               const v = Number(value ?? 0);
               const p = (props as unknown as { payload: { volume: number; min: number; max: number } }).payload;

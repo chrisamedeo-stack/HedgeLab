@@ -121,7 +121,7 @@ export function ForwardCurveChart({
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#B3C0D3" }}
+            labelStyle={{ color: "#8B95A5" }}
             formatter={(value, name) => {
               if (value == null) return ["-", name];
               return [`$${Number(value).toFixed(4)}`, name];
