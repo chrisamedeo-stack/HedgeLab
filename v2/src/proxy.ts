@@ -33,7 +33,7 @@ const ADMIN_PATHS = ["/platform", "/api/platform/"];
 // Static file extensions to skip
 const STATIC_EXTENSIONS = [".ico", ".png", ".jpg", ".jpeg", ".svg", ".css", ".js", ".woff", ".woff2"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Always allow public paths
