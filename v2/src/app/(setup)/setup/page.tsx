@@ -1,20 +1,34 @@
-import { redirect } from "next/navigation";
-import { queryOne } from "@/lib/db";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SetupWizard } from "@/components/setup/SetupWizard";
+import { API_BASE } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
+export default function SetupPage() {
+  const router = useRouter();
+  const [ready, setReady] = useState(false);
 
-export default async function SetupPage() {
-  // If an org already exists, redirect to dashboard
-  try {
-    const org = await queryOne<{ id: string }>(
-      `SELECT id FROM organizations WHERE is_active = true LIMIT 1`
+  useEffect(() => {
+    // Check if an org already exists — redirect to dashboard if so
+    fetch(`${API_BASE}/api/kernel/organizations`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((orgs) => {
+        if (Array.isArray(orgs) && orgs.length > 0) {
+          router.replace("/dashboard");
+        } else {
+          setReady(true);
+        }
+      })
+      .catch(() => setReady(true)); // DB not ready yet — show wizard
+  }, [router]);
+
+  if (!ready) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-sm text-muted">Checking setup status...</div>
+      </div>
     );
-    if (org) {
-      redirect("/dashboard");
-    }
-  } catch {
-    // Table may not exist yet (pre-migration) — show setup wizard
   }
 
   return (
