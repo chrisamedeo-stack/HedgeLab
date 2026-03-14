@@ -9,10 +9,14 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { registerBudgetEventListeners } = await import("./lib/budgetEvents");
     const { registerPositionEventListeners } = await import("./lib/positionEvents");
+    const { registerLogisticsEventListeners } = await import("./lib/logisticsEvents");
+    const { registerSettlementEventListeners } = await import("./lib/settlementEvents");
 
     registerBudgetEventListeners();
     registerPositionEventListeners();
+    registerLogisticsEventListeners();
+    registerSettlementEventListeners();
 
-    console.log("[Instrumentation] Event listeners registered: budget, positions");
+    console.log("[Instrumentation] Event listeners registered: budget, positions, logistics, settlement");
   }
 }

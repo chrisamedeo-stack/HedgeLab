@@ -18,6 +18,7 @@ export async function GET(request: Request) {
       orgId,
       commodityId: searchParams.get("commodityId") ?? undefined,
       status: (searchParams.get("status") as TradeFilters["status"]) ?? undefined,
+      tradeType: (searchParams.get("tradeType") as TradeFilters["tradeType"]) ?? undefined,
       contractMonth: searchParams.get("contractMonth") ?? undefined,
       dateFrom: searchParams.get("dateFrom") ?? undefined,
       dateTo: searchParams.get("dateTo") ?? undefined,

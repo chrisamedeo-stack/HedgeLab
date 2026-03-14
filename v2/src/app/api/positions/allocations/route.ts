@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { queryAll } from "@/lib/db";
+import { queryAll, queryOne } from "@/lib/db";
 import { allocateToSite } from "@/lib/positionService";
 import { requirePlugin, PluginNotEnabledError } from "@/lib/orgHierarchy";
 
@@ -78,6 +78,20 @@ export async function POST(request: Request) {
         { error: "Missing required fields: orgId, userId, siteId, commodityId, allocatedVolume" },
         { status: 400 }
       );
+    }
+
+    // Prevent allocating swap trades — swaps settle via their own schedule
+    if (tradeId) {
+      const trade = await queryOne<{ trade_type: string }>(
+        `SELECT trade_type FROM tc_financial_trades WHERE id = $1`,
+        [tradeId]
+      );
+      if (trade?.trade_type === "swap") {
+        return NextResponse.json(
+          { error: "Swap trades cannot be allocated to sites. They settle via their own settlement schedule." },
+          { status: 400 }
+        );
+      }
     }
 
     const allocation = await allocateToSite({

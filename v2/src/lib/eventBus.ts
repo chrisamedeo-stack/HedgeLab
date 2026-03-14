@@ -33,9 +33,13 @@ async function ensureListeners(): Promise<void> {
   try {
     const { registerBudgetEventListeners } = await import("./budgetEvents");
     const { registerPositionEventListeners } = await import("./positionEvents");
+    const { registerLogisticsEventListeners } = await import("./logisticsEvents");
+    const { registerSettlementEventListeners } = await import("./settlementEvents");
     registerBudgetEventListeners();
     registerPositionEventListeners();
-    console.log("[EventBus] Listeners auto-registered: budget, positions");
+    registerLogisticsEventListeners();
+    registerSettlementEventListeners();
+    console.log("[EventBus] Listeners auto-registered: budget, positions, logistics, settlement");
   } catch (err) {
     console.error("[EventBus] Failed to auto-register listeners:", err);
   }
@@ -130,4 +134,6 @@ export const EventTypes = {
   LIMIT_BREACHED: "LIMIT_BREACHED",
   IMPORT_COMMITTED: "IMPORT_COMMITTED",
   SCENARIO_COMPLETED: "SCENARIO_COMPLETED",
+  INVOICE_CREATED: "INVOICE_CREATED",
+  INVOICE_PAID: "INVOICE_PAID",
 } as const;

@@ -6,7 +6,7 @@ import { useCommodities, useSites } from "@/hooks/usePositions";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { TradeBlotter } from "@/components/trades/TradeBlotter";
 import { TradeForm } from "@/components/trades/TradeForm";
-import type { TradeFilters, TradeStatus } from "@/types/trades";
+import type { TradeFilters, TradeStatus, TradeType } from "@/types/trades";
 
 export default function TradesPage() {
   const { orgId } = useOrgContext();
@@ -54,6 +54,17 @@ export default function TradesPage() {
           <option value="">All Commodities</option>
           {(commodities ?? []).map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+
+        <select
+          value={filters.tradeType ?? ""}
+          onChange={(e) => setFilter("tradeType", e.target.value)}
+          className="rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none"
+        >
+          <option value="">All Types</option>
+          {(["futures", "options", "swap"] as TradeType[]).map((t) => (
+            <option key={t} value={t}>{t === "futures" ? "Futures" : t === "options" ? "Options" : "Swaps"}</option>
           ))}
         </select>
 

@@ -1,15 +1,18 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useTrade } from "@/hooks/useTrades";
 import { useSites } from "@/hooks/usePositions";
 import { useOrgContext } from "@/contexts/OrgContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { TradeAllocateForm } from "@/components/trades/TradeAllocateForm";
 import { TabGroup } from "@/components/ui/TabGroup";
 import { Spinner } from "@/components/ui/Spinner";
+import { API_BASE } from "@/lib/api";
 import type { Allocation } from "@/types/positions";
+import type { SwapSettlement, SwapDetails, OptionDetails, FuturesDetails } from "@/types/trades";
 
 const statusStyle: Record<string, string> = {
   open: "bg-profit-10 text-profit",
@@ -27,14 +30,91 @@ const allocStatusStyle: Record<string, string> = {
   cancelled: "bg-destructive-10 text-destructive",
 };
 
+const typeStyle: Record<string, { bg: string; text: string }> = {
+  futures: { bg: "bg-[#1a6b7a]/15", text: "text-[#1a6b7a]" },
+  options: { bg: "bg-action-10", text: "text-action" },
+  swap: { bg: "bg-[#EF9F27]/15", text: "text-[#EF9F27]" },
+};
+
+function DetailField({ label, value }: { label: string; value: string | number | null | undefined }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium text-faint uppercase tracking-wide">{label}</dt>
+      <dd className="mt-0.5 text-secondary">{value ?? "—"}</dd>
+    </div>
+  );
+}
+
 export default function TradeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: tradeData, loading, error, refetch } = useTrade(id);
   const { orgId } = useOrgContext();
+  const { user } = useAuth();
   const { data: sites } = useSites(orgId);
-  const [tab, setTab] = useState<"details" | "allocations">("details");
 
-  if (loading || !tradeData) {
+  const trade = tradeData?.trade;
+  const isSwap = trade?.trade_type === "swap";
+  const isOption = trade?.trade_type === "options";
+
+  const tabs = [
+    { key: "details", label: "Details" },
+    ...(isSwap ? [{ key: "settlements", label: "Settlement Schedule" }] : []),
+    ...(!isSwap ? [{ key: "allocations", label: `Allocations (${tradeData?.allocations?.length ?? 0})` }] : []),
+  ];
+
+  const [tab, setTab] = useState("details");
+
+  // Swap settlements state
+  const [settlements, setSettlements] = useState<SwapSettlement[]>([]);
+  const [settlementsLoading, setSettlementsLoading] = useState(false);
+  const [settleRowId, setSettleRowId] = useState<string | null>(null);
+  const [floatingPrice, setFloatingPrice] = useState("");
+  const [settling, setSettling] = useState(false);
+
+  const fetchSettlements = useCallback(async () => {
+    if (!id || !isSwap) return;
+    setSettlementsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/trades/${id}/settlements`);
+      if (res.ok) {
+        setSettlements(await res.json());
+      }
+    } catch {
+      // silent
+    } finally {
+      setSettlementsLoading(false);
+    }
+  }, [id, isSwap]);
+
+  useEffect(() => {
+    if (isSwap && tab === "settlements") {
+      fetchSettlements();
+    }
+  }, [isSwap, tab, fetchSettlements]);
+
+  const handleSettle = async (settlementId: string) => {
+    if (!floatingPrice || !user) return;
+    setSettling(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/trades/${id}/settlements`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settlementId, floatingPrice: Number(floatingPrice), userId: user.id }),
+      });
+      if (res.ok) {
+        setSettleRowId(null);
+        setFloatingPrice("");
+        fetchSettlements();
+        refetch();
+      }
+    } catch {
+      // silent
+    } finally {
+      setSettling(false);
+    }
+  };
+
+  if (loading || !tradeData || !trade) {
     return (
       <div className="space-y-4">
         <Link href="/trades" className="flex items-center gap-1.5 text-sm text-faint hover:text-secondary transition-colors">
@@ -48,10 +128,17 @@ export default function TradeDetailPage() {
     );
   }
 
-  const trade = tradeData.trade;
   const allocations: Allocation[] = tradeData.allocations ?? [];
   const summary = tradeData.summary;
   const unallocated = Number(trade.unallocated_volume) || 0;
+
+  const style = typeStyle[trade.trade_type] ?? typeStyle.futures;
+
+  // Instrument-specific details
+  const details = trade.details;
+  const futuresDetails = details?.type === "futures" ? details as FuturesDetails : null;
+  const optionDetails = details?.type === "options" ? details as OptionDetails : null;
+  const swapDetails = details?.type === "swap" ? details as SwapDetails : null;
 
   return (
     <div className="space-y-6 page-fade">
@@ -66,6 +153,9 @@ export default function TradeDetailPage() {
         <h1 className="text-xl font-bold text-primary font-mono">
           {trade.external_ref || trade.id.slice(0, 8)}
         </h1>
+        <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${style.bg} ${style.text}`}>
+          {trade.trade_type === "futures" ? "Futures" : trade.trade_type === "options" ? "Options" : "Swap"}
+        </span>
         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusStyle[trade.status] ?? "bg-hover text-muted"}`}>
           {trade.status.replace(/_/g, " ")}
         </span>
@@ -73,53 +163,222 @@ export default function TradeDetailPage() {
 
       {/* Tabs */}
       <TabGroup
-        tabs={[
-          { key: "details", label: "Details" },
-          { key: "allocations", label: `Allocations (${allocations.length})` },
-        ]}
+        tabs={tabs}
         active={tab}
-        onChange={(key) => setTab(key as "details" | "allocations")}
+        onChange={(key) => setTab(key)}
       />
 
       {error && (
         <div className="rounded-md bg-destructive-10 border border-destructive-15 px-3 py-2 text-sm text-loss">{error}</div>
       )}
 
+      {/* ─── Details Tab ────────────────────────────────────────────── */}
       {tab === "details" && (
-        <div className="bg-surface border border-b-default rounded-lg p-6 grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
-          {[
-            ["Type", trade.trade_type],
-            ["Direction", trade.direction],
-            ["Commodity", trade.commodity_name ?? trade.commodity_id],
-            ["Trade Date", trade.trade_date],
-            ["Contract Month", trade.contract_month],
-            ["Broker", trade.broker ?? "\u2014"],
-            ["Account", trade.account_number ?? "\u2014"],
-            ["Contracts", String(trade.num_contracts)],
-            ["Contract Size", String(trade.contract_size)],
-            ["Total Volume", trade.total_volume.toLocaleString()],
-            ["Trade Price", trade.trade_price != null ? `$${Number(trade.trade_price).toFixed(4)}/bu` : "\u2014"],
-            ["Currency", trade.currency],
-            ["Commission", trade.commission != null ? `$${Number(trade.commission).toFixed(2)}` : "\u2014"],
-            ["Fees", trade.fees != null ? `$${Number(trade.fees).toFixed(2)}` : "\u2014"],
-            ["Allocated Volume", `${trade.allocated_volume?.toLocaleString() ?? 0} / ${trade.total_volume.toLocaleString()}`],
-            ["Unallocated", trade.unallocated_volume?.toLocaleString() ?? "\u2014"],
-            ["Option Type", trade.option_type ?? "\u2014"],
-            ["Strike Price", trade.strike_price != null ? `$${Number(trade.strike_price).toFixed(4)}` : "\u2014"],
-            ["Premium", trade.premium != null ? `$${Number(trade.premium).toFixed(4)}` : "\u2014"],
-            ["External Ref", trade.external_ref ?? "\u2014"],
-            ["Notes", trade.notes ?? "\u2014"],
-            ["Created", new Date(trade.created_at).toLocaleString()],
-          ].map(([label, value]) => (
-            <div key={label}>
-              <dt className="text-xs font-medium text-faint uppercase tracking-wide">{label}</dt>
-              <dd className="mt-0.5 text-secondary">{value}</dd>
+        <div className="space-y-6">
+          {/* Common fields */}
+          <div className="bg-surface border border-b-default rounded-lg p-6 grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+            <DetailField label="Type" value={trade.trade_type} />
+            <DetailField label="Instrument Class" value={trade.instrument_class?.replace(/_/g, " ")} />
+            <DetailField label="Direction" value={trade.direction} />
+            <DetailField label="Commodity" value={trade.commodity_name ?? trade.commodity_id} />
+            <DetailField label="Trade Date" value={trade.trade_date?.slice(0, 10)} />
+            <DetailField label="Contract Month" value={trade.contract_month} />
+            <DetailField label="Contracts" value={String(trade.num_contracts)} />
+            <DetailField label="Contract Size" value={String(trade.contract_size)} />
+            <DetailField label="Total Volume" value={Number(trade.total_volume).toLocaleString()} />
+            <DetailField label="Trade Price" value={trade.trade_price != null ? `$${Number(trade.trade_price).toFixed(4)}/bu` : null} />
+            <DetailField label="Currency" value={trade.currency} />
+            <DetailField label="Commission" value={trade.commission != null ? `$${Number(trade.commission).toFixed(2)}` : null} />
+            <DetailField label="Fees" value={trade.fees != null ? `$${Number(trade.fees).toFixed(2)}` : null} />
+            {!isSwap && (
+              <>
+                <DetailField label="Allocated Volume" value={`${Number(trade.allocated_volume).toLocaleString()} / ${Number(trade.total_volume).toLocaleString()}`} />
+                <DetailField label="Unallocated" value={Number(trade.unallocated_volume).toLocaleString()} />
+              </>
+            )}
+            <DetailField label="External Ref" value={trade.external_ref} />
+            <DetailField label="Notes" value={trade.notes} />
+            <DetailField label="Created" value={new Date(trade.created_at).toLocaleString()} />
+          </div>
+
+          {/* Futures-specific details */}
+          {futuresDetails && (
+            <div>
+              <h3 className="text-xs font-semibold text-faint uppercase tracking-wider mb-3">Futures Details</h3>
+              <div className="bg-surface border border-b-default rounded-lg p-6 grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                <DetailField label="Exchange" value={futuresDetails.exchange} />
+                <DetailField label="Broker" value={futuresDetails.broker} />
+                <DetailField label="Account" value={futuresDetails.accountNumber} />
+                <DetailField label="Contract Month" value={futuresDetails.contractMonth} />
+                <DetailField label="Contracts" value={String(futuresDetails.numContracts)} />
+                <DetailField label="Contract Size" value={String(futuresDetails.contractSize)} />
+              </div>
             </div>
-          ))}
+          )}
+
+          {/* Options-specific details */}
+          {optionDetails && (
+            <div>
+              <h3 className="text-xs font-semibold text-faint uppercase tracking-wider mb-3">Options Details</h3>
+              <div className="bg-surface border border-b-default rounded-lg p-6 grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                <DetailField label="Option Type" value={optionDetails.optionType === "call" ? "Call" : "Put"} />
+                <DetailField label="Style" value={optionDetails.optionStyle === "american" ? "American" : "European"} />
+                <DetailField label="Strike Price" value={`$${Number(optionDetails.strikePrice).toFixed(4)}`} />
+                <DetailField label="Premium" value={`$${Number(optionDetails.premium).toFixed(4)}`} />
+                {optionDetails.premiumTotal != null && (
+                  <DetailField label="Total Premium" value={`$${Number(optionDetails.premiumTotal).toFixed(2)}`} />
+                )}
+                <DetailField label="Expiration" value={optionDetails.expirationDate?.slice(0, 10)} />
+                <DetailField label="Exercise Status" value={optionDetails.exerciseStatus?.replace(/_/g, " ")} />
+                <DetailField label="Underlying Contract" value={optionDetails.underlyingContract} />
+                <DetailField label="Exchange" value={optionDetails.exchange} />
+                <DetailField label="Broker" value={optionDetails.broker} />
+                <DetailField label="Account" value={optionDetails.accountNumber} />
+              </div>
+            </div>
+          )}
+
+          {/* Swap-specific details */}
+          {swapDetails && (
+            <div>
+              <h3 className="text-xs font-semibold text-faint uppercase tracking-wider mb-3">Swap Details</h3>
+              <div className="bg-surface border border-b-default rounded-lg p-6 grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                <DetailField label="Counterparty" value={trade.counterparty_name} />
+                <DetailField label="Swap Type" value={swapDetails.swapType?.replace(/_/g, " ")} />
+                <DetailField label="Fixed Price" value={`$${Number(swapDetails.fixedPrice).toFixed(4)}`} />
+                <DetailField label="Floating Reference" value={swapDetails.floatingReference} />
+                {swapDetails.floatingIndex && <DetailField label="Floating Index" value={swapDetails.floatingIndex} />}
+                <DetailField label="Notional Volume" value={`${Number(swapDetails.notionalVolume).toLocaleString()} ${swapDetails.volumeUnit ?? ""}`} />
+                <DetailField label="Start Date" value={swapDetails.startDate?.slice(0, 10)} />
+                <DetailField label="End Date" value={swapDetails.endDate?.slice(0, 10)} />
+                <DetailField label="Payment Frequency" value={swapDetails.paymentFrequency?.replace(/_/g, " ")} />
+                <DetailField label="Settlement Type" value={swapDetails.settlementType} />
+                {swapDetails.isdaRef && <DetailField label="ISDA Ref" value={swapDetails.isdaRef} />}
+                {swapDetails.masterAgreement && <DetailField label="Master Agreement" value={swapDetails.masterAgreement} />}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {tab === "allocations" && (
+      {/* ─── Settlements Tab (Swap only) ────────────────────────────── */}
+      {tab === "settlements" && isSwap && (
+        <div className="space-y-4">
+          {settlementsLoading ? (
+            <div className="py-8 text-center"><Spinner /></div>
+          ) : settlements.length === 0 ? (
+            <div className="bg-surface border border-b-default rounded-lg p-6 text-center text-sm text-faint">
+              No settlement periods generated yet.
+            </div>
+          ) : (
+            <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-input-bg/50 border-b border-b-default">
+                  <tr>
+                    {["Period", "Start", "End", "Fixed", "Floating", "Volume", "P&L", "Status", ""].map((h) => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-faint uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-b-default">
+                  {settlements.map((s, i) => {
+                    const pnl = s.settlement_amount != null ? Number(s.settlement_amount) : null;
+                    const isSettling = settleRowId === s.id;
+                    return (
+                      <tr key={s.id} className="hover:bg-row-hover">
+                        <td className="px-4 py-2.5 tabular-nums text-secondary">{i + 1}</td>
+                        <td className="px-4 py-2.5 tabular-nums text-muted">{s.settlement_period_start?.slice(0, 10)}</td>
+                        <td className="px-4 py-2.5 tabular-nums text-muted">{s.settlement_period_end?.slice(0, 10)}</td>
+                        <td className="px-4 py-2.5 tabular-nums text-secondary">${Number(s.fixed_price).toFixed(4)}</td>
+                        <td className="px-4 py-2.5 tabular-nums text-secondary">
+                          {s.floating_price != null ? `$${Number(s.floating_price).toFixed(4)}` : "—"}
+                        </td>
+                        <td className="px-4 py-2.5 tabular-nums text-secondary">{Number(s.volume).toLocaleString()}</td>
+                        <td className="px-4 py-2.5 tabular-nums">
+                          {pnl != null ? (
+                            <span className={pnl >= 0 ? "text-profit" : "text-loss"}>
+                              {pnl >= 0 ? "+" : ""}${pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          ) : "—"}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                            s.status === "settled" ? "bg-profit-10 text-profit"
+                              : s.status === "disputed" ? "bg-destructive-10 text-destructive"
+                              : "bg-warning-10 text-warning"
+                          }`}>
+                            {s.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {s.status === "pending" && !isSettling && (
+                            <button
+                              onClick={() => { setSettleRowId(s.id); setFloatingPrice(""); }}
+                              className="rounded bg-action px-2.5 py-1 text-xs text-white hover:bg-action-hover"
+                            >
+                              Settle
+                            </button>
+                          )}
+                          {isSettling && (
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                step="any"
+                                value={floatingPrice}
+                                onChange={(e) => setFloatingPrice(e.target.value)}
+                                placeholder="Floating price"
+                                className="w-28 rounded border border-b-input bg-input-bg px-2 py-1 text-xs text-primary tabular-nums focus:border-focus focus:outline-none"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => handleSettle(s.id)}
+                                disabled={settling || !floatingPrice}
+                                className="rounded bg-profit px-2 py-1 text-xs text-white hover:bg-profit/80 disabled:opacity-50"
+                              >
+                                {settling ? "..." : "OK"}
+                              </button>
+                              <button
+                                onClick={() => setSettleRowId(null)}
+                                className="text-xs text-faint hover:text-secondary"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {/* Settlement summary */}
+              {settlements.some((s) => s.status === "settled") && (
+                <div className="border-t border-b-default px-4 py-3 flex items-center gap-6 text-xs">
+                  <span className="text-faint">
+                    Settled: {settlements.filter((s) => s.status === "settled").length} / {settlements.length}
+                  </span>
+                  <span className="text-secondary font-medium tabular-nums">
+                    Total P&L:{" "}
+                    {(() => {
+                      const total = settlements
+                        .filter((s) => s.settlement_amount != null)
+                        .reduce((sum, s) => sum + Number(s.settlement_amount), 0);
+                      return (
+                        <span className={total >= 0 ? "text-profit" : "text-loss"}>
+                          {total >= 0 ? "+" : ""}${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      );
+                    })()}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Allocations Tab (Futures & Options only) ───────────────── */}
+      {tab === "allocations" && !isSwap && (
         <div className="space-y-4">
           {/* Summary bar */}
           {summary && (
@@ -179,16 +438,16 @@ export default function TradeDetailPage() {
                         {a.site_id.slice(0, 8)}
                       </Link>
                     </td>
-                    <td className="px-4 py-2.5 tabular-nums text-secondary">{a.allocated_volume.toLocaleString()}</td>
-                    <td className="px-4 py-2.5 font-mono text-muted">{a.budget_month ?? "\u2014"}</td>
-                    <td className="px-4 py-2.5 font-mono text-muted">{a.contract_month ?? "\u2014"}</td>
+                    <td className="px-4 py-2.5 tabular-nums text-secondary">{Number(a.allocated_volume).toLocaleString()}</td>
+                    <td className="px-4 py-2.5 font-mono text-muted">{a.budget_month ?? "—"}</td>
+                    <td className="px-4 py-2.5 font-mono text-muted">{a.contract_month ?? "—"}</td>
                     <td className="px-4 py-2.5">
                       <span className={a.direction === "long" ? "text-profit" : "text-loss"}>
-                        {a.direction ?? "\u2014"}
+                        {a.direction ?? "—"}
                       </span>
                     </td>
                     <td className="px-4 py-2.5 tabular-nums text-secondary">
-                      {a.trade_price != null ? `$${Number(a.trade_price).toFixed(4)}/bu` : "\u2014"}
+                      {a.trade_price != null ? `$${Number(a.trade_price).toFixed(4)}/bu` : "—"}
                     </td>
                     <td className="px-4 py-2.5">
                       <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${allocStatusStyle[a.status] ?? "bg-hover text-muted"}`}>

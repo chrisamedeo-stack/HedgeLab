@@ -112,6 +112,13 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
             <h3 className="text-sm font-semibold text-primary">
               {trade.commodity_name ?? trade.commodity_id} — {trade.contract_month}
             </h3>
+            <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+              trade.trade_type === "options" ? "bg-action-10 text-action"
+                : trade.trade_type === "swap" ? "bg-[#EF9F27]/15 text-[#EF9F27]"
+                : "bg-[#1a6b7a]/15 text-[#1a6b7a]"
+            }`}>
+              {trade.trade_type === "futures" ? "FUT" : trade.trade_type === "options" ? "OPT" : "SWP"}
+            </span>
             <StatusBadge status={trade.status} />
             <span className={`text-xs font-medium ${trade.direction === "long" ? "text-profit" : "text-loss"}`}>
               {trade.direction.toUpperCase()}
@@ -120,6 +127,7 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
           <div className="mt-0.5 text-xs text-faint">
             {trade.trade_date?.slice(0, 10)} &middot; {trade.num_contracts} contracts @ ${Number(trade.trade_price).toFixed(4)}
             {trade.broker && <> &middot; {trade.broker}</>}
+            {trade.trade_type === "swap" && trade.counterparty_name && <> &middot; {trade.counterparty_name}</>}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -179,20 +187,29 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
         </div>
       )}
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <KPICard label="Total Volume" value={summary.totalVolume.toLocaleString()} />
-        <KPICard label="Allocated" value={summary.allocatedVolume.toLocaleString()} />
-        <KPICard
-          label="Unallocated"
-          value={summary.unallocatedVolume.toLocaleString()}
-          trend={summary.unallocatedVolume > 0 ? "down" : undefined}
-        />
-        <KPICard label="Allocations" value={String(summary.allocationCount)} />
-      </div>
+      {/* KPI Cards — swaps don't use allocation */}
+      {trade.trade_type !== "swap" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <KPICard label="Total Volume" value={summary.totalVolume.toLocaleString()} />
+          <KPICard label="Allocated" value={summary.allocatedVolume.toLocaleString()} />
+          <KPICard
+            label="Unallocated"
+            value={summary.unallocatedVolume.toLocaleString()}
+            trend={summary.unallocatedVolume > 0 ? "down" : undefined}
+          />
+          <KPICard label="Allocations" value={String(summary.allocationCount)} />
+        </div>
+      )}
 
-      {/* Inline allocation form */}
-      {unallocated > 0 && trade.status !== "cancelled" && (
+      {/* Swap info banner */}
+      {trade.trade_type === "swap" && (
+        <div className="rounded-lg border border-[#EF9F27]/20 bg-[#EF9F27]/5 px-4 py-3 text-xs text-[#EF9F27]">
+          Swaps settle via their own settlement schedule. Use the Full Detail view to manage settlements.
+        </div>
+      )}
+
+      {/* Inline allocation form — not for swaps */}
+      {trade.trade_type !== "swap" && unallocated > 0 && trade.status !== "cancelled" && (
         sites.length > 0 ? (
           <TradeAllocateForm
             tradeId={trade.id}
@@ -214,16 +231,18 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
         )
       )}
 
-      {/* Allocations table */}
-      <div>
-        <h4 className="mb-2 text-xs font-medium text-muted">Allocations</h4>
-        <DataTable
-          columns={allocationColumns}
-          data={allocations}
-          keyField="id"
-          emptyMessage="No allocations yet"
-        />
-      </div>
+      {/* Allocations table — not for swaps */}
+      {trade.trade_type !== "swap" && (
+        <div>
+          <h4 className="mb-2 text-xs font-medium text-muted">Allocations</h4>
+          <DataTable
+            columns={allocationColumns}
+            data={allocations}
+            keyField="id"
+            emptyMessage="No allocations yet"
+          />
+        </div>
+      )}
     </div>
   );
 }
