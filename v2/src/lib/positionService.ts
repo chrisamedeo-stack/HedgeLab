@@ -31,6 +31,29 @@ import type {
 export async function allocateToSite(params: AllocateToSiteParams): Promise<Allocation> {
   await requirePermission(params.userId, "position.allocate");
 
+  // Server-side over-allocation guard: validate against trade total_volume
+  if (params.tradeId) {
+    const trade = await queryOne<{ total_volume: number }>(
+      `SELECT total_volume FROM tc_financial_trades WHERE id = $1 FOR UPDATE`,
+      [params.tradeId]
+    );
+    if (trade) {
+      const existing = await queryOne<{ total: string }>(
+        `SELECT COALESCE(SUM(allocated_volume), 0) as total
+         FROM pm_allocations
+         WHERE trade_id = $1 AND status NOT IN ('cancelled')`,
+        [params.tradeId]
+      );
+      const alreadyAllocated = Number(existing?.total ?? 0);
+      const remaining = Number(trade.total_volume) - alreadyAllocated;
+      if (params.allocatedVolume > remaining) {
+        throw new Error(
+          `Over-allocation: trade has ${remaining.toLocaleString()} remaining but ${params.allocatedVolume.toLocaleString()} requested`
+        );
+      }
+    }
+  }
+
   const result = await query<Allocation>(
     `INSERT INTO pm_allocations
        (org_id, trade_id, site_id, commodity_id, allocated_volume,
