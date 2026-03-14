@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { KPICard } from "@/components/ui/KPICard";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import { TradeAllocateForm } from "@/components/trades/TradeAllocateForm";
 import { btnPrimary, btnSecondary, btnDanger } from "@/lib/ui-classes";
 import type { Allocation } from "@/types/positions";
@@ -110,7 +111,7 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-primary">
-              {trade.commodity_name ?? trade.commodity_id} — {trade.contract_month}
+              {trade.commodity_name ?? trade.commodity_id} — {formatContractMonth(trade.contract_month)}
             </h3>
             <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
               trade.trade_type === "options" ? "bg-action-10 text-action"
@@ -120,8 +121,10 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
               {trade.trade_type === "futures" ? "FUT" : trade.trade_type === "options" ? "OPT" : "SWP"}
             </span>
             <StatusBadge status={trade.status} />
-            <span className={`text-xs font-medium ${trade.direction === "long" ? "text-profit" : "text-loss"}`}>
-              {trade.direction.toUpperCase()}
+            <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+              trade.direction === "long" ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"
+            }`}>
+              {trade.direction === "long" ? "LONG" : "SHORT"}
             </span>
           </div>
           <div className="mt-0.5 text-xs text-faint">

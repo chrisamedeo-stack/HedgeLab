@@ -12,6 +12,7 @@ import { TabGroup } from "@/components/ui/TabGroup";
 import { Spinner } from "@/components/ui/Spinner";
 import { API_BASE } from "@/lib/api";
 import type { Allocation } from "@/types/positions";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { SwapSettlement, SwapDetails, OptionDetails, FuturesDetails } from "@/types/trades";
 
 const statusStyle: Record<string, string> = {
@@ -182,7 +183,7 @@ export default function TradeDetailPage() {
             <DetailField label="Direction" value={trade.direction} />
             <DetailField label="Commodity" value={trade.commodity_name ?? trade.commodity_id} />
             <DetailField label="Trade Date" value={trade.trade_date?.slice(0, 10)} />
-            <DetailField label="Contract Month" value={trade.contract_month} />
+            <DetailField label="Contract Month" value={formatContractMonth(trade.contract_month)} />
             <DetailField label="Contracts" value={String(trade.num_contracts)} />
             <DetailField label="Contract Size" value={String(trade.contract_size)} />
             <DetailField label="Total Volume" value={Number(trade.total_volume).toLocaleString()} />
@@ -209,7 +210,7 @@ export default function TradeDetailPage() {
                 <DetailField label="Exchange" value={futuresDetails.exchange} />
                 <DetailField label="Broker" value={futuresDetails.broker} />
                 <DetailField label="Account" value={futuresDetails.accountNumber} />
-                <DetailField label="Contract Month" value={futuresDetails.contractMonth} />
+                <DetailField label="Contract Month" value={formatContractMonth(futuresDetails.contractMonth)} />
                 <DetailField label="Contracts" value={String(futuresDetails.numContracts)} />
                 <DetailField label="Contract Size" value={String(futuresDetails.contractSize)} />
               </div>
@@ -230,7 +231,7 @@ export default function TradeDetailPage() {
                 )}
                 <DetailField label="Expiration" value={optionDetails.expirationDate?.slice(0, 10)} />
                 <DetailField label="Exercise Status" value={optionDetails.exerciseStatus?.replace(/_/g, " ")} />
-                <DetailField label="Underlying Contract" value={optionDetails.underlyingContract} />
+                <DetailField label="Underlying Contract" value={formatContractMonth(optionDetails.underlyingContract)} />
                 <DetailField label="Exchange" value={optionDetails.exchange} />
                 <DetailField label="Broker" value={optionDetails.broker} />
                 <DetailField label="Account" value={optionDetails.accountNumber} />
@@ -440,11 +441,15 @@ export default function TradeDetailPage() {
                     </td>
                     <td className="px-4 py-2.5 tabular-nums text-secondary">{Number(a.allocated_volume).toLocaleString()}</td>
                     <td className="px-4 py-2.5 font-mono text-muted">{a.budget_month ?? "—"}</td>
-                    <td className="px-4 py-2.5 font-mono text-muted">{a.contract_month ?? "—"}</td>
+                    <td className="px-4 py-2.5 tabular-nums text-muted">{formatContractMonth(a.contract_month)}</td>
                     <td className="px-4 py-2.5">
-                      <span className={a.direction === "long" ? "text-profit" : "text-loss"}>
-                        {a.direction ?? "—"}
-                      </span>
+                      {a.direction ? (
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                          a.direction === "long" ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"
+                        }`}>
+                          {a.direction === "long" ? "LONG" : "SHORT"}
+                        </span>
+                      ) : "—"}
                     </td>
                     <td className="px-4 py-2.5 tabular-nums text-secondary">
                       {a.trade_price != null ? `$${Number(a.trade_price).toFixed(4)}/bu` : "—"}

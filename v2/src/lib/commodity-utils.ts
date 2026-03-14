@@ -74,7 +74,26 @@ export function suggestFuturesMonth(
 }
 
 /**
+ * Parse a CME futures code (e.g., "ZCH27") into human-readable format ("Mar-2027").
+ * Returns original code as fallback if unparseable.
+ */
+export function formatContractMonth(code: string | null | undefined): string {
+  if (!code) return "—";
+  // Extract month letter (third-to-last) and 2-digit year (last 2)
+  const match = code.match(/([A-Z])(\d{2})$/);
+  if (!match) return code;
+  const [, monthLetter, yy] = match;
+  const monthNum = MONTH_CODE_MAP[monthLetter];
+  if (monthNum == null) return code;
+  const fullYear = 2000 + Number(yy);
+  const date = new Date(fullYear, monthNum - 1, 1);
+  const mon = date.toLocaleDateString("en-US", { month: "short" });
+  return `${mon}-${fullYear}`;
+}
+
+/**
  * Generate all futures month codes for a commodity for the next N years.
+ * Filters out months that have already passed.
  */
 export function generateFuturesMonths(
   commodity: CommodityConfig | null,
@@ -85,11 +104,16 @@ export function generateFuturesMonths(
   const contractCodes = (commodity.contract_months || "").split("");
   const now = new Date();
   const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-based
   const yy = (y: number) => String(y).slice(-2);
   const months: string[] = [];
 
   for (let y = currentYear; y < currentYear + years; y++) {
     for (const code of contractCodes) {
+      const monthNum = MONTH_CODE_MAP[code];
+      if (monthNum == null) continue;
+      // Skip past months
+      if (y === currentYear && monthNum < currentMonth) continue;
       months.push(`${prefix}${code}${yy(y)}`);
     }
   }

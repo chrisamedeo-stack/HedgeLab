@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { FinancialTrade } from "@/types/trades";
 import { TradeDetail } from "./TradeDetail";
 
@@ -55,18 +56,20 @@ export function TradeBlotter({ trades, commodities, sites, orgId, onRefresh }: T
     {
       key: "direction",
       header: "Dir",
-      width: "w-16",
+      width: "w-20",
       render: (row) => (
-        <span className={row.direction === "long" ? "text-profit" : "text-loss"}>
-          {row.direction === "long" ? "L" : "S"}
+        <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+          row.direction === "long" ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"
+        }`}>
+          {row.direction === "long" ? "LONG" : "SHORT"}
         </span>
       ),
     },
     {
       key: "contract_month",
       header: "Month",
-      width: "w-20",
-      render: (row) => <span className="tabular-nums">{row.contract_month}</span>,
+      width: "w-24",
+      render: (row) => <span className="tabular-nums">{formatContractMonth(row.contract_month)}</span>,
     },
     {
       key: "num_contracts",

@@ -5,7 +5,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useTradeStore } from "@/store/tradeStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrgContext } from "@/contexts/OrgContext";
-import { generateFuturesMonths } from "@/lib/commodity-utils";
+import { generateFuturesMonths, formatContractMonth } from "@/lib/commodity-utils";
 import { API_BASE } from "@/lib/api";
 import type { Commodity } from "@/hooks/usePositions";
 import type { TradeFormRow, CreateTradeParams, TradeType, OptionType, SwapType, PaymentFrequency, SettlementType } from "@/types/trades";
@@ -136,7 +136,21 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
     );
   };
 
-  const addRow = () => setRows((prev) => [...prev, emptyRow()]);
+  const addRow = () => setRows((prev) => {
+    const lastRow = prev[prev.length - 1];
+    const newRow = emptyRow();
+    if (lastRow?.commodityId) {
+      newRow.commodityId = lastRow.commodityId;
+      newRow.contractSize = lastRow.contractSize;
+      newRow.volume = lastRow.volume;
+      newRow.numContracts = lastRow.numContracts;
+      newRow.direction = lastRow.direction;
+      const months = getFuturesMonths(lastRow.commodityId);
+      const idx = months.indexOf(lastRow.contractMonth);
+      newRow.contractMonth = months[idx + 1] ?? months[0] ?? "";
+    }
+    return [...prev, newRow];
+  });
   const removeRow = (key: string) => {
     if (rows.length <= 1) return;
     setRows((prev) => prev.filter((r) => r.key !== key));
@@ -354,7 +368,7 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
                     </select>
                     <select value={row.contractMonth} onChange={(e) => updateRow(row.key, "contractMonth", e.target.value)} className={selectClass}>
                       <option value="">{row.commodityId ? "Month..." : "Select commodity"}</option>
-                      {rowMonths.map((m) => <option key={m} value={m}>{m}</option>)}
+                      {rowMonths.map((m) => <option key={m} value={m}>{formatContractMonth(m)}</option>)}
                     </select>
                     <div className="relative">
                       <input type="number" min={contractSize} step={contractSize} value={row.volume} onChange={(e) => updateRow(row.key, "volume", e.target.value)} className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none tabular-nums" placeholder={String(contractSize)} />
@@ -421,7 +435,7 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
                 <span className="mb-1 block text-xs font-medium text-muted">Underlying Month *</span>
                 <select required value={optContractMonth} onChange={(e) => setOptContractMonth(e.target.value)} className={inputClass}>
                   <option value="">{optCommodityId ? "Month..." : "Select commodity"}</option>
-                  {getFuturesMonths(optCommodityId).map((m) => <option key={m} value={m}>{m}</option>)}
+                  {getFuturesMonths(optCommodityId).map((m) => <option key={m} value={m}>{formatContractMonth(m)}</option>)}
                 </select>
               </label>
             </div>
@@ -537,7 +551,7 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
                   if (swCommodityId) setSwFloatingRef(`${swCommodityId}:${e.target.value}`);
                 }} className={inputClass}>
                   <option value="">{swCommodityId ? "Month..." : "Select commodity"}</option>
-                  {getFuturesMonths(swCommodityId).map((m) => <option key={m} value={m}>{m}</option>)}
+                  {getFuturesMonths(swCommodityId).map((m) => <option key={m} value={m}>{formatContractMonth(m)}</option>)}
                 </select>
               </label>
               <label className="block">
