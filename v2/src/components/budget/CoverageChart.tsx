@@ -42,8 +42,8 @@ function themeColors() {
     forecastBorder: dark ? "rgba(181,212,244,0.2)" : "rgba(181,212,244,0.4)",
     gridColor: dark ? "rgba(181,212,244,0.08)" : "rgba(0,0,0,0.08)",
     tickColor: dark ? "#8B95A5" : "#555",
-    tooltipBg: dark ? "#111D32" : "#fff",
-    tooltipBorder: dark ? "#1E3A5F" : "#ccc",
+    tooltipBg: dark ? "#040C17" : "#fff",
+    tooltipBorder: dark ? "#2B4362" : "#ccc",
     tooltipText: dark ? "#E8ECF1" : "#111",
   };
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { WIDGET_MAP } from "@/lib/widgetRegistry";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { WidgetLayoutEntry, DrillLevel, UnitSummary, SiteSummary } from "@/types/dashboard";
 import type { DashboardSummary } from "@/store/dashboardStore";
 import type { RolloverCandidate, BasisSummary } from "@/types/positions";
@@ -66,7 +67,7 @@ function UnderhedgedMonthsCard({ data }: { data: { month: string; budgeted: numb
             return (
               <div key={m.month}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-secondary font-mono">{m.month}</span>
+                  <span className="text-xs font-medium text-secondary font-mono">{formatContractMonth(m.month)}</span>
                   <span className={`text-xs font-semibold tabular-nums ${pct < 30 ? "text-loss" : pct < 60 ? "text-warning" : "text-muted"}`}>
                     {pct}%
                   </span>
@@ -116,7 +117,7 @@ function RecentTradesCard({ trades }: { trades: { id: string; direction: string;
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-medium text-secondary truncate">{t.commodity_name ?? "—"}</span>
-                    <span className="text-[11px] font-mono text-faint">{t.contract_month}</span>
+                    <span className="text-[11px] font-mono text-faint">{formatContractMonth(t.contract_month)}</span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="text-[11px] tabular-nums text-muted">{Number(t.total_volume).toLocaleString()}</span>

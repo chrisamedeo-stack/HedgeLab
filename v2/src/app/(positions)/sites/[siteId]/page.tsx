@@ -10,6 +10,7 @@ import { KPICard } from "@/components/ui/KPICard";
 import { LockModal } from "@/components/positions/LockModal";
 import { OffsetModal } from "@/components/positions/OffsetModal";
 import { PhysicalForm } from "@/components/positions/PhysicalForm";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { SitePositionHedge, PhysicalPosition, OpenBoardEntry, AllInSummaryEntry } from "@/types/positions";
 
 function fmtVol(v: unknown): string {
@@ -37,12 +38,14 @@ export default function SiteViewPage({ params }: { params: Promise<{ siteId: str
 
   // ─── Section 1: Hedges ─────────────────────────────────────────────────────
   const hedgeColumns: Column<SitePositionHedge>[] = [
-    { key: "contract_month", header: "Contract", width: "90px" },
+    { key: "contract_month", header: "Contract", width: "90px", render: (r) => formatContractMonth(r.contract_month) },
     {
-      key: "direction", header: "Dir", width: "50px",
+      key: "direction", header: "Dir", width: "70px",
       render: (r) => (
-        <span className={r.direction === "long" ? "text-profit" : "text-loss"}>
-          {r.direction ?? "—"}
+        <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+          r.direction === "long" ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"
+        }`}>
+          {r.direction === "long" ? "LONG" : r.direction === "short" ? "SHORT" : "—"}
         </span>
       ),
     },
@@ -74,12 +77,14 @@ export default function SiteViewPage({ params }: { params: Promise<{ siteId: str
 
   // ─── Section 2: Physicals ──────────────────────────────────────────────────
   const physicalColumns: Column<PhysicalPosition>[] = [
-    { key: "delivery_month", header: "Delivery", width: "90px" },
+    { key: "delivery_month", header: "Delivery", width: "90px", render: (r) => formatContractMonth(r.delivery_month) },
     {
-      key: "direction", header: "Dir", width: "50px",
+      key: "direction", header: "Dir", width: "70px",
       render: (r) => (
-        <span className={r.direction === "buy" ? "text-profit" : "text-loss"}>
-          {r.direction}
+        <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+          r.direction === "buy" ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"
+        }`}>
+          {r.direction === "buy" ? "BUY" : "SELL"}
         </span>
       ),
     },
@@ -92,12 +97,14 @@ export default function SiteViewPage({ params }: { params: Promise<{ siteId: str
 
   // ─── Section 3: Open Board ─────────────────────────────────────────────────
   const openBoardColumns: Column<OpenBoardEntry>[] = [
-    { key: "contract_month", header: "Contract", width: "90px" },
+    { key: "contract_month", header: "Contract", width: "90px", render: (r) => formatContractMonth(r.contract_month) },
     {
-      key: "direction", header: "Dir", width: "50px",
+      key: "direction", header: "Dir", width: "70px",
       render: (r) => (
-        <span className={r.direction === "long" ? "text-profit" : "text-loss"}>
-          {r.direction ?? "—"}
+        <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+          r.direction === "long" ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"
+        }`}>
+          {r.direction === "long" ? "LONG" : r.direction === "short" ? "SHORT" : "—"}
         </span>
       ),
     },
@@ -120,7 +127,7 @@ export default function SiteViewPage({ params }: { params: Promise<{ siteId: str
 
   // ─── Section 4: All-In Summary ─────────────────────────────────────────────
   const summaryColumns: Column<AllInSummaryEntry>[] = [
-    { key: "delivery_month", header: "Delivery" },
+    { key: "delivery_month", header: "Delivery", render: (r) => formatContractMonth(r.delivery_month) },
     { key: "total_volume", header: "Volume", align: "right", render: (r) => fmtVol(r.total_volume) },
     { key: "vwap_locked_price", header: "VWAP Lock", align: "right", render: (r) => fmtPrice(r.vwap_locked_price) },
     { key: "avg_basis", header: "Avg Basis", align: "right", render: (r) => fmtPrice(r.avg_basis) },

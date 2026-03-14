@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { chartTheme, chartColors, tooltipStyle, legendStyle, axisStyle } from "@/lib/chartTheme";
+import { formatContractMonth } from "@/lib/commodity-utils";
 
 interface ForwardCurveChartProps {
   current: { contract_month: string; price: number }[];
@@ -112,6 +113,7 @@ export function ForwardCurveChart({
             stroke={axisStyle.stroke}
             fontSize={axisStyle.fontSize}
             tickLine={false}
+            tickFormatter={formatContractMonth}
           />
           <YAxis
             stroke={axisStyle.stroke}

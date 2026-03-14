@@ -15,13 +15,13 @@ export const chartColors = {
   action: "#378ADD",   // Action blue
   muted: "#8B95A5",    // Secondary text
   faint: "#556170",    // Faint text
-  grid: "#1E3A5F",     // Border / grid lines
+  grid: "#1A2A40",     // Border / grid lines
   tick: "#8B95A5",     // Axis labels
-  tooltipBg: "#111D32",     // Surface tooltip bg
-  tooltipBorder: "#1E3A5F", // Border tooltip border
+  tooltipBg: "#040C17",     // Surface tooltip bg
+  tooltipBorder: "#2B4362", // Border tooltip border
   tooltipText: "#E8ECF1",   // Primary text tooltip
-  surface: "#111D32",
-  border: "#1E3A5F",
+  surface: "#040C17",
+  border: "#2B4362",
 } as const;
 
 export const chartTheme = {

@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePositionStore } from "@/store/positionStore";
 import { usePricingStore } from "@/store/pricingStore";
 import { API_BASE } from "@/lib/api";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { PhysicalDirection, PricingType } from "@/types/positions";
 import type { Counterparty } from "@/types/contracts";
 import type { FormulaComponent, EvaluationResult } from "@/lib/pricingEngine";
@@ -530,7 +531,7 @@ export function PhysicalForm({ orgId, siteId, commodities, onClose, onSuccess }:
             <div className="space-y-1 max-h-48 overflow-y-auto">
               {months.map((m, idx) => (
                 <div key={m.month} className="flex items-center gap-2">
-                  <span className="text-xs text-muted w-24 font-mono">{m.month}</span>
+                  <span className="text-xs text-muted w-24 font-mono">{formatContractMonth(m.month)}</span>
                   <input type="number" step="any" value={m.volume} placeholder="Volume"
                     onChange={(e) => setMonthVolume(idx, e.target.value)}
                     className={`${inputCls} flex-1`} />

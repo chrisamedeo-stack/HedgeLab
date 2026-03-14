@@ -15,6 +15,7 @@ import { PriceEntryForm } from "@/components/market/PriceEntryForm";
 import { btnPrimary } from "@/lib/ui-classes";
 import { ForwardCurveChart } from "@/components/charts/ForwardCurveChart";
 import { CandlestickChart } from "@/components/charts/CandlestickChart";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { MarketTab, PriceBoardRow, MarketPrice } from "@/types/market";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -77,7 +78,7 @@ function PriceBoardTab() {
   const totalChanges = boardRows.filter((r) => r.change !== null && Number(r.change) !== 0).length;
 
   const columns: Column<PriceBoardRow>[] = [
-    { key: "contract_month", header: "Contract", width: "100px" },
+    { key: "contract_month", header: "Contract", width: "100px", render: (r) => formatContractMonth(r.contract_month) },
     { key: "settle", header: "Settle", align: "right", render: (r) => fmtPrice(r.settle) },
     {
       key: "change", header: "Change", align: "right",
@@ -237,7 +238,7 @@ function ChartTab() {
           >
             <option value="">Select...</option>
             {months.map((m) => (
-              <option key={m} value={m}>{m}</option>
+              <option key={m} value={m}>{formatContractMonth(m)}</option>
             ))}
           </select>
         </div>
@@ -268,7 +269,7 @@ function ChartTab() {
       ) : hasOHLC ? (
         <div className="rounded-lg border border-b-default bg-surface p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
-            {contractMonth} Price Chart
+            {formatContractMonth(contractMonth)} Price Chart
           </h3>
           <CandlestickChart
             data={candleData}
@@ -303,7 +304,7 @@ function LineChartFallback({ prices, contractMonth }: { prices: MarketPrice[]; c
   if (data.length === 0) {
     return (
       <div className="rounded-lg border border-b-default bg-surface py-20 text-center">
-        <span className="text-sm text-faint">No price data for {contractMonth}</span>
+        <span className="text-sm text-faint">No price data for {formatContractMonth(contractMonth)}</span>
       </div>
     );
   }
@@ -311,15 +312,15 @@ function LineChartFallback({ prices, contractMonth }: { prices: MarketPrice[]; c
   return (
     <div className="rounded-lg border border-b-default bg-surface p-4">
       <h3 className="text-xs font-semibold uppercase tracking-wider text-muted mb-3">
-        {contractMonth} Settlement Prices
+        {formatContractMonth(contractMonth)} Settlement Prices
       </h3>
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#1A2A40" />
           <XAxis dataKey="date" stroke="#8B95A5" fontSize={11} tickLine={false} />
           <YAxis stroke="#8B95A5" fontSize={11} tickLine={false} tickFormatter={(v: number) => `$${v.toFixed(2)}`} />
           <Tooltip
-            contentStyle={{ backgroundColor: "#111D32", border: "1px solid #1E3A5F", borderRadius: 2, fontSize: 12 }}
+            contentStyle={{ backgroundColor: "#040C17", border: "1px solid #2B4362", borderRadius: 2, fontSize: 12 }}
             formatter={(value: number | undefined) => value != null ? [`$${value.toFixed(4)}`, "Price"] : ["—", "Price"]}
           />
           <Line dataKey="price" stroke="#378ADD" strokeWidth={2} dot={false} />
@@ -482,7 +483,7 @@ function UploadTab() {
                       </span>
                     </td>
                     <td className="px-3 py-1.5 text-secondary">{r.commodityId || "—"}</td>
-                    <td className="px-3 py-1.5 text-secondary">{r.contractMonth || "—"}</td>
+                    <td className="px-3 py-1.5 text-secondary">{formatContractMonth(r.contractMonth)}</td>
                     <td className="px-3 py-1.5 text-secondary">{r.priceDate || "—"}</td>
                     <td className="px-3 py-1.5 text-right text-secondary">{fmtPrice(r.settle)}</td>
                     <td className="px-3 py-1.5 text-xs text-loss">{r.error ?? ""}</td>

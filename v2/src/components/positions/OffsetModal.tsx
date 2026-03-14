@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePositionStore } from "@/store/positionStore";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { SitePositionHedge } from "@/types/positions";
 
 interface OffsetFormProps {
@@ -58,7 +59,7 @@ export function OffsetForm({ allocation, onClose, onSuccess }: OffsetFormProps) 
       )}
 
       <div className="grid grid-cols-3 gap-2 text-xs text-muted">
-        <div>Contract: <span className="text-secondary">{allocation.contract_month ?? "—"}</span></div>
+        <div>Contract: <span className="text-secondary">{formatContractMonth(allocation.contract_month)}</span></div>
         <div>Volume: <span className="text-secondary">{Number(allocation.allocated_volume).toLocaleString()}</span></div>
         <div>Trade Price: <span className="text-secondary">{Number(allocation.trade_price)?.toFixed(2) ?? "—"}</span></div>
       </div>

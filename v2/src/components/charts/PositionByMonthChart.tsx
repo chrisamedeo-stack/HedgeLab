@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { chartTheme, chartColors, tooltipStyle, legendStyle, axisStyle, fmtK } from "@/lib/chartTheme";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { PositionByMonthDataPoint } from "@/types/dashboard";
 
 interface PositionByMonthChartProps {
@@ -44,6 +45,7 @@ export function PositionByMonthChart({ data, height = 280 }: PositionByMonthChar
             stroke={axisStyle.stroke}
             fontSize={axisStyle.fontSize}
             tickLine={false}
+            tickFormatter={formatContractMonth}
           />
           <YAxis
             stroke={axisStyle.stroke}

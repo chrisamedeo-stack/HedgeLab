@@ -7,6 +7,7 @@ import { DataTable, type Column } from "@/components/ui/DataTable";
 import { KPICard } from "@/components/ui/KPICard";
 import { RollForm } from "@/components/positions/RollForm";
 import { useOrgContext } from "@/contexts/OrgContext";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { RolloverCandidate } from "@/types/positions";
 
 const urgencyColors: Record<string, string> = {
@@ -32,7 +33,7 @@ export default function RollCandidatesPage() {
   const columns: Column<RolloverCandidate>[] = [
     { key: "site_name", header: "Site" },
     { key: "commodity_name", header: "Commodity" },
-    { key: "contract_month", header: "Contract", width: "90px" },
+    { key: "contract_month", header: "Contract", width: "90px", render: (r) => formatContractMonth(r.contract_month) },
     {
       key: "direction", header: "Dir", width: "50px",
       render: (r) => (

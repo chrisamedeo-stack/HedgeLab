@@ -6,6 +6,7 @@ import { useCommodities } from "@/hooks/usePositions";
 import { useContractCalendar } from "@/hooks/useTrades";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMarketStore } from "@/store/marketStore";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { PriceFormRow } from "@/types/market";
 
 const emptyRow = (): PriceFormRow => ({
@@ -135,7 +136,7 @@ export function PriceEntryForm({ onClose, onSuccess }: PriceEntryFormProps) {
                       >
                         <option value="">Select...</option>
                         {monthOptions.map((m) => (
-                          <option key={m} value={m}>{m}</option>
+                          <option key={m} value={m}>{formatContractMonth(m)}</option>
                         ))}
                       </select>
                     ) : (

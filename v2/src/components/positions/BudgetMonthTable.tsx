@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { API_BASE } from "@/lib/api";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { HedgeBookEntry } from "@/types/positions";
 
 interface BudgetLineItem {
@@ -201,7 +202,7 @@ function BudgetMonthGroupRow({
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
-            {group.month}
+            {formatContractMonth(group.month)}
           </span>
         </td>
         <td className="px-3 py-3 text-right tabular-nums">{fmtVol(group.budgetedVolume)}</td>
@@ -237,7 +238,7 @@ function BudgetMonthGroupRow({
           return (
             <tr key={alloc.id} className="border-b border-tbl-border bg-surface hover:bg-row-hover">
               <td className="px-3 py-2 pl-10 text-xs text-faint">
-                {alloc.contract_month ?? "—"} / {alloc.site_name ?? "—"}
+                {formatContractMonth(alloc.contract_month)} / {alloc.site_name ?? "—"}
               </td>
               <td className="px-3 py-2 text-right text-xs">
                 <span className={alloc.direction === "long" ? "text-profit" : "text-loss"}>

@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { chartColors, tooltipStyle, legendStyle, axisStyle } from "@/lib/chartTheme";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { BasisByMonth } from "@/types/positions";
 
 interface BasisByMonthChartProps {
@@ -52,6 +53,7 @@ export function BasisByMonthChart({ data, height = 260 }: BasisByMonthChartProps
             stroke={axisStyle.stroke}
             fontSize={axisStyle.fontSize}
             tickLine={false}
+            tickFormatter={formatContractMonth}
           />
           <YAxis
             stroke={axisStyle.stroke}

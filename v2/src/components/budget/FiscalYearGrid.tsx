@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useBudgetStore } from "@/store/budgetStore";
 import { ComponentEditor } from "./ComponentEditor";
 import { ComponentTokenBar } from "./ComponentTokenBar";
-import { suggestFuturesMonth, type CommodityConfig } from "@/lib/commodity-utils";
+import { suggestFuturesMonth, formatContractMonth, type CommodityConfig } from "@/lib/commodity-utils";
 import type { BudgetComponent } from "@/types/budget";
 
 interface FiscalYearGridProps {
@@ -203,7 +203,7 @@ export function FiscalYearGrid({ periodId, budgetYear, userId, onDone, commodity
                 <tr key={row.month} className="border-b border-tbl-border hover:bg-row-hover">
                   <td className="px-3 py-1.5 text-secondary">{MONTH_LABELS[i]} {budgetYear}</td>
                   <td className="px-3 py-1.5 text-xs text-muted tabular-nums">
-                    {row.futuresMonth || "—"}
+                    {formatContractMonth(row.futuresMonth)}
                   </td>
                   <td className="px-3 py-1">
                     <input

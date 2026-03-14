@@ -9,6 +9,7 @@ import { KPICard } from "@/components/ui/KPICard";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AllocateForm } from "@/components/positions/AllocateForm";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { HedgeBookEntry } from "@/types/positions";
 
 function fmtVol(v: unknown): string {
@@ -38,7 +39,7 @@ export default function HedgeBookPage() {
   const { data: sites } = useSites(orgId);
 
   const columns: Column<HedgeBookEntry>[] = [
-    { key: "contract_month", header: "Contract", width: "90px" },
+    { key: "contract_month", header: "Contract", width: "90px", render: (r) => formatContractMonth(r.contract_month) },
     {
       key: "commodity_name",
       header: "Commodity",

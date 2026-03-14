@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from "react";
 import type { BudgetLineItem } from "@/types/budget";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import { ComponentTokenBar } from "./ComponentTokenBar";
 
 interface LineItemTableProps {
@@ -126,7 +127,7 @@ export function LineItemTable({ items, onEdit, onDelete, locked }: LineItemTable
                     <td className="px-3 py-2">
                       {li.futures_month ? (
                         <span className="inline-flex items-center bg-input-bg text-secondary ring-1 ring-b-input px-2 py-0.5 rounded text-xs font-mono font-semibold">
-                          {li.futures_month}
+                          {formatContractMonth(li.futures_month)}
                         </span>
                       ) : (
                         <span className="text-muted text-xs">—</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { RolloverCandidate } from "@/types/positions";
 
 interface ExpiringPositionsCardProps {
@@ -56,7 +57,7 @@ export function ExpiringPositionsCard({ candidates }: ExpiringPositionsCardProps
                     <span className="text-[11px] text-faint">{c.commodity_name}</span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[11px] font-mono text-muted">{c.contract_month}</span>
+                    <span className="text-[11px] font-mono text-muted">{formatContractMonth(c.contract_month)}</span>
                     <span className="text-[11px] tabular-nums text-muted">{c.allocated_volume.toLocaleString()}</span>
                   </div>
                 </div>

@@ -3,23 +3,23 @@
 :root {
   /* ── HedgeLab Design Tokens ─────────────────────────────────────── */
 
-  /* Surfaces — dark trading theme, midnight navy base with layered surfaces */
-  --bg-main:       #0B1426;
-  --bg-surface:    #111D32;
-  --bg-sidebar:    #111D32;
-  --bg-overlay:    #1A2740;
-  --bg-input:      #1A2740;
-  --bg-hover:      #1A2740;
-  --bg-row-hover:  #1A2740A0;
+  /* Surfaces — lighter canvas, darker cards, darkest sidebar (V1 pattern) */
+  --bg-main:       #0D1C30;
+  --bg-surface:    #040C17;
+  --bg-sidebar:    #020812;
+  --bg-overlay:    #1A2E49;
+  --bg-input:      #0A1525;
+  --bg-hover:      #162842;
+  --bg-row-hover:  #162842A0;
 
   /* Borders */
-  --border-default: #1E3A5F;
-  --border-input:   #2D4F72;
+  --border-default: #2B4362;
+  --border-input:   #425A7C;
 
-  /* Table */
-  --table-header:    #0D1830;
-  --table-stripe:    #0E1829;
-  --table-border:    #1E3A5F;
+  /* Table — sits inside dark surface cards */
+  --table-header:    #081220;
+  --table-stripe:    #060E1B;
+  --table-border:    #1A2A40;
 
   /* Text */
   --text-primary:     #E8ECF1;
@@ -50,23 +50,23 @@
 
 /* ── Tailwind v4 Theme ──────────────────────────────────────────── */
 @theme inline {
-  /* Surfaces */
-  --color-main:       #0B1426;
-  --color-surface:    #111D32;
-  --color-sidebar:    #111D32;
-  --color-overlay:    #1A2740;
-  --color-input-bg:   #1A2740;
-  --color-hover:      #1A2740;
-  --color-row-hover:  #1A2740A0;
+  /* Surfaces — lighter canvas, darker cards, darkest sidebar */
+  --color-main:       #0D1C30;
+  --color-surface:    #040C17;
+  --color-sidebar:    #020812;
+  --color-overlay:    #1A2E49;
+  --color-input-bg:   #0A1525;
+  --color-hover:      #162842;
+  --color-row-hover:  #162842A0;
 
   /* Borders */
-  --color-b-default:  #1E3A5F;
-  --color-b-input:    #2D4F72;
+  --color-b-default:  #2B4362;
+  --color-b-input:    #425A7C;
 
-  /* Table */
-  --color-tbl-header: #0D1830;
-  --color-tbl-stripe: #0E1829;
-  --color-tbl-border: #1E3A5F;
+  /* Table — sits inside dark surface cards */
+  --color-tbl-header: #081220;
+  --color-tbl-stripe: #060E1B;
+  --color-tbl-border: #1A2A40;
 
   /* Text */
   --color-primary:    #E8ECF1;

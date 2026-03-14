@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePositionStore } from "@/store/positionStore";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { RolloverCandidate } from "@/types/positions";
 
 interface RollFormProps {
@@ -71,7 +72,7 @@ export function RollForm({ candidate, onClose, onSuccess }: RollFormProps) {
       <div className="grid grid-cols-5 gap-2 text-xs text-muted">
         <div>Site: <span className="text-secondary">{candidate.site_name}</span></div>
         <div>Commodity: <span className="text-secondary">{candidate.commodity_name}</span></div>
-        <div>Current: <span className="text-secondary">{candidate.contract_month}</span></div>
+        <div>Current: <span className="text-secondary">{formatContractMonth(candidate.contract_month)}</span></div>
         <div>Volume: <span className="text-secondary">{candidate.allocated_volume.toLocaleString()}</span></div>
         <div>Days: <span className={
           (candidate.days_to_last_trade ?? 99) <= 3 ? "font-bold text-loss" :

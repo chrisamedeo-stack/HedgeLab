@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { usePositionStore } from "@/store/positionStore";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { HedgeBookEntry } from "@/types/positions";
 
 interface Props {
@@ -203,7 +204,7 @@ function MonthGroupRow({
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
-            {group.month}
+            {formatContractMonth(group.month)}
           </span>
         </td>
         <td className="px-3 py-3 text-right tabular-nums">{fmtVol(group.totalVolume)}</td>

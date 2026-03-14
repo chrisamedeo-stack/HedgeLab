@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePositionStore } from "@/store/positionStore";
 import { useCommodityContext } from "@/contexts/CommodityContext";
 import { useOrgContext } from "@/contexts/OrgContext";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import type { LockedPosition } from "@/types/positions";
 
 export default function EFPPage() {
@@ -74,7 +75,7 @@ export default function EFPPage() {
       {months.length > 0 ? months.map((month) => (
         <div key={month} className="bg-surface border border-b-default rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b border-b-default bg-input-bg/30">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{month}</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{formatContractMonth(month)}</h3>
           </div>
           <table className="w-full text-sm">
             <thead className="border-b border-b-default">

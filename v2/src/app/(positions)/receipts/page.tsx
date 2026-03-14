@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { API_BASE } from "@/lib/api";
 import { useSites, useCommodities } from "@/hooks/usePositions";
 import { useCommodityContext } from "@/contexts/CommodityContext";
+import { formatContractMonth } from "@/lib/commodity-utils";
 import { useOrgContext } from "@/contexts/OrgContext";
 
 interface Receipt {
@@ -92,7 +93,7 @@ export default function ReceiptsPage() {
                   {r.price != null ? `$${Number(r.price).toFixed(4)}` : "\u2014"}
                 </td>
                 <td className="px-4 py-2.5 text-muted">{r.counterparty ?? "\u2014"}</td>
-                <td className="px-4 py-2.5 font-mono text-muted">{r.delivery_month ?? "\u2014"}</td>
+                <td className="px-4 py-2.5 font-mono text-muted">{formatContractMonth(r.delivery_month)}</td>
                 <td className="px-4 py-2.5">
                   <span className="inline-block rounded-full px-2 py-0.5 text-xs font-medium bg-profit-10 text-profit">
                     received
