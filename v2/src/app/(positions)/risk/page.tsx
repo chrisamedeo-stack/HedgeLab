@@ -271,7 +271,7 @@ function LimitsTab({ orgId }: { orgId: string }) {
       {/* Add Limit Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowForm(false)}>
-          <div className="w-full max-w-md rounded-lg border border-b-default bg-main p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-lg border border-b-default bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-bold text-primary mb-4">Add Position Limit</h2>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">

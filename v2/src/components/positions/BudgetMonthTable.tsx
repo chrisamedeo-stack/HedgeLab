@@ -210,7 +210,7 @@ function BudgetMonthGroupRow({
         <td className="px-3 py-3 text-right tabular-nums">{fmtVol(group.committedVolume)}</td>
         <td className="px-3 py-3 text-right">
           <div className="flex items-center justify-end gap-2">
-            <div className="h-1.5 w-16 rounded-full bg-surface-alt overflow-hidden">
+            <div className="h-1.5 w-16 rounded-full bg-input-bg overflow-hidden">
               <div
                 className={`h-full rounded-full ${
                   group.coveragePct >= 0.8 ? "bg-profit" :
