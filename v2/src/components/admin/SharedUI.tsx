@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { Plus } from "lucide-react";
 import { btnPrimary, btnCancel, cn } from "./shared";
 
@@ -28,7 +29,7 @@ export function EmptyState({ title, desc, onAction, actionLabel }: { title: stri
 }
 
 export function ConfirmDialog({ title, desc, onConfirm, onCancel }: { title: string; desc: string; onConfirm: () => void; onCancel: () => void }) {
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-surface border border-b-default rounded-lg p-6 max-w-md w-full mx-4 space-y-4">
         <h3 className="text-sm font-semibold text-secondary">{title}</h3>
@@ -38,6 +39,7 @@ export function ConfirmDialog({ title, desc, onConfirm, onCancel }: { title: str
           <button onClick={onConfirm} className="inline-flex items-center gap-2 rounded-lg bg-loss px-4 py-2 text-sm font-medium text-white hover:bg-loss/80 transition-colors">Confirm</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
