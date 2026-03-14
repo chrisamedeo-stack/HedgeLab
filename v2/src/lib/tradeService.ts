@@ -443,7 +443,14 @@ export async function listTrades(filters: TradeFilters): Promise<FinancialTrade[
     sql += ` AND t.trade_date <= $${params.length}`;
   }
 
-  sql += ` ORDER BY t.trade_date DESC, t.created_at DESC`;
+  sql += ` ORDER BY
+    CAST(RIGHT(t.contract_month, 2) AS INTEGER) ASC,
+    CASE SUBSTRING(t.contract_month FROM LENGTH(t.contract_month) - 2 FOR 1)
+      WHEN 'F' THEN 1 WHEN 'G' THEN 2 WHEN 'H' THEN 3 WHEN 'J' THEN 4
+      WHEN 'K' THEN 5 WHEN 'M' THEN 6 WHEN 'N' THEN 7 WHEN 'Q' THEN 8
+      WHEN 'U' THEN 9 WHEN 'V' THEN 10 WHEN 'X' THEN 11 WHEN 'Z' THEN 12
+      ELSE 99 END ASC,
+    t.trade_date DESC, t.created_at DESC`;
 
   return queryAll<FinancialTrade>(sql, params);
 }
