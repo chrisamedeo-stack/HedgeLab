@@ -298,10 +298,10 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
               className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
                 tradeType === t
                   ? t === "futures"
-                    ? "bg-[#1a6b7a] text-white"
+                    ? "bg-futures text-white"
                     : t === "options"
                     ? "bg-action text-white"
-                    : "bg-[#EF9F27] text-white"
+                    : "bg-swap text-white"
                   : "text-muted hover:text-secondary"
               }`}
             >
@@ -532,7 +532,7 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
                 <span className="mb-1 block text-xs font-medium text-muted">Swap Type</span>
                 <div className="flex gap-1">
                   {(["fixed_for_floating", "basis"] as SwapType[]).map((t) => (
-                    <button key={t} type="button" onClick={() => setSwSwapType(t)} className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${swSwapType === t ? "bg-[#EF9F27] text-white" : "border border-b-input bg-input-bg text-muted"}`}>
+                    <button key={t} type="button" onClick={() => setSwSwapType(t)} className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${swSwapType === t ? "bg-swap text-white" : "border border-b-input bg-input-bg text-muted"}`}>
                       {t === "fixed_for_floating" ? "Fixed for Floating" : "Basis"}
                     </button>
                   ))}

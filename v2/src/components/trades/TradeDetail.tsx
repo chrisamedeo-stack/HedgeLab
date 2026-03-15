@@ -115,8 +115,8 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
             </h3>
             <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
               trade.trade_type === "options" ? "bg-action-10 text-action"
-                : trade.trade_type === "swap" ? "bg-[#EF9F27]/15 text-[#EF9F27]"
-                : "bg-[#1a6b7a]/15 text-[#1a6b7a]"
+                : trade.trade_type === "swap" ? "bg-swap-15 text-swap"
+                : "bg-futures-15 text-futures"
             }`}>
               {trade.trade_type === "futures" ? "FUT" : trade.trade_type === "options" ? "OPT" : "SWP"}
             </span>
@@ -206,7 +206,7 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
 
       {/* Swap info banner */}
       {trade.trade_type === "swap" && (
-        <div className="rounded-lg border border-[#EF9F27]/20 bg-[#EF9F27]/5 px-4 py-3 text-xs text-[#EF9F27]">
+        <div className="rounded-lg border border-swap-20 bg-swap-5 px-4 py-3 text-xs text-swap">
           Swaps settle via their own settlement schedule. Use the Full Detail view to manage settlements.
         </div>
       )}

@@ -16,9 +16,9 @@ interface TradeBlotterProps {
 }
 
 const typeStyle: Record<string, { bg: string; text: string }> = {
-  futures: { bg: "bg-[#1a6b7a]/15", text: "text-[#1a6b7a]" },
+  futures: { bg: "bg-futures-15", text: "text-futures" },
   options: { bg: "bg-action-10", text: "text-action" },
-  swap: { bg: "bg-[#EF9F27]/15", text: "text-[#EF9F27]" },
+  swap: { bg: "bg-swap-15", text: "text-swap" },
 };
 
 export function TradeBlotter({ trades, commodities, sites, orgId, onRefresh }: TradeBlotterProps) {

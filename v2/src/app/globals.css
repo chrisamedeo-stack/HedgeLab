@@ -141,6 +141,14 @@
   --color-neutral-15:  #8B95A526;
   --color-neutral-20:  #8B95A533;
 
+  /* Trade type tokens */
+  --color-futures:      #1a6b7a;
+  --color-futures-15:   #1a6b7a26;
+  --color-swap:         #EF9F27;
+  --color-swap-5:       #EF9F270D;
+  --color-swap-15:      #EF9F2726;
+  --color-swap-20:      #EF9F2733;
+
   /* Focus + chart */
   --color-focus:   #378ADD;
   --color-chart-1: #378ADD;

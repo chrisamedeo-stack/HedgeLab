@@ -20,5 +20,13 @@ export async function register() {
     registerSettlementEventListeners();
 
     console.log("[Instrumentation] Event listeners registered: budget, positions, trades, logistics, settlement");
+
+    // One-time reconciliation: fix any stale allocated_volume from before trade listeners were registered
+    const { recalculateAllAllocatedVolumes } = await import("./lib/tradeService");
+    recalculateAllAllocatedVolumes()
+      .then((count) => {
+        if (count > 0) console.log(`[Instrumentation] Reconciled allocated_volume on ${count} trades`);
+      })
+      .catch((err) => console.error("[Instrumentation] Reconciliation error:", err));
   }
 }

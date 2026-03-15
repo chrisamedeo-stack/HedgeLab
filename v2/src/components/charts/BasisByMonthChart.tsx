@@ -64,6 +64,7 @@ export function BasisByMonthChart({ data, height = 260 }: BasisByMonthChartProps
           <Tooltip
             contentStyle={tooltipStyle}
             labelStyle={{ color: "#8B95A5" }}
+            labelFormatter={(label) => formatContractMonth(String(label))}
             formatter={(value, name) => {
               if (value == null) return ["-", String(name)];
               return [`$${Number(value).toFixed(4)}`, String(name)];

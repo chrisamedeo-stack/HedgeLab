@@ -515,6 +515,32 @@ export async function updateAllocatedVolume(tradeId: string): Promise<void> {
   );
 }
 
+// ─── Recalculate All Allocated Volumes ──────────────────────────────────────
+
+/** One-time reconciliation: recalculates allocated_volume for all active trades */
+export async function recalculateAllAllocatedVolumes(): Promise<number> {
+  const result = await query(
+    `UPDATE tc_financial_trades t
+     SET allocated_volume = sub.total,
+         status = CASE
+           WHEN sub.total = 0 THEN 'open'
+           WHEN sub.total >= t.total_volume THEN 'fully_allocated'
+           ELSE 'partially_allocated'
+         END
+     FROM (
+       SELECT trade_id, COALESCE(SUM(allocated_volume), 0) as total
+       FROM pm_allocations
+       WHERE status NOT IN ('cancelled')
+       GROUP BY trade_id
+     ) sub
+     WHERE t.id = sub.trade_id
+       AND t.status NOT IN ('cancelled', 'rolled')
+       AND (t.allocated_volume IS DISTINCT FROM sub.total)
+     RETURNING t.id`
+  );
+  return result.rowCount ?? 0;
+}
+
 // ─── Swap Settlement Functions ──────────────────────────────────────────────
 
 /** Get all settlement periods for a swap trade */

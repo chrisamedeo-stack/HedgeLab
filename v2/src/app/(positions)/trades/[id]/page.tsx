@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TradeAllocateForm } from "@/components/trades/TradeAllocateForm";
 import { TabGroup } from "@/components/ui/TabGroup";
 import { Spinner } from "@/components/ui/Spinner";
+import { usePositionStore } from "@/store/positionStore";
 import { API_BASE } from "@/lib/api";
 import type { Allocation } from "@/types/positions";
 import { formatContractMonth } from "@/lib/commodity-utils";
@@ -32,9 +33,9 @@ const allocStatusStyle: Record<string, string> = {
 };
 
 const typeStyle: Record<string, { bg: string; text: string }> = {
-  futures: { bg: "bg-[#1a6b7a]/15", text: "text-[#1a6b7a]" },
+  futures: { bg: "bg-futures-15", text: "text-futures" },
   options: { bg: "bg-action-10", text: "text-action" },
-  swap: { bg: "bg-[#EF9F27]/15", text: "text-[#EF9F27]" },
+  swap: { bg: "bg-swap-15", text: "text-swap" },
 };
 
 function DetailField({ label, value }: { label: string; value: string | number | null | undefined }) {
@@ -64,6 +65,23 @@ export default function TradeDetailPage() {
   ];
 
   const [tab, setTab] = useState("details");
+
+  // Allocation cancel state
+  const { cancelAllocation } = usePositionStore();
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  const handleCancelAllocation = async (allocationId: string) => {
+    if (!user) return;
+    setCancellingId(allocationId);
+    try {
+      await cancelAllocation(user.id, allocationId);
+      refetch();
+    } catch {
+      // error handled by store
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   // Swap settlements state
   const [settlements, setSettlements] = useState<SwapSettlement[]>([]);
@@ -426,7 +444,7 @@ export default function TradeDetailPage() {
             <table className="w-full text-sm">
               <thead className="bg-input-bg/50 border-b border-b-default">
                 <tr>
-                  {["Site", "Volume", "Budget Month", "Contract Month", "Direction", "Price", "Status", "Date"].map((h) => (
+                  {["Site", "Volume", "Budget Month", "Contract Month", "Direction", "Price", "Status", "Date", ""].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-faint uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -460,10 +478,22 @@ export default function TradeDetailPage() {
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-xs text-muted tabular-nums">{a.allocation_date}</td>
+                    <td className="px-4 py-2.5">
+                      {a.status === "open" && (
+                        <button
+                          onClick={() => handleCancelAllocation(a.id)}
+                          disabled={cancellingId === a.id}
+                          className="rounded px-2 py-0.5 text-xs text-faint hover:text-loss hover:bg-destructive-10 transition-colors disabled:opacity-50"
+                          title="Cancel allocation"
+                        >
+                          {cancellingId === a.id ? "..." : "Cancel"}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-faint">No allocations yet</td>
+                    <td colSpan={9} className="px-4 py-8 text-center text-faint">No allocations yet</td>
                   </tr>
                 )}
               </tbody>
