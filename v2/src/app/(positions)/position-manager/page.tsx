@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useHedgeBook, useCommodities, useSites } from "@/hooks/usePositions";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useCommodityContext } from "@/contexts/CommodityContext";
@@ -21,7 +22,17 @@ function fmtVol(v: unknown): string {
 export default function PositionManagerPage() {
   const { orgId, orgTree, selectedOrgUnit, setSelectedOrgUnit, groupingLevelLabel } = useOrgContext();
   const { commodityId } = useCommodityContext();
-  const [activeTab, setActiveTab] = useState<"delivery" | "budget">("delivery");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<"delivery" | "budget">(
+    tabParam === "budget" ? "budget" : "delivery"
+  );
+
+  // Sync tab state when URL changes (e.g. sidebar navigation)
+  useEffect(() => {
+    if (tabParam === "budget") setActiveTab("budget");
+    else if (!tabParam) setActiveTab("delivery");
+  }, [tabParam]);
 
   const { data: hedgeBook, loading, refetch } = useHedgeBook(
     orgId,

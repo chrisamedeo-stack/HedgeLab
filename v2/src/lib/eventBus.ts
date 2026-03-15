@@ -47,7 +47,6 @@ async function ensureListeners(): Promise<void> {
     registerRiskEventListeners();
     registerMarketEventListeners();
     registerForecastEventListeners();
-    console.log("[EventBus] All listeners auto-registered");
   } catch (err) {
     console.error("[EventBus] Failed to auto-register listeners:", err);
   }

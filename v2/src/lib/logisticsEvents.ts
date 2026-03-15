@@ -26,7 +26,6 @@ export function registerLogisticsEventListeners(): void {
            WHERE id = $2`,
           [volume, contractId]
         );
-        console.log(`[Logistics] Updated contract ${contractId} delivered_volume +${volume}`);
       } catch (err) {
         // Table may not exist if contracts plugin not installed — graceful degradation
         console.warn("[Logistics] Could not update contract delivered_volume:", (err as Error).message);

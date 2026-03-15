@@ -18,6 +18,14 @@ function fmtVol(v: unknown): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
+function fmtBudgetMonth(ym: string | null | undefined): string {
+  if (!ym) return "—";
+  const [year, month] = ym.split("-");
+  const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const idx = parseInt(month, 10) - 1;
+  return idx >= 0 && idx < 12 ? `${names[idx]} ${year}` : ym;
+}
+
 function fmtPrice(v: unknown): string {
   const n = Number(v);
   if (!n) return "—";
@@ -68,7 +76,7 @@ export default function HedgeBookPage() {
       align: "right",
       render: (r) => fmtPrice(r.trade_price),
     },
-    { key: "budget_month", header: "Budget Mo", render: (r) => r.budget_month ?? "—" },
+    { key: "budget_month", header: "Budget Mo", render: (r) => fmtBudgetMonth(r.budget_month) },
     {
       key: "status",
       header: "Status",

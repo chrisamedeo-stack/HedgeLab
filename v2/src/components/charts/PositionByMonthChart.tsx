@@ -55,7 +55,7 @@ export function PositionByMonthChart({ data, height = 280 }: PositionByMonthChar
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#8B95A5" }}
+            labelStyle={{ color: chartColors.muted }}
             labelFormatter={(label) => formatContractMonth(String(label))}
             formatter={(value, name) => [Number(value ?? 0).toLocaleString(), name]}
           />

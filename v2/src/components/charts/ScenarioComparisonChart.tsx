@@ -86,7 +86,7 @@ export function ScenarioComparisonChart({
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#8B95A5" }}
+            labelStyle={{ color: chartColors.muted }}
             formatter={(value) => {
               const v = Number(value ?? 0);
               return metric === "coverage"

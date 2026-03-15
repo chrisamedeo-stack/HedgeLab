@@ -61,7 +61,7 @@ export function StressTestChart({ data, height = 360 }: StressTestChartProps) {
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#8B95A5" }}
+            labelStyle={{ color: chartColors.muted }}
             formatter={(value) => [`$${Number(value ?? 0).toLocaleString()}`, "P&L Change"]}
             labelFormatter={(label) => `Price Δ: ${label}`}
           />

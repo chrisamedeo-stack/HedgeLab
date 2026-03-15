@@ -10,7 +10,6 @@ export function registerTradeEventListeners(): void {
   on(EventTypes.POSITION_ALLOCATED, "trades", async (event: KernelEvent) => {
     const tradeId = event.payload.tradeId as string | undefined;
     if (!tradeId) return;
-    console.log("[TC] Position allocated — updating trade volume:", tradeId);
     await updateAllocatedVolume(tradeId);
   });
 
@@ -18,7 +17,6 @@ export function registerTradeEventListeners(): void {
   on(EventTypes.POSITION_DEALLOCATED, "trades", async (event: KernelEvent) => {
     const tradeId = event.payload.tradeId as string | undefined;
     if (!tradeId) return;
-    console.log("[TC] Position deallocated — updating trade volume:", tradeId);
     await updateAllocatedVolume(tradeId);
   });
 
@@ -26,7 +24,6 @@ export function registerTradeEventListeners(): void {
   on(EventTypes.POSITION_ROLLED, "trades", async (event: KernelEvent) => {
     const sourceTradeId = event.payload.sourceTradeId as string | undefined;
     if (!sourceTradeId) return;
-    console.log("[TC] Position rolled — recalculating source trade:", sourceTradeId);
     await updateAllocatedVolume(sourceTradeId);
   });
 }

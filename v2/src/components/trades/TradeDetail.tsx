@@ -13,6 +13,14 @@ import { TradeAllocateForm } from "@/components/trades/TradeAllocateForm";
 import { btnPrimary, btnSecondary, btnDanger } from "@/lib/ui-classes";
 import type { Allocation } from "@/types/positions";
 
+function fmtBudgetMonth(ym: string | null | undefined): string {
+  if (!ym) return "—";
+  const [year, month] = ym.split("-");
+  const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const idx = parseInt(month, 10) - 1;
+  return idx >= 0 && idx < 12 ? `${names[idx]} ${year}` : ym;
+}
+
 interface TradeDetailProps {
   tradeId: string;
   commodities: { id: string; name: string }[];
@@ -90,7 +98,7 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
     {
       key: "budget_month",
       header: "Budget Mo",
-      render: (row) => <span className="tabular-nums text-muted">{row.budget_month ?? "—"}</span>,
+      render: (row) => <span className="tabular-nums text-muted">{fmtBudgetMonth(row.budget_month)}</span>,
     },
     {
       key: "status",

@@ -15,9 +15,6 @@ export function registerSettlementEventListeners(): void {
 
       if (status !== "delivered") return;
 
-      console.log(
-        `[Settlement] Delivery ${deliveryId} recorded — ready for invoicing`
-      );
       // Auto-invoice generation can be implemented here:
       // 1. Look up delivery details
       // 2. Find matching counterparty

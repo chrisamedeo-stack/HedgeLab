@@ -5,9 +5,7 @@ import Link from "next/link";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useImportStore, type ImportJobRecord } from "@/store/importStore";
-
-// TODO: Replace with real org context from auth
-const DEMO_ORG_ID = "00000000-0000-0000-0000-000000000001";
+import { useAuth } from "@/contexts/AuthContext";
 
 const TABLE_LABELS: Record<string, string> = {
   tc_financial_trades: "Futures Trades",
@@ -85,11 +83,12 @@ const columns: Column<ImportJobRecord>[] = [
 
 export default function ImportDashboardPage() {
   const { jobs, fetchJobs, loading } = useImportStore();
+  const { user } = useAuth();
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchJobs(DEMO_ORG_ID);
-  }, [fetchJobs]);
+    if (user?.orgId) fetchJobs(user.orgId);
+  }, [fetchJobs, user?.orgId]);
 
   return (
     <div>

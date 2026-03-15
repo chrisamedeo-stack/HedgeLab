@@ -123,7 +123,7 @@ export function ForwardCurveChart({
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#8B95A5" }}
+            labelStyle={{ color: chartColors.muted }}
             labelFormatter={(label) => formatContractMonth(String(label))}
             formatter={(value, name) => {
               if (value == null) return ["-", name];

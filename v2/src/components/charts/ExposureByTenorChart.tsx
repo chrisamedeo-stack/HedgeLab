@@ -53,7 +53,7 @@ export function ExposureByTenorChart({ data, height = 320 }: ExposureByTenorChar
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#8B95A5" }}
+            labelStyle={{ color: chartColors.muted }}
             formatter={(value, name) => [Number(value ?? 0).toLocaleString(), name]}
           />
           <Legend wrapperStyle={legendStyle} />

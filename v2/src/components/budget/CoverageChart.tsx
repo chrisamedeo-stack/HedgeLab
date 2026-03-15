@@ -12,6 +12,7 @@ import {
   type Plugin,
 } from "chart.js";
 import type { CoverageDataPoint } from "@/types/budget";
+import { chartColors, chartTheme } from "@/lib/chartTheme";
 
 // Register only what we need
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, ChartTooltip);
@@ -26,25 +27,18 @@ interface CoverageChartProps {
 
 // ─── Theme helpers ───────────────────────────────────────────────────────────
 
-function isDark(): boolean {
-  if (typeof window === "undefined") return true;
-  // App is always dark-themed, but respect prefers-color-scheme if set
-  return window.matchMedia("(prefers-color-scheme: dark)").matches || true;
-}
-
 function themeColors() {
-  const dark = isDark();
   return {
-    basisBar: "#6A9FCC",
-    boardBar: "#1a6b7a",
-    budgetLine: "#EF9F27",
-    forecastFill: dark ? "rgba(181,212,244,0.1)" : "rgba(181,212,244,0.22)",
-    forecastBorder: dark ? "rgba(181,212,244,0.2)" : "rgba(181,212,244,0.4)",
-    gridColor: dark ? "rgba(181,212,244,0.08)" : "rgba(0,0,0,0.08)",
-    tickColor: dark ? "#8B95A5" : "#555",
-    tooltipBg: dark ? "#040C17" : "#fff",
-    tooltipBorder: dark ? "#2B4362" : "#ccc",
-    tooltipText: dark ? "#E8ECF1" : "#111",
+    basisBar: chartColors.chart2,
+    boardBar: chartColors.chart3,
+    budgetLine: chartColors.chart4,
+    forecastFill: chartTheme.forecast,
+    forecastBorder: "rgba(181,212,244,0.2)",
+    gridColor: "rgba(181,212,244,0.08)",
+    tickColor: chartColors.tick,
+    tooltipBg: chartColors.tooltipBg,
+    tooltipBorder: chartColors.tooltipBorder,
+    tooltipText: chartColors.tooltipText,
   };
 }
 
@@ -164,11 +158,11 @@ function CoverageLegend() {
   return (
     <div className="flex items-center gap-5 mb-3 px-1">
       <div className="flex items-center gap-1.5">
-        <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: "#6A9FCC" }} />
+        <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: chartColors.chart2 }} />
         <span className="text-xs text-muted">Basis</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: "#1a6b7a" }} />
+        <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: chartColors.chart3 }} />
         <span className="text-xs text-muted">Board</span>
       </div>
       <div className="flex items-center gap-1.5">
@@ -184,7 +178,7 @@ function CoverageLegend() {
       <div className="flex items-center gap-1.5">
         <span
           className="inline-block w-4 h-0 rounded"
-          style={{ borderTop: "2.5px solid #EF9F27" }}
+          style={{ borderTop: `2.5px solid ${chartColors.chart4}` }}
         />
         <span className="text-xs text-muted">Budget</span>
       </div>

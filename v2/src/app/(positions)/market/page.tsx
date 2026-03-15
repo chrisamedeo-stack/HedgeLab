@@ -16,6 +16,7 @@ import { btnPrimary } from "@/lib/ui-classes";
 import { ForwardCurveChart } from "@/components/charts/ForwardCurveChart";
 import { CandlestickChart } from "@/components/charts/CandlestickChart";
 import { formatContractMonth } from "@/lib/commodity-utils";
+import { chartColors, tooltipStyle } from "@/lib/chartTheme";
 import type { MarketTab, PriceBoardRow, MarketPrice } from "@/types/market";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -105,7 +106,7 @@ function PriceBoardTab() {
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-4">
         <KPICard label="Commodities Tracked" value={String(commodityGroups.length)} />
-        <KPICard label="Last Update" value={lastUpdate ?? "No data"} />
+        <KPICard label="Last Update" value={lastUpdate ? new Date(lastUpdate + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "No data"} />
         <KPICard label="Price Changes" value={String(totalChanges)} />
       </div>
 
@@ -316,14 +317,14 @@ function LineChartFallback({ prices, contractMonth }: { prices: MarketPrice[]; c
       </h3>
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1A2A40" />
-          <XAxis dataKey="date" stroke="#8B95A5" fontSize={11} tickLine={false} />
-          <YAxis stroke="#8B95A5" fontSize={11} tickLine={false} tickFormatter={(v: number) => `$${v.toFixed(2)}`} />
+          <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+          <XAxis dataKey="date" stroke={chartColors.tick} fontSize={11} tickLine={false} />
+          <YAxis stroke={chartColors.tick} fontSize={11} tickLine={false} tickFormatter={(v: number) => `$${v.toFixed(2)}`} />
           <Tooltip
-            contentStyle={{ backgroundColor: "#040C17", border: "1px solid #2B4362", borderRadius: 2, fontSize: 12 }}
+            contentStyle={tooltipStyle}
             formatter={(value: number | undefined) => value != null ? [`$${value.toFixed(4)}`, "Price"] : ["—", "Price"]}
           />
-          <Line dataKey="price" stroke="#378ADD" strokeWidth={2} dot={false} />
+          <Line dataKey="price" stroke={chartColors.action} strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

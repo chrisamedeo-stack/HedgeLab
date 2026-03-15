@@ -48,7 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
         <div className="border-t border-b-default px-4 py-3">
-          <Link href="/hedge-book" className="text-xs text-muted hover:text-secondary transition-colors">
+          <Link href="/position-manager" className="text-xs text-muted hover:text-secondary transition-colors">
             Position Manager
           </Link>
         </div>

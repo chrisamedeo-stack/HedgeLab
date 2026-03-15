@@ -9,7 +9,6 @@ import { auditLog } from "./audit";
 export function registerPositionEventListeners(): void {
   // When a trade is created, PM may need to auto-allocate
   on(EventTypes.TRADE_CREATED, "positions", async (event: KernelEvent) => {
-    console.log("[PM] Trade created:", event.entityId);
     // Auto-allocation not implemented — trades are allocated manually via the UI
   });
 
@@ -24,8 +23,6 @@ export function registerPositionEventListeners(): void {
       contractMonth?: string;
       direction?: string;
     };
-
-    console.log("[PM] Trade updated — refreshing allocation snapshots:", tradeId);
 
     const allocations = await queryAll<{ id: string; org_id: string }>(
       `SELECT id, org_id FROM pm_allocations WHERE trade_id = $1 AND status NOT IN ('cancelled')`,
@@ -70,8 +67,6 @@ export function registerPositionEventListeners(): void {
     const tradeId = event.entityId;
     if (!tradeId) return;
 
-    console.log("[PM] Trade cancelled — cancelling open allocations:", tradeId);
-
     const openAllocs = await queryAll<{ id: string; org_id: string }>(
       `SELECT id, org_id FROM pm_allocations WHERE trade_id = $1 AND status = 'open'`,
       [tradeId]
@@ -103,8 +98,6 @@ export function registerPositionEventListeners(): void {
       contractMonth?: string;
       price?: number;
     };
-    console.log(
-      `[PM] Price updated — ${commodityId} ${contractMonth} @ ${price}. Open board will reflect on next load.`
-    );
+    // Open board P&L is calculated on-demand in getSitePosition()
   });
 }

@@ -79,7 +79,7 @@ export function PositionLifecycleFunnel({
           />
           <Tooltip
             contentStyle={tooltipStyle}
-            labelStyle={{ color: "#8B95A5" }}
+            labelStyle={{ color: chartColors.muted }}
             formatter={(value) => [Number(value ?? 0).toLocaleString(), "Volume"]}
           />
           <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>

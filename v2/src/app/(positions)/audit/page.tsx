@@ -8,6 +8,8 @@ interface AuditEntry {
   id: string;
   org_id: string;
   user_id: string | null;
+  user_name: string | null;
+  user_email: string | null;
   module: string;
   entity_type: string;
   entity_id: string | null;
@@ -125,7 +127,7 @@ export default function AuditPage() {
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-faint">{entry.source ?? "\u2014"}</td>
-                <td className="px-4 py-2.5 text-muted font-mono text-xs">{entry.user_id?.slice(0, 8) ?? "system"}</td>
+                <td className="px-4 py-2.5 text-muted text-xs">{entry.user_name ?? (entry.user_id ? entry.user_id.slice(0, 8) : "system")}</td>
               </tr>
             )) : !loading && (
               <tr>

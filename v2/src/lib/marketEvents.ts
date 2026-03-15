@@ -13,7 +13,6 @@ export function registerMarketEventListeners(): void {
     };
 
     if (targetTable === "md_prices") {
-      console.log("[MD] Import committed with price data, job:", jobId);
       // Future: auto-refresh caches, notify WebSocket subscribers
     }
   });

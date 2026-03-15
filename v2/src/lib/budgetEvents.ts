@@ -71,7 +71,6 @@ export function registerBudgetEventListeners(): void {
         });
       }
 
-      console.log(`[Budget] POSITION_ALLOCATED: updated ${lineItems.length} line items for ${budgetMonth}`);
     } catch (err) {
       console.error("[Budget] Error handling POSITION_ALLOCATED:", err);
     }
@@ -124,7 +123,6 @@ export function registerBudgetEventListeners(): void {
         );
       }
 
-      console.log(`[Budget] POSITION_DEALLOCATED: updated ${lineItems.length} line items for ${budgetMonth}`);
     } catch (err) {
       console.error("[Budget] Error handling POSITION_DEALLOCATED:", err);
     }
@@ -178,7 +176,6 @@ export function registerBudgetEventListeners(): void {
         );
       }
 
-      console.log(`[Budget] PHYSICAL_POSITION_CREATED: updated ${lineItems.length} line items for ${budgetMonth}`);
     } catch (err) {
       console.error("[Budget] Error handling PHYSICAL_POSITION_CREATED:", err);
     }
@@ -243,7 +240,6 @@ export function registerBudgetEventListeners(): void {
         );
       }
 
-      console.log(`[Budget] POSITION_ROLLED: moved ${volume} from ${closeMonth} to ${openMonth}`);
     } catch (err) {
       console.error("[Budget] Error handling POSITION_ROLLED:", err);
     }
