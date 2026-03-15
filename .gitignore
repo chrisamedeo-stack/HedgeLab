@@ -35,5 +35,8 @@ frontend/tsconfig.tsbuildinfo
 .vscode/
 *.swp
 
+# Test output
+test-results/
+
 # Claude Code
 .claude/
