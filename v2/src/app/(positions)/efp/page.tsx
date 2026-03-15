@@ -16,7 +16,7 @@ export default function EFPPage() {
     const params: Record<string, string> = { orgId };
     if (commodityId) params.commodityId = commodityId;
     fetchLockedPositions(params);
-  }, [fetchLockedPositions, commodityId]);
+  }, [fetchLockedPositions, orgId, commodityId]);
 
   // Group by delivery month
   const byMonth: Record<string, LockedPosition[]> = {};

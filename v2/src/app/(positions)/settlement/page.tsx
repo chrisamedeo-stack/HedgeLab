@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useInvoices, useSettlementStore } from "@/hooks/useSettlement";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { API_BASE } from "@/lib/api";
 import type { InvoiceStatus, InvoiceType, InvoiceFilters } from "@/types/settlement";
+import type { Delivery } from "@/types/logistics";
 
 const statusStyle: Record<string, string> = {
   draft: "bg-hover text-muted",
@@ -28,7 +30,53 @@ export default function SettlementPage() {
   if (typeFilter) filters.invoiceType = typeFilter;
 
   const { data: invoices, loading, error, refetch } = useInvoices(orgId, filters);
-  const { createInvoice, issueInvoice, recordPayment, cancelInvoice } = useSettlementStore();
+  const { createInvoice, issueInvoice, recordPayment, cancelInvoice, generateFromDeliveries } = useSettlementStore();
+
+  // Generate from Deliveries flow
+  const [showDeliveryPicker, setShowDeliveryPicker] = useState(false);
+  const [deliveredList, setDeliveredList] = useState<Delivery[]>([]);
+  const [selectedDeliveryIds, setSelectedDeliveryIds] = useState<Set<string>>(new Set());
+  const [genType, setGenType] = useState<InvoiceType>("purchase");
+  const [genCounterparty, setGenCounterparty] = useState("");
+  const [genLoading, setGenLoading] = useState(false);
+
+  const fetchDelivered = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/logistics/deliveries?orgId=${orgId}&status=delivered`);
+      if (res.ok) setDeliveredList(await res.json());
+    } catch { /* silent */ }
+  }, [orgId]);
+
+  useEffect(() => {
+    if (showDeliveryPicker) fetchDelivered();
+  }, [showDeliveryPicker, fetchDelivered]);
+
+  function toggleDelivery(id: string) {
+    setSelectedDeliveryIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  async function handleGenerateFromDeliveries() {
+    if (selectedDeliveryIds.size === 0) return;
+    setGenLoading(true);
+    try {
+      await generateFromDeliveries(
+        orgId, user!.id,
+        Array.from(selectedDeliveryIds),
+        genType,
+        undefined,
+        genCounterparty || undefined
+      );
+      setShowDeliveryPicker(false);
+      setSelectedDeliveryIds(new Set());
+      setGenCounterparty("");
+      refetch();
+    } catch { /* error handled by store */ }
+    finally { setGenLoading(false); }
+  }
 
   const [form, setForm] = useState({
     counterpartyName: "",
@@ -141,15 +189,26 @@ export default function SettlementPage() {
             {invoices.length} invoice{invoices.length !== 1 ? "s" : ""} &mdash; invoicing &amp; payments
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          New Invoice
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowDeliveryPicker(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-b-input px-4 py-2 text-sm text-secondary hover:bg-input-bg transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12l-3 7H8m0 0l-1.5 6M8 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3H20" />
+            </svg>
+            From Deliveries
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            New Invoice
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -313,6 +372,68 @@ export default function SettlementPage() {
               Cancel
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Generate from Deliveries Panel */}
+      {showDeliveryPicker && (
+        <div className="animate-fade-in rounded-lg border border-b-default bg-surface p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-secondary">Generate Invoice from Deliveries</h3>
+            <button onClick={() => setShowDeliveryPicker(false)} className="text-faint hover:text-secondary text-xs">Close</button>
+          </div>
+
+          {deliveredList.length === 0 ? (
+            <p className="text-sm text-faint py-4 text-center">No delivered shipments available for invoicing.</p>
+          ) : (
+            <>
+              <div className="max-h-64 overflow-y-auto rounded border border-b-default divide-y divide-b-default">
+                {deliveredList.map((d) => {
+                  const checked = selectedDeliveryIds.has(d.id);
+                  return (
+                    <label key={d.id} className={`flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-row-hover transition-colors ${checked ? "bg-action-5" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleDelivery(d.id)}
+                        className="rounded border-b-input text-action focus:ring-focus"
+                      />
+                      <div className="flex-1 min-w-0 flex items-center gap-4 text-xs">
+                        <span className="text-secondary">{new Date(d.delivery_date).toLocaleDateString()}</span>
+                        <span className="text-secondary">{d.site_name ?? d.site_id.slice(0, 8)}</span>
+                        <span className="text-muted">{d.commodity_name ?? d.commodity_id}</span>
+                        <span className="tabular-nums text-secondary font-medium">{Number(d.volume).toLocaleString()} {d.unit}</span>
+                        {d.freight_cost != null && (
+                          <span className="tabular-nums text-faint">${Number(d.freight_cost).toFixed(2)} freight</span>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-end gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-faint">Invoice Type</label>
+                  <select value={genType} onChange={(e) => setGenType(e.target.value as InvoiceType)} className={inputClass + " !w-32"}>
+                    <option value="purchase">Purchase</option>
+                    <option value="sale">Sale</option>
+                  </select>
+                </div>
+                <div className="space-y-1 flex-1 max-w-[200px]">
+                  <label className="text-xs text-faint">Counterparty</label>
+                  <input type="text" value={genCounterparty} onChange={(e) => setGenCounterparty(e.target.value)} className={inputClass} placeholder="Optional" />
+                </div>
+                <button
+                  onClick={handleGenerateFromDeliveries}
+                  disabled={selectedDeliveryIds.size === 0 || genLoading}
+                  className="rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors disabled:opacity-50"
+                >
+                  {genLoading ? "Generating..." : `Generate Invoice (${selectedDeliveryIds.size})`}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 

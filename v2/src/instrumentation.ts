@@ -12,14 +12,20 @@ export async function register() {
     const { registerTradeEventListeners } = await import("./lib/tradeEvents");
     const { registerLogisticsEventListeners } = await import("./lib/logisticsEvents");
     const { registerSettlementEventListeners } = await import("./lib/settlementEvents");
+    const { registerRiskEventListeners } = await import("./lib/riskEvents");
+    const { registerMarketEventListeners } = await import("./lib/marketEvents");
+    const { registerForecastEventListeners } = await import("./lib/forecastEvents");
 
     registerBudgetEventListeners();
     registerPositionEventListeners();
     registerTradeEventListeners();
     registerLogisticsEventListeners();
     registerSettlementEventListeners();
+    registerRiskEventListeners();
+    registerMarketEventListeners();
+    registerForecastEventListeners();
 
-    console.log("[Instrumentation] Event listeners registered: budget, positions, trades, logistics, settlement");
+    console.log("[Instrumentation] All event listeners registered");
 
     // One-time reconciliation: fix any stale allocated_volume from before trade listeners were registered
     const { recalculateAllAllocatedVolumes } = await import("./lib/tradeService");

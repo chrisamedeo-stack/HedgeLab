@@ -33,13 +33,21 @@ async function ensureListeners(): Promise<void> {
   try {
     const { registerBudgetEventListeners } = await import("./budgetEvents");
     const { registerPositionEventListeners } = await import("./positionEvents");
+    const { registerTradeEventListeners } = await import("./tradeEvents");
     const { registerLogisticsEventListeners } = await import("./logisticsEvents");
     const { registerSettlementEventListeners } = await import("./settlementEvents");
+    const { registerRiskEventListeners } = await import("./riskEvents");
+    const { registerMarketEventListeners } = await import("./marketEvents");
+    const { registerForecastEventListeners } = await import("./forecastEvents");
     registerBudgetEventListeners();
     registerPositionEventListeners();
+    registerTradeEventListeners();
     registerLogisticsEventListeners();
     registerSettlementEventListeners();
-    console.log("[EventBus] Listeners auto-registered: budget, positions, logistics, settlement");
+    registerRiskEventListeners();
+    registerMarketEventListeners();
+    registerForecastEventListeners();
+    console.log("[EventBus] All listeners auto-registered");
   } catch (err) {
     console.error("[EventBus] Failed to auto-register listeners:", err);
   }

@@ -232,7 +232,7 @@ const PLUGIN_NAV: Record<string, { href: string; label: string; section: "tradin
   "market_data":      [{ href: "/market",      label: "Market View",       section: "planning" }],
   "risk":             [{ href: "/risk",        label: "Risk",              section: "planning" }],
   "energy":           [{ href: "/energy",      label: "Energy",            section: "planning" }],
-  "forecast":         [{ href: "/forecast",    label: "Forecasting",       section: "planning" }],
+  // forecast nav is handled as a tab inside "Budget & Forecast" — no standalone entry
 };
 
 const SIDEBAR_KEY = "sidebar-collapsed";

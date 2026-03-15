@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { WIDGET_MAP } from "@/lib/widgetRegistry";
 import { formatContractMonth } from "@/lib/commodity-utils";
+import { API_BASE } from "@/lib/api";
 import type { WidgetLayoutEntry, DrillLevel, UnitSummary, SiteSummary } from "@/types/dashboard";
 import type { DashboardSummary } from "@/store/dashboardStore";
 import type { RolloverCandidate, BasisSummary } from "@/types/positions";
@@ -156,26 +157,123 @@ function RiskEmptyState() {
 
 // ─── Site Monthly Detail ──────────────────────────────────────────────────
 
-function SiteMonthlyDetail({ siteId, orgId }: { siteId: string; orgId: string }) {
+interface SiteViewData {
+  hedges: { contract_month: string; direction: string; allocated_volume: number; trade_price: number; status: string }[];
+  physicals: { delivery_month: string; direction: string; volume: number; price: number }[];
+  locked: { delivery_month: string; volume: number; locked_price: number; all_in_price: number | null }[];
+  allIn: { delivery_month: string; hedged_volume: number; physical_volume: number; locked_volume: number; avg_futures: number | null; avg_basis: number | null; all_in_price: number | null }[];
+}
+
+function useSiteViewData(siteId: string, commodityId?: string) {
+  const [data, setData] = useState<SiteViewData | null>(null);
+  useEffect(() => {
+    if (!siteId) return;
+    const params = new URLSearchParams();
+    if (commodityId) params.set("commodityId", commodityId);
+    fetch(`${API_BASE}/api/positions/site-view/${siteId}?${params}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then(setData)
+      .catch(() => setData(null));
+  }, [siteId, commodityId]);
+  return data;
+}
+
+function SiteMonthlyDetail({ siteId, orgId, commodityId }: { siteId: string; orgId: string; commodityId?: string }) {
+  const data = useSiteViewData(siteId, commodityId);
+
+  // Group hedges by month
+  const byMonth = new Map<string, { volume: number; count: number; avgPrice: number }>();
+  if (data?.hedges) {
+    for (const h of data.hedges) {
+      if (h.status === "cancelled") continue;
+      const key = h.contract_month ?? "unknown";
+      const existing = byMonth.get(key) ?? { volume: 0, count: 0, avgPrice: 0 };
+      existing.volume += Number(h.allocated_volume);
+      existing.count += 1;
+      existing.avgPrice = (existing.avgPrice * (existing.count - 1) + Number(h.trade_price)) / existing.count;
+      byMonth.set(key, existing);
+    }
+  }
+  const months = Array.from(byMonth.entries()).sort(([a], [b]) => a.localeCompare(b));
+
   return (
     <div className="bg-surface border border-b-default rounded-lg p-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">Monthly Detail</h2>
-      <p className="text-xs text-faint">
-        Month-by-month positions.{" "}
-        <Link href={`/sites/${siteId}`} className="text-action hover:underline">Open site view</Link>
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Monthly Position Detail</h2>
+        <Link href={`/sites/${siteId}`} className="text-[11px] font-medium text-action hover:underline">Full View</Link>
+      </div>
+      {months.length === 0 ? (
+        <p className="text-xs text-faint py-3 text-center">No hedge positions at this site</p>
+      ) : (
+        <div className="space-y-1.5">
+          {months.slice(0, 6).map(([month, info]) => (
+            <div key={month} className="flex items-center justify-between rounded border border-b-default bg-input-bg px-3 py-2">
+              <span className="text-xs font-medium text-secondary font-mono">{formatContractMonth(month)}</span>
+              <div className="flex items-center gap-4 text-xs tabular-nums">
+                <span className="text-muted">{info.count} alloc{info.count !== 1 ? "s" : ""}</span>
+                <span className="text-secondary font-medium">{info.volume.toLocaleString()} MT</span>
+                <span className="text-faint">${info.avgPrice.toFixed(4)}</span>
+              </div>
+            </div>
+          ))}
+          {months.length > 6 && (
+            <p className="text-[11px] text-faint text-center pt-1">+{months.length - 6} more months</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function SiteAllInSummary({ siteId, orgId }: { siteId: string; orgId: string }) {
+function SiteAllInSummary({ siteId, orgId, commodityId }: { siteId: string; orgId: string; commodityId?: string }) {
+  const data = useSiteViewData(siteId, commodityId);
+  const allIn = data?.allIn ?? [];
+
+  const totalHedged = allIn.reduce((s, r) => s + Number(r.hedged_volume ?? 0), 0);
+  const totalPhysical = allIn.reduce((s, r) => s + Number(r.physical_volume ?? 0), 0);
+  const totalLocked = allIn.reduce((s, r) => s + Number(r.locked_volume ?? 0), 0);
+  const avgAllIn = allIn.length > 0
+    ? allIn.filter((r) => r.all_in_price != null).reduce((s, r) => s + Number(r.all_in_price!), 0) / Math.max(1, allIn.filter((r) => r.all_in_price != null).length)
+    : null;
+
   return (
     <div className="bg-surface border border-b-default rounded-lg p-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">All-In Summary</h2>
-      <p className="text-xs text-faint">
-        All-in pricing for this site.{" "}
-        <Link href={`/sites/${siteId}`} className="text-action hover:underline">Open site view</Link>
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">All-In Summary</h2>
+        <Link href={`/sites/${siteId}`} className="text-[11px] font-medium text-action hover:underline">Full View</Link>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div>
+          <p className="text-[10px] text-faint uppercase tracking-wider">Hedged</p>
+          <p className="text-lg font-bold text-primary tabular-nums">{totalHedged.toLocaleString()}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-faint uppercase tracking-wider">Physical</p>
+          <p className="text-lg font-bold text-primary tabular-nums">{totalPhysical.toLocaleString()}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-faint uppercase tracking-wider">Locked</p>
+          <p className="text-lg font-bold text-profit tabular-nums">{totalLocked.toLocaleString()}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-faint uppercase tracking-wider">Avg All-In</p>
+          <p className="text-lg font-bold text-secondary tabular-nums">{avgAllIn != null ? `$${avgAllIn.toFixed(4)}` : "\u2014"}</p>
+        </div>
+      </div>
+      {allIn.length > 0 && (
+        <div className="mt-3 space-y-1">
+          {allIn.slice(0, 4).map((row) => (
+            <div key={row.delivery_month} className="flex items-center justify-between text-xs">
+              <span className="font-mono text-muted">{formatContractMonth(row.delivery_month)}</span>
+              <div className="flex items-center gap-3 tabular-nums">
+                {row.avg_futures != null && <span className="text-faint">F: ${Number(row.avg_futures).toFixed(4)}</span>}
+                {row.avg_basis != null && <span className="text-faint">B: ${Number(row.avg_basis).toFixed(4)}</span>}
+                {row.all_in_price != null && <span className="text-secondary font-medium">${Number(row.all_in_price).toFixed(4)}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -428,7 +526,7 @@ export function WidgetRenderer({
       case "site-monthly-detail":
         flushHalves();
         if (currentSiteId) {
-          node = <SiteMonthlyDetail key={entry.widgetId} siteId={currentSiteId} orgId={orgId} />;
+          node = <SiteMonthlyDetail key={entry.widgetId} siteId={currentSiteId} orgId={orgId} commodityId={commodityId} />;
           rendered.push(node);
         }
         continue;
@@ -436,7 +534,7 @@ export function WidgetRenderer({
       case "site-all-in-summary":
         flushHalves();
         if (currentSiteId) {
-          node = <SiteAllInSummary key={entry.widgetId} siteId={currentSiteId} orgId={orgId} />;
+          node = <SiteAllInSummary key={entry.widgetId} siteId={currentSiteId} orgId={orgId} commodityId={commodityId} />;
           rendered.push(node);
         }
         continue;

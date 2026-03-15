@@ -49,6 +49,41 @@ export default function LogisticsPage() {
     showInventory && invSite ? { siteId: invSite, orgId } : undefined
   );
 
+  // Inventory snapshot recording
+  const [showInvForm, setShowInvForm] = useState(false);
+  const [invForm, setInvForm] = useState({
+    siteId: "",
+    commodityId: commodityId ?? "",
+    onHand: "",
+    committed: "",
+    avgCost: "",
+    asOfDate: new Date().toISOString().split("T")[0],
+  });
+  const [invSubmitting, setInvSubmitting] = useState(false);
+  const { recordInventorySnapshot } = useLogisticsStore();
+
+  async function handleInvSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setInvSubmitting(true);
+    try {
+      await recordInventorySnapshot({
+        orgId,
+        userId: user!.id,
+        siteId: invForm.siteId,
+        commodityId: invForm.commodityId,
+        onHandVolume: Number(invForm.onHand),
+        committedOut: Number(invForm.committed) || 0,
+        avgCost: invForm.avgCost ? Number(invForm.avgCost) : undefined,
+        asOfDate: invForm.asOfDate,
+      });
+      setShowInvForm(false);
+      setInvForm({ siteId: "", commodityId: commodityId ?? "", onHand: "", committed: "", avgCost: "", asOfDate: new Date().toISOString().split("T")[0] });
+      // Refresh inventory view if the same site is selected
+      if (invSite) setInvSite(invSite);
+    } catch { /* error handled by store */ }
+    finally { setInvSubmitting(false); }
+  }
+
   const [form, setForm] = useState({
     siteId: "",
     commodityId: commodityId ?? "",
@@ -358,17 +393,73 @@ export default function LogisticsPage() {
         <div className="animate-fade-in space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-primary">Inventory Snapshots</h2>
-            <select
-              value={invSite}
-              onChange={(e) => setInvSite(e.target.value)}
-              className="bg-input-bg border border-b-input text-sm text-secondary rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-focus"
-            >
-              <option value="">Select site</option>
-              {(sites ?? []).map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowInvForm(!showInvForm)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-b-input px-3 py-1.5 text-xs text-secondary hover:bg-input-bg transition-colors"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Record Snapshot
+              </button>
+              <select
+                value={invSite}
+                onChange={(e) => setInvSite(e.target.value)}
+                className="bg-input-bg border border-b-input text-sm text-secondary rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-focus"
+              >
+                <option value="">Select site</option>
+                {(sites ?? []).map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          {/* Inventory Snapshot Form */}
+          {showInvForm && (
+            <form onSubmit={handleInvSubmit} className="animate-fade-in rounded-lg border border-b-default bg-surface p-4 space-y-3">
+              <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">Record Inventory Snapshot</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs text-faint mb-1">Site *</label>
+                  <select required value={invForm.siteId} onChange={(e) => setInvForm({ ...invForm, siteId: e.target.value })} className={inputClass}>
+                    <option value="">Select site</option>
+                    {(sites ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-faint mb-1">Commodity *</label>
+                  <select required value={invForm.commodityId} onChange={(e) => setInvForm({ ...invForm, commodityId: e.target.value })} className={inputClass}>
+                    <option value="">Select</option>
+                    {(commodities ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-faint mb-1">On Hand Volume *</label>
+                  <input required type="number" step="any" value={invForm.onHand} onChange={(e) => setInvForm({ ...invForm, onHand: e.target.value })} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-xs text-faint mb-1">Committed Out</label>
+                  <input type="number" step="any" value={invForm.committed} onChange={(e) => setInvForm({ ...invForm, committed: e.target.value })} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-xs text-faint mb-1">Avg Cost ($/unit)</label>
+                  <input type="number" step="any" value={invForm.avgCost} onChange={(e) => setInvForm({ ...invForm, avgCost: e.target.value })} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-xs text-faint mb-1">As Of Date *</label>
+                  <input required type="date" value={invForm.asOfDate} onChange={(e) => setInvForm({ ...invForm, asOfDate: e.target.value })} className={inputClass} />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setShowInvForm(false)} className="rounded-lg border border-b-input px-3 py-1.5 text-xs text-muted hover:bg-input-bg transition-colors">Cancel</button>
+                <button type="submit" disabled={invSubmitting} className="rounded-lg bg-action px-3 py-1.5 text-xs font-medium text-white hover:bg-action-hover disabled:opacity-50 transition-colors">
+                  {invSubmitting ? "Saving..." : "Save Snapshot"}
+                </button>
+              </div>
+            </form>
+          )}
 
           {invSite && inventory.length > 0 ? (
             <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
