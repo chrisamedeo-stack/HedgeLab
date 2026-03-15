@@ -115,7 +115,7 @@ export default function BudgetDetailPage() {
         </Link>
         <span className="text-xs text-ph mx-1">/</span>
         <span className="text-xs text-faint">
-          {period.site_name} — {period.commodity_name} — {period.budget_year}
+          {period.site_name} &middot; {period.commodity_name} &middot; {period.budget_year}
         </span>
       </div>
 

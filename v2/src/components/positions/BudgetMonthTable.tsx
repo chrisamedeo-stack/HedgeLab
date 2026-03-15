@@ -133,7 +133,7 @@ export function BudgetMonthTable({ entries, orgId, siteId, commodityId, onCancel
     <div className="rounded-lg border border-b-default bg-surface">
       <div className="border-b border-tbl-border px-4 py-3">
         <h2 className="text-sm font-semibold text-secondary">Budget Month View</h2>
-        <p className="text-xs text-faint mt-0.5">Allocations grouped by budget month — coverage vs budget</p>
+        <p className="text-xs text-faint mt-0.5">Allocations grouped by budget month &middot; coverage vs budget</p>
       </div>
       <table className="w-full text-sm">
         <thead>

@@ -166,7 +166,7 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-primary">
-              {trade.commodity_name ?? trade.commodity_id} — {formatContractMonth(trade.contract_month)}
+              {trade.commodity_name ?? trade.commodity_id} &middot; {formatContractMonth(trade.contract_month)}
             </h3>
             <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
               trade.trade_type === "options" ? "bg-action-10 text-action"

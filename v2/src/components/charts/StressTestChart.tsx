@@ -43,7 +43,7 @@ export function StressTestChart({ data, height = 360 }: StressTestChartProps) {
 
   return (
     <div className="bg-surface border border-b-default rounded-lg p-5">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-4">Stress Test — P&L Impact by Price Delta</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-4">Stress Test &middot; P&amp;L Impact by Price Delta</h2>
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />

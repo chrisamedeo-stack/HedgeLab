@@ -158,7 +158,7 @@ export default function ForecastPage() {
       const scenario = await createScenario({
         orgId,
         userId: user!.id,
-        name: `Stress Test — ${commodities?.find((c) => c.id === stressCommodity)?.name ?? stressCommodity}`,
+        name: `Stress Test · ${commodities?.find((c) => c.id === stressCommodity)?.name ?? stressCommodity}`,
         scenarioType: "stress_test",
         baseCommodity: stressCommodity,
         assumptions: { priceDeltas: deltas },
@@ -340,7 +340,7 @@ export default function ForecastPage() {
             <div className="overflow-x-auto rounded-lg border border-b-default bg-surface">
               <div className="px-4 py-2 border-b border-tbl-border bg-tbl-header">
                 <span className="text-xs font-medium uppercase tracking-wider text-muted">
-                  Results — {activeScenario.name}
+                  Results &middot; {activeScenario.name}
                 </span>
               </div>
               <table className="w-full text-sm">

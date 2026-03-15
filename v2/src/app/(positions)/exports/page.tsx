@@ -28,7 +28,7 @@ const EXPORTS: ExportOption[] = [
     label: "Trade Blotter CSV",
     endpoint: "/api/trades",
     filename: "trades.csv",
-    description: "All financial trades — futures, options, swaps",
+    description: "All financial trades · futures, options, swaps",
   },
   {
     label: "Budget Periods CSV",
@@ -40,7 +40,7 @@ const EXPORTS: ExportOption[] = [
     label: "Coverage Summary CSV",
     endpoint: "/api/budget/coverage",
     filename: "coverage-summary.csv",
-    description: "Monthly coverage breakdown — budgeted, committed, hedged, open",
+    description: "Monthly coverage breakdown · budgeted, committed, hedged, open",
   },
   {
     label: "Audit Log CSV",

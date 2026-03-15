@@ -280,7 +280,7 @@ export default function MultiMonthContractGrid({
           >
             Apply to all months
           </button>
-          <span className="text-xs text-faint pb-2">Sets all months — override individually below</span>
+          <span className="text-xs text-faint pb-2">Sets all months · override individually below</span>
         </div>
 
         {/* Monthly Grid */}

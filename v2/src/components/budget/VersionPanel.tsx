@@ -41,7 +41,7 @@ export function VersionPanel({ periodId, versions, userId, locked }: VersionPane
                 <div className="text-sm text-secondary">
                   <span className="font-medium">v{v.version_number}</span>
                   {v.version_name && (
-                    <span className="ml-2 text-muted">— {v.version_name}</span>
+                    <span className="ml-2 text-muted">· {v.version_name}</span>
                   )}
                 </div>
                 <div className="text-xs text-faint mt-0.5">

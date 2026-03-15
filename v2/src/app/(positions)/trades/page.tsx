@@ -30,7 +30,7 @@ export default function TradesPage() {
         <div>
           <h1 className="text-xl font-bold text-primary">Trade Blotter</h1>
           <p className="text-sm text-muted mt-0.5">
-            {trades.length} trade{trades.length !== 1 ? "s" : ""} — book and manage financial trades
+            {trades.length} trade{trades.length !== 1 ? "s" : ""} &middot; book and manage financial trades
           </p>
         </div>
         <button

@@ -49,7 +49,7 @@ export function ForecastHistory({ periodId, lineItemId }: ForecastHistoryProps) 
           <option value={0}>Latest</option>
           {history.map((h, i) => (
             <option key={h.id} value={i}>
-              {fmtDate(h.recorded_at)} — {fmtVol(h.forecast_volume)}
+              {fmtDate(h.recorded_at)} · {fmtVol(h.forecast_volume)}
             </option>
           ))}
         </select>

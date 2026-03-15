@@ -119,7 +119,7 @@ export function DeliveryMonthTable({ entries, sites, commodities, orgId, onAlloc
     <div className="rounded-lg border border-b-default bg-surface">
       <div className="border-b border-tbl-border px-4 py-3">
         <h2 className="text-sm font-semibold text-secondary">Delivery Month View</h2>
-        <p className="text-xs text-faint mt-0.5">Hedges grouped by futures month — expand to allocate</p>
+        <p className="text-xs text-faint mt-0.5">Hedges grouped by futures month &middot; expand to allocate</p>
       </div>
       <table className="w-full text-sm">
         <thead>

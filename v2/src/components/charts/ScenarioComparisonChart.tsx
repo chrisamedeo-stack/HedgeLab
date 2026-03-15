@@ -67,7 +67,7 @@ export function ScenarioComparisonChart({
   return (
     <div className="bg-surface border border-b-default rounded-lg p-5">
       <h2 className="text-xs font-semibold uppercase tracking-wider text-muted mb-4">
-        Current vs Projected — {metric === "coverage" ? "Coverage %" : metric === "pnl" ? "Mark-to-Market P&L" : "All-In Price"}
+        Current vs Projected &middot; {metric === "coverage" ? "Coverage %" : metric === "pnl" ? "Mark-to-Market P&L" : "All-In Price"}
       </h2>
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
