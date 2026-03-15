@@ -15,8 +15,9 @@ export function registerLogisticsEventListeners(): void {
         status?: string;
       };
 
-      // Only update contract on actual delivery (not scheduling)
+      // Only update contract on actual delivery from logistics (not from contracts — it already updates itself)
       if (!contractId || !volume || status !== "delivered") return;
+      if (event.source === "contracts") return;
 
       // Check if ct_physical_contracts table exists (soft reference — contracts plugin optional)
       try {

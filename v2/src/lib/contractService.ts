@@ -511,7 +511,14 @@ export async function recordDelivery(
     source: "contracts",
     entityType: "physical_contract",
     entityId: contractId,
-    payload: { deliveredVolume: volume, totalDelivered: newDelivered },
+    payload: {
+      contractId,
+      volume,
+      totalDelivered: newDelivered,
+      status: "delivered",
+      siteId: before.site_id,
+      commodityId: before.commodity_id,
+    },
     orgId: before.org_id,
     userId,
   });
