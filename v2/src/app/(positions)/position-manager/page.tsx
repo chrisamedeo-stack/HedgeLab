@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useHedgeBook, useCommodities, useSites } from "@/hooks/usePositions";
+import { usePositionStore } from "@/store/positionStore";
+import { useAuth } from "@/contexts/AuthContext";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useCommodityContext } from "@/contexts/CommodityContext";
 import { HierarchyTabs } from "@/components/ui/HierarchyTabs";
@@ -42,6 +44,13 @@ export default function PositionManagerPage() {
   );
   const { data: commodities } = useCommodities();
   const { data: sites } = useSites(orgId);
+  const { cancelAllocation } = usePositionStore();
+  const { user } = useAuth();
+
+  const handleCancelAllocation = async (allocationId: string) => {
+    await cancelAllocation(user!.id, allocationId);
+    refetch();
+  };
 
   const kpis = hedgeBook?.kpis;
 
@@ -111,12 +120,14 @@ export default function PositionManagerPage() {
           commodities={commodities ?? []}
           orgId={orgId}
           onAllocated={refetch}
+          onCancelAllocation={handleCancelAllocation}
         />
       ) : (
         <BudgetMonthTable
           entries={hedgeBook?.entries ?? []}
           orgId={orgId}
           commodityId={commodityId ?? undefined}
+          onCancelAllocation={handleCancelAllocation}
         />
       )}
     </div>

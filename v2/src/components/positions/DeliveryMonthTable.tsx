@@ -12,6 +12,7 @@ interface Props {
   commodities: { id: string; name: string }[];
   orgId: string;
   onAllocated: () => void;
+  onCancelAllocation?: (allocationId: string) => Promise<void>;
 }
 
 interface MonthGroup {
@@ -34,7 +35,7 @@ function fmtPrice(v: unknown): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 }
 
-export function DeliveryMonthTable({ entries, sites, commodities, orgId, onAllocated }: Props) {
+export function DeliveryMonthTable({ entries, sites, commodities, orgId, onAllocated, onCancelAllocation }: Props) {
   const { allocate } = usePositionStore();
   const { user } = useAuth();
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
@@ -153,6 +154,7 @@ export function DeliveryMonthTable({ entries, sites, commodities, orgId, onAlloc
                 submitting={submitting}
                 error={error}
                 sites={sites}
+                onCancelAllocation={onCancelAllocation}
               />
             ))
           )}
@@ -175,6 +177,7 @@ function MonthGroupRow({
   submitting,
   error,
   sites,
+  onCancelAllocation,
 }: {
   group: MonthGroup;
   isExpanded: boolean;
@@ -188,6 +191,7 @@ function MonthGroupRow({
   submitting: boolean;
   error: string | null;
   sites: { id: string; name: string; code: string }[];
+  onCancelAllocation?: (allocationId: string) => Promise<void>;
 }) {
   return (
     <>
@@ -230,6 +234,7 @@ function MonthGroupRow({
             submitting={submitting}
             error={error}
             sites={sites}
+            onCancelAllocation={onCancelAllocation}
           />
         ))}
     </>
@@ -247,6 +252,7 @@ function TradeRow({
   submitting,
   error,
   sites,
+  onCancelAllocation,
 }: {
   entry: HedgeBookEntry;
   isAllocating: boolean;
@@ -258,7 +264,9 @@ function TradeRow({
   submitting: boolean;
   error: string | null;
   sites: { id: string; name: string; code: string }[];
+  onCancelAllocation?: (allocationId: string) => Promise<void>;
 }) {
+  const [cancellingThis, setCancellingThis] = useState(false);
   const statusColor =
     entry.status === "open" ? "text-warning" :
     entry.status === "efp_closed" ? "text-profit" :
@@ -283,12 +291,28 @@ function TradeRow({
         </td>
         <td className="px-3 py-2 text-right">
           {entry.status === "open" && (
-            <button
-              onClick={onStartAllocate}
-              className="text-xs text-action hover:text-action-hover transition-colors"
-            >
-              Allocate
-            </button>
+            <span className="inline-flex items-center gap-2">
+              <button
+                onClick={onStartAllocate}
+                className="text-xs text-action hover:text-action-hover transition-colors"
+              >
+                Allocate
+              </button>
+              {onCancelAllocation && entry.site_id && (
+                <button
+                  onClick={async () => {
+                    if (!confirm("Cancel this allocation?")) return;
+                    setCancellingThis(true);
+                    try { await onCancelAllocation(entry.id); } catch { /* store handles */ }
+                    finally { setCancellingThis(false); }
+                  }}
+                  disabled={cancellingThis}
+                  className="text-xs text-loss hover:text-loss/80 disabled:opacity-50"
+                >
+                  {cancellingThis ? "..." : "Cancel"}
+                </button>
+              )}
+            </span>
           )}
         </td>
       </tr>

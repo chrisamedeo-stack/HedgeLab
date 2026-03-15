@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { API_BASE } from "@/lib/api";
 import { formatContractMonth } from "@/lib/commodity-utils";
 import type { HedgeBookEntry } from "@/types/positions";
@@ -31,6 +31,7 @@ interface Props {
   orgId: string;
   siteId?: string;
   commodityId?: string;
+  onCancelAllocation?: (allocationId: string) => Promise<void>;
 }
 
 function fmtVol(v: unknown): string {
@@ -49,7 +50,7 @@ function fmtPct(v: number): string {
   return `${(v * 100).toFixed(1)}%`;
 }
 
-export function BudgetMonthTable({ entries, orgId, siteId, commodityId }: Props) {
+export function BudgetMonthTable({ entries, orgId, siteId, commodityId, onCancelAllocation }: Props) {
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [budgetData, setBudgetData] = useState<BudgetLineItem[]>([]);
 
@@ -167,6 +168,7 @@ export function BudgetMonthTable({ entries, orgId, siteId, commodityId }: Props)
                   coverageColor={coverageColor}
                   isExpanded={isExpanded}
                   onToggle={() => setExpandedMonth(isExpanded ? null : g.month)}
+                  onCancelAllocation={onCancelAllocation}
                 />
               );
             })
@@ -182,11 +184,13 @@ function BudgetMonthGroupRow({
   coverageColor,
   isExpanded,
   onToggle,
+  onCancelAllocation,
 }: {
   group: BudgetMonthGroup;
   coverageColor: string;
   isExpanded: boolean;
   onToggle: () => void;
+  onCancelAllocation?: (allocationId: string) => Promise<void>;
 }) {
   return (
     <>
@@ -229,32 +233,65 @@ function BudgetMonthGroupRow({
 
       {/* Expanded: individual allocations in this budget month */}
       {isExpanded && group.allocations.length > 0 && (
-        group.allocations.map((alloc) => {
-          const statusColor =
-            alloc.status === "open" ? "text-warning" :
-            alloc.status === "efp_closed" ? "text-profit" :
-            alloc.status === "offset" ? "text-muted" : "text-faint";
-
-          return (
-            <tr key={alloc.id} className="border-b border-tbl-border bg-surface hover:bg-row-hover">
-              <td className="px-3 py-2 pl-10 text-xs text-faint">
-                {formatContractMonth(alloc.contract_month)} / {alloc.site_name ?? "—"}
-              </td>
-              <td className="px-3 py-2 text-right text-xs">
-                <span className={alloc.direction === "long" ? "text-profit" : "text-loss"}>
-                  {alloc.direction}
-                </span>
-              </td>
-              <td className="px-3 py-2 text-right tabular-nums text-xs">{fmtVol(alloc.allocated_volume)}</td>
-              <td className="px-3 py-2 text-right tabular-nums text-xs">{fmtPrice(alloc.trade_price)}</td>
-              <td className="px-3 py-2 text-right">
-                <span className={`text-xs font-medium ${statusColor}`}>{alloc.status}</span>
-              </td>
-              <td></td>
-            </tr>
-          );
-        })
+        group.allocations.map((alloc) => (
+          <BudgetAllocationRow
+            key={alloc.id}
+            alloc={alloc}
+            onCancelAllocation={onCancelAllocation}
+          />
+        ))
       )}
     </>
+  );
+}
+
+function BudgetAllocationRow({
+  alloc,
+  onCancelAllocation,
+}: {
+  alloc: HedgeBookEntry;
+  onCancelAllocation?: (allocationId: string) => Promise<void>;
+}) {
+  const [cancelling, setCancelling] = useState(false);
+
+  const statusColor =
+    alloc.status === "open" ? "text-warning" :
+    alloc.status === "efp_closed" ? "text-profit" :
+    alloc.status === "offset" ? "text-muted" : "text-faint";
+
+  const handleCancel = useCallback(async () => {
+    if (!onCancelAllocation || !confirm("Cancel this allocation?")) return;
+    setCancelling(true);
+    try { await onCancelAllocation(alloc.id); } catch { /* store handles */ }
+    finally { setCancelling(false); }
+  }, [onCancelAllocation, alloc.id]);
+
+  return (
+    <tr className="border-b border-tbl-border bg-surface hover:bg-row-hover">
+      <td className="px-3 py-2 pl-10 text-xs text-faint">
+        {formatContractMonth(alloc.contract_month)} / {alloc.site_name ?? "—"}
+      </td>
+      <td className="px-3 py-2 text-right text-xs">
+        <span className={alloc.direction === "long" ? "text-profit" : "text-loss"}>
+          {alloc.direction}
+        </span>
+      </td>
+      <td className="px-3 py-2 text-right tabular-nums text-xs">{fmtVol(alloc.allocated_volume)}</td>
+      <td className="px-3 py-2 text-right tabular-nums text-xs">{fmtPrice(alloc.trade_price)}</td>
+      <td className="px-3 py-2 text-right">
+        <span className={`text-xs font-medium ${statusColor}`}>{alloc.status}</span>
+      </td>
+      <td className="px-3 py-2 text-right">
+        {alloc.status === "open" && onCancelAllocation && (
+          <button
+            onClick={handleCancel}
+            disabled={cancelling}
+            className="text-xs text-loss hover:text-loss/80 disabled:opacity-50"
+          >
+            {cancelling ? "..." : "Cancel"}
+          </button>
+        )}
+      </td>
+    </tr>
   );
 }

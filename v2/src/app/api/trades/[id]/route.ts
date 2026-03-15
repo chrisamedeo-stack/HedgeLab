@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTradeWithAllocations, updateTrade, cancelTrade } from "@/lib/tradeService";
+import { getTradeWithAllocations, updateTrade, cancelTrade, deleteTrade } from "@/lib/tradeService";
 
 export async function GET(
   _request: Request,
@@ -52,6 +52,13 @@ export async function DELETE(
 
     if (!userId) {
       return NextResponse.json({ error: "Missing required parameter: userId" }, { status: 400 });
+    }
+
+    const action = searchParams.get("action");
+
+    if (action === "delete") {
+      await deleteTrade(id, userId);
+      return NextResponse.json({ success: true });
     }
 
     const trade = await cancelTrade(id, userId, reason);

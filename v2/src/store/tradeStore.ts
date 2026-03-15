@@ -27,6 +27,7 @@ interface TradeState {
   createTrades: (params: CreateTradeParams[]) => Promise<FinancialTrade[]>;
   updateTrade: (tradeId: string, userId: string, changes: UpdateTradeParams) => Promise<FinancialTrade>;
   cancelTrade: (tradeId: string, userId: string, reason?: string) => Promise<void>;
+  deleteTrade: (tradeId: string, userId: string) => Promise<void>;
   setFilters: (filters: Partial<TradeFilters>) => void;
   clearError: () => void;
 }
@@ -135,6 +136,25 @@ export const useTradeStore = create<TradeState>((set) => ({
       const cancelled = await res.json();
       set((s) => ({
         trades: s.trades.map((t) => (t.id === tradeId ? cancelled : t)),
+        loading: false,
+      }));
+    } catch (err) {
+      set({ error: (err as Error).message, loading: false });
+      throw err;
+    }
+  },
+
+  deleteTrade: async (tradeId, userId) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/trades/${tradeId}?userId=${userId}&action=delete`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error((await res.json()).error);
+      set((s) => ({
+        trades: s.trades.filter((t) => t.id !== tradeId),
+        selectedTrade: s.selectedTrade?.trade.id === tradeId ? null : s.selectedTrade,
         loading: false,
       }));
     } catch (err) {

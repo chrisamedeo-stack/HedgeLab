@@ -298,6 +298,69 @@ export async function cancelTrade(
   return trade!;
 }
 
+// ─── Delete Trade (hard delete) ──────────────────────────────────────────────
+
+export async function deleteTrade(
+  tradeId: string,
+  userId: string
+): Promise<void> {
+  await requirePermission(userId, "trade.delete");
+
+  const trade = await getTrade(tradeId);
+  if (!trade) throw new Error("Trade not found");
+  if (Number(trade.allocated_volume) > 0) {
+    throw new Error("Cannot delete a trade with allocations. Cancel allocations first.");
+  }
+
+  // Check for any non-cancelled allocations
+  const openAllocs = await queryAll<{ id: string }>(
+    `SELECT id FROM pm_allocations WHERE trade_id = $1 AND status != 'cancelled'`,
+    [tradeId]
+  );
+  if (openAllocs.length > 0) {
+    throw new Error("Cannot delete a trade with open allocations. Cancel allocations first.");
+  }
+
+  await transaction(async (tx) => {
+    // Delete from detail tables first
+    await tx.query(`DELETE FROM tc_swap_settlements WHERE trade_id = $1`, [tradeId]);
+    await tx.query(`DELETE FROM tc_swap_details WHERE trade_id = $1`, [tradeId]);
+    await tx.query(`DELETE FROM tc_option_details WHERE trade_id = $1`, [tradeId]);
+    await tx.query(`DELETE FROM tc_futures_details WHERE trade_id = $1`, [tradeId]);
+    // Delete cancelled allocations referencing this trade
+    await tx.query(`DELETE FROM pm_allocations WHERE trade_id = $1 AND status = 'cancelled'`, [tradeId]);
+    // Delete the trade itself
+    await tx.query(`DELETE FROM tc_financial_trades WHERE id = $1`, [tradeId]);
+  });
+
+  await auditLog({
+    orgId: trade.org_id,
+    userId,
+    module: "trades",
+    entityType: "financial_trade",
+    entityId: tradeId,
+    action: "delete",
+    before: trade as unknown as Record<string, unknown>,
+    after: null,
+  });
+
+  await emit({
+    type: EventTypes.TRADE_DELETED,
+    source: "trades",
+    entityType: "financial_trade",
+    entityId: tradeId,
+    payload: {
+      commodityId: trade.commodity_id,
+      contractMonth: trade.contract_month,
+      direction: trade.direction,
+      totalVolume: trade.total_volume,
+      tradeType: trade.trade_type,
+    },
+    orgId: trade.org_id,
+    userId,
+  });
+}
+
 // ─── Get Trade (with details) ───────────────────────────────────────────────
 
 export async function getTrade(tradeId: string): Promise<FinancialTrade | null> {

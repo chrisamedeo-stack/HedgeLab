@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useTrade } from "@/hooks/useTrades";
 import { useTradeStore } from "@/store/tradeStore";
+import { usePositionStore } from "@/store/positionStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { KPICard } from "@/components/ui/KPICard";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -32,11 +33,14 @@ interface TradeDetailProps {
 
 export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRefresh }: TradeDetailProps) {
   const { data, loading, refetch } = useTrade(tradeId);
-  const { cancelTrade, updateTrade } = useTradeStore();
+  const { cancelTrade, updateTrade, deleteTrade } = useTradeStore();
+  const { cancelAllocation } = usePositionStore();
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
   const [editPrice, setEditPrice] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [undoingId, setUndoingId] = useState<string | null>(null);
 
   if (loading || !data) {
     return (
@@ -60,6 +64,34 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
       // error handled by store
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Permanently delete this trade? This cannot be undone.")) return;
+    setDeleting(true);
+    try {
+      await deleteTrade(tradeId, user!.id);
+      onRefresh();
+      onClose();
+    } catch {
+      // error handled by store
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleUndoAllocation = async (allocationId: string) => {
+    if (!confirm("Cancel this allocation?")) return;
+    setUndoingId(allocationId);
+    try {
+      await cancelAllocation(user!.id, allocationId);
+      refetch();
+      onRefresh();
+    } catch {
+      // error handled by store
+    } finally {
+      setUndoingId(null);
     }
   };
 
@@ -104,6 +136,21 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
       key: "status",
       header: "Status",
       render: (row) => <StatusBadge status={row.status} />,
+    },
+    {
+      key: "actions" as keyof Allocation,
+      header: "",
+      align: "right",
+      render: (row) =>
+        row.status === "open" ? (
+          <button
+            onClick={() => handleUndoAllocation(row.id)}
+            disabled={undoingId === row.id}
+            className="text-xs text-loss hover:text-loss/80 disabled:opacity-50"
+          >
+            {undoingId === row.id ? "..." : "Undo"}
+          </button>
+        ) : null,
     },
   ];
 
@@ -162,6 +209,15 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
               >
                 {cancelling ? "Cancelling..." : "Cancel Trade"}
               </button>
+              {trade.status === "open" && Number(trade.allocated_volume) === 0 && (
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="rounded-md bg-destructive-10 border border-destructive-20 px-3 py-1.5 text-xs font-medium text-loss hover:bg-destructive-15 disabled:opacity-50"
+                >
+                  {deleting ? "Deleting..." : "Delete"}
+                </button>
+              )}
             </>
           )}
           <Link
