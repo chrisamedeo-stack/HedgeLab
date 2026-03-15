@@ -5,5 +5,5 @@ VALUES ('trade.delete', 'trade', 'delete', 'Permanently delete trades with no al
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.id, 'trade.delete' FROM roles r WHERE r.name IN ('admin', 'trader')
+SELECT r.id, 'trade.delete' FROM roles r WHERE r.id IN ('admin', 'trader')
 ON CONFLICT DO NOTHING;
