@@ -22,6 +22,7 @@ interface ContractState {
   // Contract actions
   fetchContracts: (orgId: string, filters?: Partial<ContractFilters>) => Promise<void>;
   createContract: (params: CreateContractParams) => Promise<PhysicalContract>;
+  createBulkContracts: (paramsList: CreateContractParams[]) => Promise<PhysicalContract[]>;
   updateContract: (id: string, userId: string, changes: UpdateContractParams) => Promise<PhysicalContract>;
   transitionContract: (id: string, userId: string, action: string, extra?: Record<string, unknown>) => Promise<PhysicalContract>;
   cancelContract: (id: string, userId: string, reason?: string) => Promise<void>;
@@ -69,6 +70,24 @@ export const useContractStore = create<ContractState>((set) => ({
       const contract = await res.json();
       set((s) => ({ contracts: [contract, ...s.contracts], loading: false }));
       return contract;
+    } catch (err) {
+      set({ error: (err as Error).message, loading: false });
+      throw err;
+    }
+  },
+
+  createBulkContracts: async (paramsList) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await fetch(`${API_BASE}/api/contracts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(paramsList),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      const contracts: PhysicalContract[] = await res.json();
+      set((s) => ({ contracts: [...contracts, ...s.contracts], loading: false }));
+      return contracts;
     } catch (err) {
       set({ error: (err as Error).message, loading: false });
       throw err;

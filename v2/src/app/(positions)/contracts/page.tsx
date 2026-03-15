@@ -6,6 +6,7 @@ import { useSites, useCommodities } from "@/hooks/usePositions";
 import { useCommodityContext } from "@/contexts/CommodityContext";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
+import MultiMonthContractGrid from "@/components/contracts/MultiMonthContractGrid";
 import type {
   PhysicalContract,
   ContractStatus,
@@ -51,6 +52,7 @@ export default function ContractsPage() {
   const { createContract, transitionContract, cancelContract } = useContractStore();
 
   const [showForm, setShowForm] = useState(false);
+  const [showMultiMonth, setShowMultiMonth] = useState(false);
   const [deliverContractId, setDeliverContractId] = useState<string | null>(null);
   const [deliverVolume, setDeliverVolume] = useState("");
 
@@ -178,15 +180,26 @@ export default function ContractsPage() {
             {contracts.length} contract{contracts.length !== 1 ? "s" : ""} &mdash; full lifecycle management
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          New Contract
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setShowMultiMonth(true); setShowForm(false); }}
+            className="inline-flex items-center gap-2 rounded-lg border border-b-input px-4 py-2 text-sm font-medium text-secondary transition-colors hover:bg-input-bg"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            Multi-Month
+          </button>
+          <button
+            onClick={() => { setShowForm(true); setShowMultiMonth(false); }}
+            className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            New Contract
+          </button>
+        </div>
       </div>
 
       {/* Filter Bar */}
@@ -355,6 +368,20 @@ export default function ContractsPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Multi-Month Contract Grid */}
+      {showMultiMonth && (
+        <MultiMonthContractGrid
+          orgId={orgId}
+          userId={user!.id}
+          defaultCommodityId={commodityId ?? undefined}
+          counterparties={counterparties}
+          commodities={commodities ?? []}
+          sites={sites ?? []}
+          onSaved={() => { setShowMultiMonth(false); refetch(); }}
+          onCancel={() => setShowMultiMonth(false)}
+        />
       )}
 
       {/* Inline New Contract Form */}

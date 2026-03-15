@@ -92,6 +92,33 @@ export function formatContractMonth(code: string | null | undefined): string {
 }
 
 /**
+ * Generate an array of "YYYY-MM" strings from start to end (inclusive).
+ * E.g. generateMonthRange("2026-01", "2026-04") → ["2026-01","2026-02","2026-03","2026-04"]
+ */
+export function generateMonthRange(start: string, end: string): string[] {
+  const months: string[] = [];
+  const [sy, sm] = start.split("-").map(Number);
+  const [ey, em] = end.split("-").map(Number);
+  let y = sy, m = sm;
+  while (y < ey || (y === ey && m <= em)) {
+    months.push(`${y}-${String(m).padStart(2, "0")}`);
+    m++;
+    if (m > 12) { m = 1; y++; }
+  }
+  return months;
+}
+
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * Format "2026-03" → "Mar 26"
+ */
+export function monthLabel(ym: string): string {
+  const [y, m] = ym.split("-").map(Number);
+  return `${SHORT_MONTHS[m - 1]} ${String(y).slice(-2)}`;
+}
+
+/**
  * Generate all futures month codes for a commodity for the next N years.
  * Filters out months that have already passed.
  */

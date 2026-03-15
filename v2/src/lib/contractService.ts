@@ -270,6 +270,78 @@ export async function createContract(params: CreateContractParams): Promise<Phys
   return row!;
 }
 
+export async function createBulkContracts(paramsList: CreateContractParams[]): Promise<PhysicalContract[]> {
+  if (paramsList.length === 0) throw new Error("No contracts to create");
+  await requirePermission(paramsList[0].userId, "contract.create");
+
+  const results: PhysicalContract[] = [];
+  for (const params of paramsList) {
+    const row = await queryOne<PhysicalContract>(
+      `INSERT INTO ct_physical_contracts
+         (org_id, counterparty_id, commodity_id, site_id, contract_ref,
+          contract_type, pricing_type, direction, total_volume,
+          price, basis_price, basis_month, formula_id, currency,
+          delivery_start, delivery_end, delivery_location,
+          payment_terms_days, incoterms, quality_specs, notes, entered_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+       RETURNING *`,
+      [
+        params.orgId,
+        params.counterpartyId ?? null,
+        params.commodityId ?? null,
+        params.siteId ?? null,
+        params.contractRef ?? null,
+        params.contractType,
+        params.pricingType ?? "fixed",
+        params.direction,
+        params.totalVolume,
+        params.price ?? null,
+        params.basisPrice ?? null,
+        params.basisMonth ?? null,
+        params.formulaId ?? null,
+        params.currency ?? "USD",
+        params.deliveryStart ?? null,
+        params.deliveryEnd ?? null,
+        params.deliveryLocation ?? null,
+        params.paymentTermsDays ?? null,
+        params.incoterms ?? null,
+        JSON.stringify(params.qualitySpecs ?? {}),
+        params.notes ?? null,
+        params.userId,
+      ]
+    );
+
+    await auditLog({
+      orgId: params.orgId,
+      userId: params.userId,
+      module: "contracts",
+      entityType: "physical_contract",
+      entityId: row!.id,
+      action: "create",
+      after: row as unknown as Record<string, unknown>,
+    });
+
+    await emit({
+      type: EventTypes.PHYSICAL_CONTRACT_CREATED,
+      source: "contracts",
+      entityType: "physical_contract",
+      entityId: row!.id,
+      payload: {
+        commodityId: params.commodityId,
+        direction: params.direction,
+        totalVolume: params.totalVolume,
+        counterpartyId: params.counterpartyId,
+      },
+      orgId: params.orgId,
+      userId: params.userId,
+    });
+
+    results.push(row!);
+  }
+
+  return results;
+}
+
 export async function getContract(id: string): Promise<PhysicalContract | null> {
   return queryOne<PhysicalContract>(
     `SELECT c.*, cp.name as counterparty_name, com.name as commodity_name, s.name as site_name
