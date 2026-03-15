@@ -38,6 +38,13 @@ const typeStyle: Record<string, { bg: string; text: string }> = {
   swap: { bg: "bg-swap-15", text: "text-swap" },
 };
 
+function formatBudgetMonth(ym: string): string {
+  const [year, month] = ym.split("-");
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const idx = parseInt(month, 10) - 1;
+  return idx >= 0 && idx < 12 ? `${monthNames[idx]} ${year}` : ym;
+}
+
 function DetailField({ label, value }: { label: string; value: string | number | null | undefined }) {
   return (
     <div>
@@ -454,11 +461,11 @@ export default function TradeDetailPage() {
                   <tr key={a.id} className="hover:bg-row-hover">
                     <td className="px-4 py-2.5 font-medium text-secondary">
                       <Link href={`/sites/${a.site_id}`} className="hover:text-action hover:underline">
-                        {a.site_id.slice(0, 8)}
+                        {(a as unknown as { site_name?: string }).site_name ?? a.site_id.slice(0, 8)}
                       </Link>
                     </td>
                     <td className="px-4 py-2.5 tabular-nums text-secondary">{Number(a.allocated_volume).toLocaleString()}</td>
-                    <td className="px-4 py-2.5 font-mono text-muted">{a.budget_month ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-muted">{a.budget_month ? formatBudgetMonth(a.budget_month) : "—"}</td>
                     <td className="px-4 py-2.5 tabular-nums text-muted">{formatContractMonth(a.contract_month)}</td>
                     <td className="px-4 py-2.5">
                       {a.direction ? (

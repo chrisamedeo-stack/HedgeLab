@@ -354,6 +354,8 @@ function Sidebar() {
         <div className="space-y-0.5">
           <NavLink href="/sites" label="Sites" collapsed={collapsed} />
           <NavLink href="/import" label="Import" collapsed={collapsed} />
+          <NavLink href="/exports" label="Exports" collapsed={collapsed} />
+          <NavLink href="/audit" label="Audit Log" collapsed={collapsed} />
           <NavLink href="/settings" label="Settings" collapsed={collapsed} />
           {user?.roleId === "admin" && (
             <NavLink href="/platform" label="Platform Admin" collapsed={collapsed} />
