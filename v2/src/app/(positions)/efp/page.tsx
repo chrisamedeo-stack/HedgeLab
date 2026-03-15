@@ -39,7 +39,7 @@ export default function EFPPage() {
       <div>
         <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">EFP / Locked Positions</h1>
         <p className="mt-0.5 text-xs text-faint">
-          {lockedPositions.length} locked position{lockedPositions.length !== 1 ? "s" : ""} &mdash; Exchange for Physical
+          {lockedPositions.length} locked position{lockedPositions.length !== 1 ? "s" : ""} &middot; Exchange for Physical
         </p>
       </div>
 

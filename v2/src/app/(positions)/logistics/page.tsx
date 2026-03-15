@@ -176,7 +176,7 @@ export default function LogisticsPage() {
         <div>
           <h1 className="text-xl font-bold text-primary">Logistics</h1>
           <p className="text-sm text-muted mt-0.5">
-            {deliveries.length} delivery record{deliveries.length !== 1 ? "s" : ""} &mdash; track shipments &amp; inventory
+            {deliveries.length} delivery record{deliveries.length !== 1 ? "s" : ""} &middot; track shipments &amp; inventory
           </p>
         </div>
         <div className="flex gap-2">

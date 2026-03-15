@@ -186,7 +186,7 @@ export default function SettlementPage() {
         <div>
           <h1 className="text-xl font-bold text-primary">Settlement</h1>
           <p className="text-sm text-muted mt-0.5">
-            {invoices.length} invoice{invoices.length !== 1 ? "s" : ""} &mdash; invoicing &amp; payments
+            {invoices.length} invoice{invoices.length !== 1 ? "s" : ""} &middot; invoicing &amp; payments
           </p>
         </div>
         <div className="flex gap-2">

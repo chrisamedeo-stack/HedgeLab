@@ -60,7 +60,7 @@ export default function ReceiptsPage() {
         <div>
           <h1 className="text-xl font-bold text-primary">Receipts</h1>
           <p className="text-sm text-muted mt-0.5">
-            {receipts.length} receipt{receipts.length !== 1 ? "s" : ""} &mdash; physical delivery receipts
+            {receipts.length} receipt{receipts.length !== 1 ? "s" : ""} &middot; physical delivery receipts
           </p>
         </div>
       </div>

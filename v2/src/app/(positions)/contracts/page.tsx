@@ -177,7 +177,7 @@ export default function ContractsPage() {
         <div>
           <h1 className="text-xl font-bold text-primary">Physical Contracts</h1>
           <p className="text-sm text-muted mt-0.5">
-            {contracts.length} contract{contracts.length !== 1 ? "s" : ""} &mdash; full lifecycle management
+            {contracts.length} contract{contracts.length !== 1 ? "s" : ""} &middot; full lifecycle management
           </p>
         </div>
         <div className="flex gap-2">
