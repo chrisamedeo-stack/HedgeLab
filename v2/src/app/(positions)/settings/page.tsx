@@ -6,7 +6,6 @@ import {
   Building2,
   Wheat,
   Calendar,
-  ArrowLeftRight,
   Shield,
   Calculator,
   Truck,
@@ -16,19 +15,17 @@ import { OrgSettingsTab } from "@/components/admin/OrgSettingsTab";
 import { SitesTab } from "@/components/admin/SitesTab";
 import { CommoditiesTab } from "@/components/admin/CommoditiesTab";
 import { FiscalYearTab } from "@/components/admin/FiscalYearTab";
-import { FuturesMonthsTab } from "@/components/admin/FuturesMonthsTab";
 import { UsersTab } from "@/components/admin/UsersTab";
 import { PricingTab } from "@/components/admin/PricingTab";
 import { SuppliersTab } from "@/components/admin/SuppliersTab";
 
-type Tab = "org-settings" | "sites" | "commodities" | "fiscal-year" | "futures-months" | "users" | "suppliers" | "pricing";
+type Tab = "org-settings" | "sites" | "commodities" | "fiscal-year" | "users" | "suppliers" | "pricing";
 
 const TABS: { key: Tab; label: string; icon: typeof Settings }[] = [
   { key: "org-settings", label: "Org Settings", icon: Settings },
   { key: "sites", label: "Sites", icon: Building2 },
   { key: "commodities", label: "Commodities", icon: Wheat },
   { key: "fiscal-year", label: "Fiscal Year", icon: Calendar },
-  { key: "futures-months", label: "Futures Months", icon: ArrowLeftRight },
   { key: "users", label: "Users", icon: Shield },
   { key: "suppliers", label: "Suppliers & Counterparties", icon: Truck },
   { key: "pricing", label: "Pricing", icon: Calculator },
@@ -64,7 +61,6 @@ export default function SettingsPage() {
       {tab === "sites" && <SitesTab />}
       {tab === "commodities" && <CommoditiesTab />}
       {tab === "fiscal-year" && <FiscalYearTab />}
-      {tab === "futures-months" && <FuturesMonthsTab />}
       {tab === "users" && <UsersTab />}
       {tab === "suppliers" && <SuppliersTab />}
       {tab === "pricing" && <PricingTab />}
