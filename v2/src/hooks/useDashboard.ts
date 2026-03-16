@@ -1,109 +1,82 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useDashboardStore } from "@/store/dashboardStore";
-import type { DashboardSummary } from "@/store/dashboardStore";
-import type { DrillPathEntry, DrillLevel } from "@/types/dashboard";
+import type { NavState, DrillLevel } from "@/types/dashboard";
 
-export function useDashboardData(orgId: string, commodityId?: string, orgUnitId?: string) {
-  const { coverageBySite, positionsByMonth, loading, error, fetchDashboardData } = useDashboardStore();
+// ─── Main Data Hook ─────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    if (orgId) fetchDashboardData(orgId, commodityId, orgUnitId);
-  }, [orgId, commodityId, orgUnitId, fetchDashboardData]);
-
-  return {
-    coverageBySite,
-    positionsByMonth,
-    loading,
-    error,
-    refetch: () => fetchDashboardData(orgId, commodityId, orgUnitId),
-  };
-}
-
-export function useDashboardSummary(orgId: string, commodityId?: string, orgUnitId?: string) {
-  const { summary, loading, error, fetchDashboardSummary } = useDashboardStore();
+export function useDashboard(orgId: string, nav: NavState) {
+  const {
+    kpis, alerts, children, operational,
+    coverageBySite, positionsByMonth,
+    loading, error, fetchDashboard,
+  } = useDashboardStore();
 
   useEffect(() => {
-    if (orgId) fetchDashboardSummary(orgId, commodityId, orgUnitId);
-  }, [orgId, commodityId, orgUnitId, fetchDashboardSummary]);
+    if (orgId) fetchDashboard(nav);
+  }, [orgId, nav.level, nav.orgUnitId, nav.siteId, nav.commodityId, fetchDashboard]);
 
-  return {
-    data: summary,
-    loading,
-    error,
-    refetch: () => fetchDashboardSummary(orgId, commodityId, orgUnitId),
-  };
+  const refetch = useCallback(() => fetchDashboard(nav), [nav, fetchDashboard]);
+
+  return { kpis, alerts, children, operational, coverageBySite, positionsByMonth, loading, error, refetch };
 }
 
-// ─── Drill-Down Hook ─────────────────────────────────────────────────────────
+// ─── Navigation Hook ────────────────────────────────────────────────────────
 
-export function useDrillDown() {
-  const { drillPath, drillLevel, drillDown, drillTo, resetDrill } = useDashboardStore();
+export function useDashboardNav() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { setNav } = useDashboardStore();
 
-  const currentUnitId = drillPath.length > 0 && drillPath[drillPath.length - 1].type === "unit"
-    ? drillPath[drillPath.length - 1].id
-    : undefined;
+  // Parse nav state from URL params
+  const nav = useMemo<NavState>(() => {
+    const siteId = searchParams.get("site") ?? undefined;
+    const orgUnitId = searchParams.get("unit") ?? undefined;
+    const commodityId = searchParams.get("commodity") ?? undefined;
 
-  const currentSiteId = drillPath.length > 0 && drillPath[drillPath.length - 1].type === "site"
-    ? drillPath[drillPath.length - 1].id
-    : undefined;
+    let level: DrillLevel = "corporate";
+    if (siteId) level = "site";
+    else if (orgUnitId) level = "unit";
 
-  return {
-    drillPath,
-    drillLevel: drillLevel as DrillLevel,
-    drillDown: drillDown as (entry: DrillPathEntry) => void,
-    drillTo,
-    resetDrill,
-    currentUnitId,
-    currentSiteId,
-  };
+    return { level, orgUnitId, siteId, commodityId };
+  }, [searchParams]);
+
+  // Sync store
+  useEffect(() => { setNav(nav); }, [nav, setNav]);
+
+  const updateUrl = useCallback((updates: Partial<NavState>) => {
+    const next = { ...nav, ...updates };
+    const params = new URLSearchParams();
+    if (next.orgUnitId) params.set("unit", next.orgUnitId);
+    if (next.siteId) params.set("site", next.siteId);
+    if (next.commodityId) params.set("commodity", next.commodityId);
+    const qs = params.toString();
+    router.push(`/dashboard${qs ? `?${qs}` : ""}`);
+  }, [nav, router]);
+
+  const selectUnit = useCallback((unitId: string) => {
+    updateUrl({ level: "unit", orgUnitId: unitId, siteId: undefined });
+  }, [updateUrl]);
+
+  const selectSite = useCallback((siteId: string) => {
+    updateUrl({ level: "site", siteId });
+  }, [updateUrl]);
+
+  const setCommodity = useCallback((commodityId: string | undefined) => {
+    updateUrl({ commodityId });
+  }, [updateUrl]);
+
+  const reset = useCallback(() => {
+    updateUrl({ level: "corporate", orgUnitId: undefined, siteId: undefined });
+  }, [updateUrl]);
+
+  const setLevel = useCallback((level: DrillLevel, id?: string) => {
+    if (level === "corporate") reset();
+    else if (level === "unit" && id) selectUnit(id);
+    else if (level === "site" && id) selectSite(id);
+  }, [reset, selectUnit, selectSite]);
+
+  return { nav, setLevel, selectUnit, selectSite, setCommodity, reset };
 }
-
-// ─── Layout Hook ─────────────────────────────────────────────────────────────
-
-export function useDashboardLayout(orgId: string) {
-  const { layout, layoutLoading, fetchLayout, saveLayout, resetLayout } = useDashboardStore();
-
-  useEffect(() => {
-    if (orgId) fetchLayout(orgId);
-  }, [orgId, fetchLayout]);
-
-  const save = useCallback(
-    (newLayout: typeof layout) => saveLayout(orgId, newLayout),
-    [orgId, saveLayout],
-  );
-
-  const reset = useCallback(
-    () => resetLayout(orgId),
-    [orgId, resetLayout],
-  );
-
-  return { layout, loading: layoutLoading, save, reset };
-}
-
-// ─── Unit Summaries Hook ─────────────────────────────────────────────────────
-
-export function useUnitSummaries(orgId: string, commodityId?: string) {
-  const { unitSummaries, summariesLoading, fetchUnitSummaries } = useDashboardStore();
-
-  useEffect(() => {
-    if (orgId) fetchUnitSummaries(orgId, commodityId);
-  }, [orgId, commodityId, fetchUnitSummaries]);
-
-  return { data: unitSummaries, loading: summariesLoading };
-}
-
-// ─── Site Summaries Hook ─────────────────────────────────────────────────────
-
-export function useSiteSummaries(orgId: string, unitId: string | undefined, commodityId?: string) {
-  const { siteSummaries, summariesLoading, fetchSiteSummaries } = useDashboardStore();
-
-  useEffect(() => {
-    if (orgId && unitId) fetchSiteSummaries(orgId, unitId, commodityId);
-  }, [orgId, unitId, commodityId, fetchSiteSummaries]);
-
-  return { data: siteSummaries, loading: summariesLoading };
-}
-
-export type { DashboardSummary };
