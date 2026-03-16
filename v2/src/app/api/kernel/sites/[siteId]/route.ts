@@ -28,7 +28,6 @@ export async function PUT(
            org_unit_id = $5,
            timezone = COALESCE($6, timezone),
            config = COALESCE($7, config),
-           updated_at = NOW()
        WHERE id = $8
        RETURNING *`,
       [code || null, name || null, region ?? null, siteTypeId || null, orgUnitId ?? null, timezone || null, config ? JSON.stringify(config) : null, siteId]
@@ -72,7 +71,7 @@ export async function DELETE(
     }
 
     await query(
-      `UPDATE sites SET is_active = false, updated_at = NOW() WHERE id = $1`,
+      `UPDATE sites SET is_active = false WHERE id = $1`,
       [siteId]
     );
 
