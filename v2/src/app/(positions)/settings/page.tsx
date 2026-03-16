@@ -9,8 +9,10 @@ import {
   Shield,
   Calculator,
   Truck,
+  Globe,
 } from "lucide-react";
 
+import { OrganizationTab } from "@/components/admin/OrganizationTab";
 import { OrgSettingsTab } from "@/components/admin/OrgSettingsTab";
 import { SitesTab } from "@/components/admin/SitesTab";
 import { CommoditiesTab } from "@/components/admin/CommoditiesTab";
@@ -19,9 +21,10 @@ import { UsersTab } from "@/components/admin/UsersTab";
 import { PricingTab } from "@/components/admin/PricingTab";
 import { SuppliersTab } from "@/components/admin/SuppliersTab";
 
-type Tab = "org-settings" | "sites" | "commodities" | "fiscal-year" | "users" | "suppliers" | "pricing";
+type Tab = "organization" | "org-settings" | "sites" | "commodities" | "fiscal-year" | "users" | "suppliers" | "pricing";
 
 const TABS: { key: Tab; label: string; icon: typeof Settings }[] = [
+  { key: "organization", label: "Organization", icon: Globe },
   { key: "org-settings", label: "Org Settings", icon: Settings },
   { key: "sites", label: "Sites", icon: Building2 },
   { key: "commodities", label: "Commodities", icon: Wheat },
@@ -36,7 +39,7 @@ function cn(...classes: (string | false | null | undefined)[]) {
 }
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<Tab>("org-settings");
+  const [tab, setTab] = useState<Tab>("organization");
 
   return (
     <div className="space-y-6 page-fade">
@@ -57,6 +60,7 @@ export default function SettingsPage() {
         ))}
       </div>
 
+      {tab === "organization" && <OrganizationTab />}
       {tab === "org-settings" && <OrgSettingsTab />}
       {tab === "sites" && <SitesTab />}
       {tab === "commodities" && <CommoditiesTab />}

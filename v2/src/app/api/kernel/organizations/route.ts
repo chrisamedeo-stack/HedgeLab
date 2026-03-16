@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { queryOne, transaction } from "@/lib/db";
+import { queryOne, query, transaction } from "@/lib/db";
 import { applyCustomerProfileInTx } from "@/lib/orgHierarchy";
 import { auditLog } from "@/lib/audit";
 import { hashPassword } from "@/lib/auth";
@@ -13,16 +13,16 @@ export async function GET(request: Request) {
 
     if (id) {
       // Platform impersonation: fetch specific org by ID
-      const org = await queryOne<{ id: string; name: string }>(
-        `SELECT id, name FROM organizations WHERE id = $1 AND is_active = true`,
+      const org = await queryOne<{ id: string; name: string; base_currency: string; customer_profile_id: string | null }>(
+        `SELECT id, name, base_currency, customer_profile_id FROM organizations WHERE id = $1 AND is_active = true`,
         [id]
       );
       if (org) return NextResponse.json({ exists: true, org });
       return NextResponse.json({ exists: false });
     }
 
-    const org = await queryOne<{ id: string; name: string }>(
-      `SELECT id, name FROM organizations WHERE is_active = true LIMIT 1`
+    const org = await queryOne<{ id: string; name: string; base_currency: string; customer_profile_id: string | null }>(
+      `SELECT id, name, base_currency, customer_profile_id FROM organizations WHERE is_active = true LIMIT 1`
     );
 
     if (org) {
@@ -144,6 +144,49 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
     console.error("[organizations] POST error:", err);
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
+}
+
+/** PATCH — Update organization name */
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { orgId, name, userId } = body;
+
+    if (!orgId || !name?.trim()) {
+      return NextResponse.json({ error: "orgId and name are required" }, { status: 400 });
+    }
+
+    const existing = await queryOne<{ id: string; name: string }>(
+      `SELECT id, name FROM organizations WHERE id = $1 AND is_active = true`,
+      [orgId]
+    );
+    if (!existing) {
+      return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    }
+
+    await query(
+      `UPDATE organizations SET name = $1 WHERE id = $2`,
+      [name.trim(), orgId]
+    );
+
+    if (userId) {
+      await auditLog({
+        orgId,
+        userId,
+        module: "kernel",
+        entityType: "organization",
+        entityId: orgId,
+        action: "update",
+        before: { name: existing.name },
+        after: { name: name.trim() },
+      });
+    }
+
+    return NextResponse.json({ id: orgId, name: name.trim() });
+  } catch (err) {
+    console.error("[organizations] PATCH error:", err);
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
 }
