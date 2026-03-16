@@ -176,7 +176,7 @@ export default function ContractsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Physical Contracts</h1>
-          <p className="text-sm text-muted mt-0.5">
+          <p className="mt-0.5 text-xs text-faint">
             {contracts.length} contract{contracts.length !== 1 ? "s" : ""} &middot; full lifecycle management
           </p>
         </div>

@@ -95,8 +95,8 @@ export default function ImportDashboardPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-primary">Import History</h1>
-          <p className="mt-0.5 text-sm text-faint">
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Import History</h1>
+          <p className="mt-0.5 text-xs text-faint">
             View past imports and start new ones.
           </p>
         </div>

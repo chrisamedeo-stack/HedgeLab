@@ -41,8 +41,8 @@ export default function PlatformPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-primary">Platform Admin</h1>
-          <p className="text-sm text-muted mt-1">Manage customer organizations</p>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Platform Admin</h1>
+          <p className="mt-0.5 text-xs text-faint">Manage customer organizations</p>
         </div>
         <Link
           href="/platform/orgs/new"

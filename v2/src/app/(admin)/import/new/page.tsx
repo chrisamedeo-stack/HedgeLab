@@ -17,8 +17,8 @@ export default function ImportNewPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-primary">New Import</h1>
-        <p className="mt-0.5 text-sm text-muted">
+        <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">New Import</h1>
+        <p className="mt-0.5 text-xs text-faint">
           Import data from CSV files with AI-assisted column mapping.
         </p>
       </div>

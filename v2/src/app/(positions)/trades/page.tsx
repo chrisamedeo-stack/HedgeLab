@@ -29,7 +29,7 @@ export default function TradesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Trade Blotter</h1>
-          <p className="text-sm text-muted mt-0.5">
+          <p className="mt-0.5 text-xs text-faint">
             {trades.length} trade{trades.length !== 1 ? "s" : ""} &middot; book and manage financial trades
           </p>
         </div>

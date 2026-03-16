@@ -59,7 +59,7 @@ export default function ReceiptsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Receipts</h1>
-          <p className="text-sm text-muted mt-0.5">
+          <p className="mt-0.5 text-xs text-faint">
             {receipts.length} receipt{receipts.length !== 1 ? "s" : ""} &middot; physical delivery receipts
           </p>
         </div>

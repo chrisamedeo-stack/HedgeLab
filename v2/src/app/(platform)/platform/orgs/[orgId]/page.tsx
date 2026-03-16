@@ -64,8 +64,8 @@ export default function OrgManagePage({ params }: { params: Promise<{ orgId: str
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-primary">{org.name}</h1>
-          <p className="text-sm text-muted mt-1">
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">{org.name}</h1>
+          <p className="mt-0.5 text-xs text-faint">
             {org.profile_name ?? "No profile"} &middot; {org.base_currency} &middot;{" "}
             <span className={org.is_active ? "text-profit" : "text-faint"}>
               {org.is_active ? "Active" : "Inactive"}

@@ -133,7 +133,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Dashboard</h1>
-            <p className="text-sm text-muted mt-0.5">
+            <p className="mt-0.5 text-xs text-faint">
               {selectedCommodityName} &middot; {sites?.length ?? 0} sites
             </p>
           </div>

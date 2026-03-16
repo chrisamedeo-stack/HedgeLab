@@ -175,7 +175,7 @@ export default function LogisticsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Logistics</h1>
-          <p className="text-sm text-muted mt-0.5">
+          <p className="mt-0.5 text-xs text-faint">
             {deliveries.length} delivery record{deliveries.length !== 1 ? "s" : ""} &middot; track shipments &amp; inventory
           </p>
         </div>
