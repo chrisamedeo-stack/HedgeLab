@@ -12,6 +12,7 @@ import { formatContractMonth } from "@/lib/commodity-utils";
 import type { PhysicalDirection, PricingType } from "@/types/positions";
 import type { Counterparty } from "@/types/contracts";
 import type { FormulaComponent, EvaluationResult } from "@/lib/pricingEngine";
+import type { Commodity } from "@/hooks/usePositions";
 
 const inputCls = "w-full rounded-md border border-b-input bg-input-bg px-3 py-2 text-sm text-primary focus:border-focus focus:outline-none";
 const labelCls = "mb-1 block text-xs font-medium text-muted";
@@ -19,7 +20,7 @@ const labelCls = "mb-1 block text-xs font-medium text-muted";
 interface PhysicalFormProps {
   orgId: string;
   siteId: string;
-  commodities: { id: string; name: string }[];
+  commodities: (Commodity | { id: string; name: string })[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -398,7 +399,7 @@ export function PhysicalForm({ orgId, siteId, commodities, onClose, onSuccess }:
         {/* Price + Pricing Type */}
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
-            <span className={labelCls}>Price</span>
+            <span className={labelCls}>Price{(() => { const c = commodities.find((c) => c.id === form.commodityId) as Commodity | undefined; return c?.trade_price_unit ? ` (${c.trade_price_unit})` : ""; })()}</span>
             <input
               type="number"
               step="any"

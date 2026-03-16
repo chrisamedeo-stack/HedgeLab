@@ -166,6 +166,16 @@ export function useSiteGroups(orgId?: string, groupType?: string) {
 
 // ─── Commodities ─────────────────────────────────────────────────────────────
 
+export interface CommodityUnit {
+  id: string;
+  unit_name: string;
+  abbreviation: string;
+  to_trade_unit: number;
+  from_trade_unit: number;
+  is_default_report: boolean;
+  sort_order: number;
+}
+
 export interface Commodity {
   id: string;
   name: string;
@@ -177,6 +187,22 @@ export interface Commodity {
   volume_unit?: string;
   contract_size?: number;
   contract_months?: string;
+  decimal_places?: number;
+  is_active?: boolean;
+  tick_size?: number;
+  tick_value?: number;
+  // New commodity config columns
+  display_name?: string;
+  commodity_class?: string;
+  ticker_root?: string;
+  trade_price_unit?: string;
+  trade_volume_unit?: string;
+  price_decimal_places?: number;
+  point_value?: number;
+  basis_unit?: string;
+  basis_reference?: string;
+  // Reporting units (from commodity_units table)
+  units?: CommodityUnit[];
   config?: {
     month_mappings?: Record<string, number[]>;
     futures_prefix?: string;

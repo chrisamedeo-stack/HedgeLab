@@ -345,7 +345,7 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
                 <span>Dir</span>
                 <span>Futures Month</span>
                 <span>Volume</span>
-                <span>Price ($)</span>
+                <span>Price</span>
                 <span>Notes</span>
                 <span></span>
               </div>
@@ -355,7 +355,9 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
                 const contracts = Number(row.numContracts) || 0;
                 const rowMonths = getFuturesMonths(row.commodityId);
                 const rowCommodity = commodities.find((c) => c.id === row.commodityId);
-                const unitLabel = rowCommodity?.unit ? `/${rowCommodity.unit.replace(/s$/, "")}` : "";
+                const priceUnit = rowCommodity?.trade_price_unit ?? rowCommodity?.price_unit ?? "";
+                const priceDecimals = rowCommodity?.price_decimal_places ?? rowCommodity?.decimal_places ?? 4;
+                const priceStep = Math.pow(10, -priceDecimals).toString();
                 return (
                   <div key={row.key} className="grid grid-cols-[1fr_80px_130px_110px_100px_1fr_32px] gap-1.5 items-center">
                     <select value={row.commodityId} onChange={(e) => updateRow(row.key, "commodityId", e.target.value)} className={selectClass}>
@@ -375,8 +377,8 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
                       {contracts > 0 && <span className="absolute right-7 top-1/2 -translate-y-1/2 text-[10px] text-faint pointer-events-none">{contracts}ct</span>}
                     </div>
                     <div className="relative">
-                      <input type="number" step="0.0025" value={row.tradePrice} onChange={(e) => updateRow(row.key, "tradePrice", e.target.value)} className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none tabular-nums pr-8" placeholder="4.50" />
-                      {unitLabel && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-faint pointer-events-none">{unitLabel}</span>}
+                      <input type="number" step={priceStep} value={row.tradePrice} onChange={(e) => updateRow(row.key, "tradePrice", e.target.value)} className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none tabular-nums pr-8" placeholder="4.50" />
+                      {priceUnit && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-faint pointer-events-none">{priceUnit}</span>}
                     </div>
                     <input type="text" value={row.notes} onChange={(e) => updateRow(row.key, "notes", e.target.value)} className={selectClass} placeholder="Optional notes" />
                     <button type="button" onClick={() => removeRow(row.key)} className="flex h-7 w-7 items-center justify-center rounded text-faint hover:bg-hover hover:text-loss disabled:opacity-30" disabled={rows.length <= 1}>
@@ -442,11 +444,11 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted">Strike Price *</span>
-                <input required type="number" step="0.0025" value={optStrikePrice} onChange={(e) => setOptStrikePrice(e.target.value)} className={inputClass} placeholder="4.80" />
+                <input required type="number" step={(() => { const c = commodities.find((c) => c.id === optCommodityId); return Math.pow(10, -(c?.price_decimal_places ?? c?.decimal_places ?? 4)).toString(); })()} value={optStrikePrice} onChange={(e) => setOptStrikePrice(e.target.value)} className={inputClass} placeholder="4.80" />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Premium ($/unit) *</span>
-                <input required type="number" step="0.0025" value={optPremium} onChange={(e) => setOptPremium(e.target.value)} className={inputClass} placeholder="0.15" />
+                <span className="mb-1 block text-xs font-medium text-muted">Premium ({(() => { const c = commodities.find((c) => c.id === optCommodityId); return c?.trade_price_unit ?? "$/unit"; })()} ) *</span>
+                <input required type="number" step={(() => { const c = commodities.find((c) => c.id === optCommodityId); return Math.pow(10, -(c?.price_decimal_places ?? c?.decimal_places ?? 4)).toString(); })()} value={optPremium} onChange={(e) => setOptPremium(e.target.value)} className={inputClass} placeholder="0.15" />
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted">Expiration Date *</span>
