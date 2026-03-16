@@ -35,9 +35,15 @@ ON CONFLICT (org_id, plugin_id) DO UPDATE SET is_enabled = true;
 
 -- ─── 2. Deactivate Old Sites, Add New Sites ────────────────────────────────
 
+-- Deactivate any existing sites that aren't the demo ones
 UPDATE sites SET is_active = false
  WHERE org_id = '00000000-0000-0000-0000-000000000001'
-   AND code IN ('LETH', 'BRKS', 'FARG');
+   AND id NOT IN (
+     '00000000-0000-0000-0000-000000000210',
+     '00000000-0000-0000-0000-000000000211',
+     '00000000-0000-0000-0000-000000000212',
+     '00000000-0000-0000-0000-000000000213'
+   );
 
 INSERT INTO sites (id, org_id, site_type_id, name, code, region, org_unit_id) VALUES
   ('00000000-0000-0000-0000-000000000210', '00000000-0000-0000-0000-000000000001',
@@ -592,6 +598,21 @@ INSERT INTO rsk_mtm_snapshots (org_id, snapshot_date, commodity_id, futures_pnl,
   ('00000000-0000-0000-0000-000000000001', '2026-03-15', 'CORN', 53800, -10800, 320000, 18250, 35550, 'USD', 4.5500),
   ('00000000-0000-0000-0000-000000000001', '2026-03-16', 'CORN', 49600, -11500, 320000, 18250, 31350, 'USD', 4.5375)
 ON CONFLICT DO NOTHING;
+
+-- ─── 16. Site Suppliers ──────────────────────────────────────────────────────
+
+INSERT INTO site_suppliers (site_id, counterparty_id) VALUES
+  -- Boulder Feed Mill ← Cargill, ADM
+  ('00000000-0000-0000-0000-000000000210', '00000000-0000-0000-0000-000000000500'),
+  ('00000000-0000-0000-0000-000000000210', '00000000-0000-0000-0000-000000000501'),
+  -- Chicago Elevator ← ADM, Bunge
+  ('00000000-0000-0000-0000-000000000211', '00000000-0000-0000-0000-000000000501'),
+  ('00000000-0000-0000-0000-000000000211', '00000000-0000-0000-0000-000000000502'),
+  -- Banff Feed Yard ← Cargill
+  ('00000000-0000-0000-0000-000000000212', '00000000-0000-0000-0000-000000000500'),
+  -- Montreal Elevator ← Bunge
+  ('00000000-0000-0000-0000-000000000213', '00000000-0000-0000-0000-000000000502')
+ON CONFLICT (site_id, counterparty_id) DO NOTHING;
 
 -- ─── Done ───────────────────────────────────────────────────────────────────
 

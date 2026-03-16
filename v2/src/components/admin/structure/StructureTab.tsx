@@ -5,10 +5,9 @@ import { Plus } from "lucide-react";
 import { useOrgContextSafe } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch, btnPrimary, inputCls, cn } from "../shared";
-import { TableSkeleton, ConfirmDialog } from "../SharedUI";
+import { TableSkeleton } from "../SharedUI";
 import { LevelEditor } from "./LevelEditor";
-import { OrgTree, type SelectedNode } from "./OrgTree";
-import { DetailPanel } from "./DetailPanel";
+import { OrgTreeCard } from "./OrgTreeCard";
 import type { OrgTreeNode, HierarchyLevel } from "@/types/org";
 
 export function StructureTab({ orgId: propOrgId }: { orgId?: string } = {}) {
@@ -21,15 +20,8 @@ export function StructureTab({ orgId: propOrgId }: { orgId?: string } = {}) {
   const [levels, setLevels] = useState<HierarchyLevel[]>([]);
   const [siteTypes, setSiteTypes] = useState<{ id: string; name: string }[]>([]);
   const [commodities, setCommodities] = useState<{ id: string; name: string }[]>([]);
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [selected, setSelected] = useState<SelectedNode | null>(null);
-
-  // Delete confirm
-  const [deleteTarget, setDeleteTarget] = useState<{ type: "unit" | "site"; id: string; name: string } | null>(null);
 
   // Add root unit form
   const [showAddRoot, setShowAddRoot] = useState(false);
@@ -48,11 +40,6 @@ export function StructureTab({ orgId: propOrgId }: { orgId?: string } = {}) {
       setLevels(levelsData ?? []);
       setSiteTypes(typesData ?? []);
       setCommodities((commodityData ?? []).map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })));
-
-      // Auto-expand root nodes on first load
-      if (treeData?.length && expanded.size === 0) {
-        setExpanded(new Set(treeData.map((n: OrgTreeNode) => n.id)));
-      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -67,36 +54,6 @@ export function StructureTab({ orgId: propOrgId }: { orgId?: string } = {}) {
     ctx?.refreshOrgTree?.();
   }
 
-  function toggleExpand(id: string) {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  async function handleDelete() {
-    if (!deleteTarget) return;
-    try {
-      if (deleteTarget.type === "unit") {
-        await apiFetch(`/api/kernel/org-hierarchy/${deleteTarget.id}`, {
-          method: "DELETE",
-          body: JSON.stringify({ userId }),
-        });
-      } else {
-        await apiFetch(`/api/kernel/sites/${deleteTarget.id}`, { method: "DELETE" });
-      }
-      if (selected?.id === deleteTarget.id) setSelected(null);
-      reload();
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setDeleteTarget(null);
-    }
-  }
-
-  // Find the top-level (root) non-site level for adding root units
   const nonSiteLevels = levels.filter((l) => !l.is_site_level);
   const rootLevel = nonSiteLevels.length > 0 ? nonSiteLevels[0] : null;
 
@@ -178,44 +135,16 @@ export function StructureTab({ orgId: propOrgId }: { orgId?: string } = {}) {
         </div>
       )}
 
-      {/* Split panel: tree + detail */}
-      <div className="flex gap-4" style={{ minHeight: 400 }}>
-        {/* Left: tree */}
-        <div className="flex-1 min-w-0">
-          <OrgTree
-            tree={tree}
-            selected={selected}
-            onSelect={setSelected}
-            onDeleteUnit={(node) => setDeleteTarget({ type: "unit", id: node.id, name: node.name })}
-            onDeleteSite={(site) => setDeleteTarget({ type: "site", id: site.id, name: site.name })}
-            expanded={expanded}
-            onToggleExpand={toggleExpand}
-          />
-        </div>
-
-        {/* Right: detail panel */}
-        <div className="w-[340px] shrink-0">
-          <DetailPanel
-            orgId={orgId}
-            userId={userId}
-            selected={selected}
-            levels={levels}
-            siteTypes={siteTypes}
-            allCommodities={commodities}
-            tree={tree}
-            onChanged={reload}
-          />
-        </div>
-      </div>
-
-      {deleteTarget && (
-        <ConfirmDialog
-          title={`Delete ${deleteTarget.type === "unit" ? "Unit" : "Site"}`}
-          desc={`Delete "${deleteTarget.name}"? This cannot be undone.`}
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
-        />
-      )}
+      {/* Full-width org tree */}
+      <OrgTreeCard
+        orgId={orgId}
+        userId={userId}
+        tree={tree}
+        levels={levels}
+        siteTypes={siteTypes}
+        commodities={commodities}
+        onTreeChange={reload}
+      />
     </div>
   );
 }
