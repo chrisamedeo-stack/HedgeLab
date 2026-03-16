@@ -1,25 +1,73 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Plus, ArrowLeft, X, Trash2 } from "lucide-react";
-import { apiFetch, btnPrimary, btnCancel, btnDanger, inputCls, selectCls, cn } from "./shared";
-import { TableSkeleton, EmptyState } from "./SharedUI";
-import { MarketDataTab } from "./MarketDataTab";
+import { Plus, ArrowLeft, Trash2, Pencil, Check, X } from "lucide-react";
+import { apiFetch, btnPrimary, inputCls, selectCls, cn } from "./shared";
+import { TableSkeleton } from "./SharedUI";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-const FUTURES_LETTER_NAMES: Record<string, string> = {
-  F: "January", G: "February", H: "March", J: "April", K: "May", M: "June",
-  N: "July", Q: "August", U: "September", V: "October", X: "November", Z: "December",
+const ALL_FUTURES: { code: string; name: string }[] = [
+  { code: "F", name: "January" }, { code: "G", name: "February" },
+  { code: "H", name: "March" }, { code: "J", name: "April" },
+  { code: "K", name: "May" }, { code: "M", name: "June" },
+  { code: "N", name: "July" }, { code: "Q", name: "August" },
+  { code: "U", name: "September" }, { code: "V", name: "October" },
+  { code: "X", name: "November" }, { code: "Z", name: "December" },
+];
+
+const CATEGORIES = [
+  { value: "ag", label: "Grains" },
+  { value: "oilseeds", label: "Oilseeds" },
+  { value: "energy", label: "Energy" },
+  { value: "metals", label: "Metals" },
+  { value: "softs", label: "Softs" },
+  { value: "livestock", label: "Livestock" },
+];
+
+const EXCHANGES = ["CBOT", "CME", "NYMEX", "ICE US", "ICE EU", "LME"];
+const CURRENCIES = ["USD", "CAD", "EUR", "GBP", "AUD", "BRL"];
+const DECIMALS_OPTIONS = [2, 3, 4, 6];
+
+const UOM_OPTIONS = [
+  { value: "Bushels", abbr: "bu" },
+  { value: "Barrels", abbr: "bbl" },
+  { value: "MMBtu", abbr: "MMBtu" },
+  { value: "Troy ounces", abbr: "troy oz" },
+  { value: "Pounds", abbr: "lb" },
+  { value: "Short tons", abbr: "st" },
+  { value: "Metric tons", abbr: "MT" },
+  { value: "Gallons", abbr: "gal" },
+  { value: "MWh", abbr: "MWh" },
+  { value: "Contracts", abbr: "lot" },
+];
+
+const PRICE_UNITS_BY_UOM: Record<string, string[]> = {
+  Bushels: ["$/bu", "cents/bu", "$/MT"],
+  Barrels: ["$/bbl", "$/MT"],
+  MMBtu: ["$/MMBtu", "$/therm"],
+  "Troy ounces": ["$/troy oz", "$/MT"],
+  Pounds: ["cents/lb", "$/lb", "$/MT"],
+  "Short tons": ["$/short ton", "$/MT"],
+  "Metric tons": ["$/MT"],
+  Gallons: ["$/gal", "$/bbl"],
+  MWh: ["$/MWh"],
+  Contracts: ["$/contract"],
 };
 
-const CATEGORIES = ["ag", "energy", "metals", "softs"];
-const COMMODITY_CLASSES = ["grains", "oilseeds", "softs", "energy", "metals"];
+const BASIS_UNITS = ["cents/bu", "$/bbl", "$/MT", "$/MMBtu", "cents/lb", "$/short ton", "percentage"];
+const SIGN_CONVENTIONS = [
+  { value: "positive_above", label: "Positive = above reference" },
+  { value: "negative_below", label: "Negative = below reference" },
+];
+
+const GRAIN_PRESET: Record<string, number[]> = { H: [12, 1, 2], K: [3, 4], N: [5, 6], U: [7, 8], Z: [9, 10, 11] };
+const ALL12_PRESET: Record<string, number[]> = { F: [1], G: [2], H: [3], J: [4], K: [5], M: [6], N: [7], Q: [8], U: [9], V: [10], X: [11], Z: [12] };
 
 type MonthMappings = Record<string, number[]>;
-type DetailTab = "general" | "trade" | "units" | "futures" | "basis" | "market-data";
+type DetailTab = "setup" | "units";
 
 interface CommodityUnit {
   id?: string;
@@ -47,7 +95,6 @@ interface Commodity {
   volume_unit: string | null;
   is_active: boolean;
   config: Record<string, unknown> | null;
-  // New config columns
   display_name: string | null;
   commodity_class: string | null;
   ticker_root: string | null;
@@ -55,10 +102,24 @@ interface Commodity {
   trade_volume_unit: string | null;
   price_decimal_places: number | null;
   point_value: number | null;
+  volume_entry_mode: string | null;
   basis_unit: string | null;
   basis_reference: string | null;
+  basis_sign_convention: string | null;
+  futures_budget_mapping: Record<string, number[]> | null;
   units: CommodityUnit[];
 }
+
+// ─── Styling constants ──────────────────────────────────────────────────────
+
+const sectionCard = "bg-[#111D32] border border-[#1E3A5F] rounded-lg p-5 space-y-4";
+const sectionLabel = "text-[11px] font-semibold text-[#556170] uppercase tracking-[0.06em]";
+const fieldLabel = "block text-[10px] font-medium text-[#8B95A5] mb-1";
+const fieldInput = "w-full bg-[#1A2740] border border-[#1E3A5F] rounded-md px-2.5 py-[7px] text-xs text-[#E8ECF1] focus:border-[#378ADD] focus:outline-none focus:ring-0";
+const fieldSelect = fieldInput + " appearance-none";
+const readOnlyInput = fieldInput + " text-[#556170] cursor-default";
+const presetActive = "text-[10px] px-2.5 py-1 rounded-sm bg-[#378ADD] text-white";
+const presetInactive = "text-[10px] px-2.5 py-1 rounded-sm bg-[#1A2740] text-[#8B95A5] border border-[#1E3A5F]";
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
@@ -68,6 +129,8 @@ export function CommoditiesTab() {
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [addForm, setAddForm] = useState({ id: "", name: "", category: "ag", unit: "Bushels", currency: "USD" });
+  const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -81,69 +144,131 @@ export function CommoditiesTab() {
 
   const selected = commodities.find((c) => c.id === selectedId) ?? null;
 
-  // ─── Detail View ───────────────────────────────────────────────────────
+  // Detail View
   if (selectedId && selected) {
     return (
       <CommodityDetail
         commodity={selected}
-        onBack={() => setSelectedId(null)}
+        onBack={() => { setSelectedId(null); load(); }}
         onSaved={() => { load(); }}
       />
     );
   }
 
-  // ─── Add View ──────────────────────────────────────────────────────────
-  if (adding) {
-    return (
-      <CommodityDetail
-        commodity={null}
-        onBack={() => setAdding(false)}
-        onSaved={() => { setAdding(false); load(); }}
-      />
-    );
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setCreating(true);
+    setError(null);
+    try {
+      const payload = {
+        id: addForm.id.toUpperCase().trim(),
+        name: addForm.name.trim(),
+        category: addForm.category,
+        unit: UOM_OPTIONS.find((u) => u.value === addForm.unit)?.abbr ?? addForm.unit,
+        trade_volume_unit: UOM_OPTIONS.find((u) => u.value === addForm.unit)?.abbr ?? addForm.unit,
+        trade_price_unit: (PRICE_UNITS_BY_UOM[addForm.unit] ?? ["$/unit"])[0],
+        currency: addForm.currency,
+        display_name: addForm.name.trim(),
+        commodity_class: addForm.category,
+      };
+      await apiFetch("/api/kernel/commodities", { method: "POST", body: JSON.stringify(payload) });
+      setAdding(false);
+      setAddForm({ id: "", name: "", category: "ag", unit: "Bushels", currency: "USD" });
+      await load();
+      // Navigate to the new commodity
+      setSelectedId(payload.id);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setCreating(false);
+    }
   }
 
-  // ─── List View ─────────────────────────────────────────────────────────
+  // List View
   return (
     <div className="space-y-4">
       {error && <div className="p-3 bg-loss/10 border border-loss/20 rounded-lg text-sm text-loss">{error}</div>}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted">{commodities.length} commodities</p>
-        <button onClick={() => setAdding(true)} className={btnPrimary}>
-          <Plus className="h-4 w-4" /> Add Commodity
-        </button>
+        {!adding && (
+          <button onClick={() => setAdding(true)} className={btnPrimary}>
+            <Plus className="h-4 w-4" /> Add Commodity
+          </button>
+        )}
       </div>
 
-      {loading ? <TableSkeleton /> : commodities.length === 0 ? (
-        <EmptyState title="No commodities" desc="No commodities configured." onAction={() => setAdding(true)} actionLabel="Add Commodity" />
-      ) : (
+      {loading ? <TableSkeleton /> : (
         <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead><tr className="bg-input-bg/50 border-b border-b-default">
-              {["Code","Name","Class","Exchange","Ticker","Trade Unit","Active"].map(h =>
+              {["Code","Name","Category","UOM","Currency","Exchange","Contract Size","Status"].map(h =>
                 <th key={h} className="text-left px-3 py-3 text-xs font-medium text-muted uppercase tracking-wider">{h}</th>)}
             </tr></thead>
             <tbody className="divide-y divide-b-default">
-              {commodities.map((c) => (
-                <tr
-                  key={c.id}
-                  onClick={() => setSelectedId(c.id)}
-                  className="hover:bg-row-hover transition-colors cursor-pointer"
-                >
-                  <td className="px-3 py-3 font-mono text-xs text-action">{c.id}</td>
-                  <td className="px-3 py-3 text-secondary">{c.display_name ?? c.name}</td>
-                  <td className="px-3 py-3 text-muted capitalize">{c.commodity_class ?? c.category}</td>
-                  <td className="px-3 py-3 text-muted">{c.exchange ?? "—"}</td>
-                  <td className="px-3 py-3 font-mono text-xs text-muted">{c.ticker_root ?? "—"}</td>
-                  <td className="px-3 py-3 text-muted">{c.trade_price_unit ?? c.price_unit ?? "—"}</td>
-                  <td className="px-3 py-3">
-                    <span className={cn("inline-flex px-2 py-0.5 rounded-full text-xs font-medium",
-                      c.is_active ? "text-profit bg-profit-10 ring-1 ring-profit-20" : "text-muted bg-hover/50")}>
-                      {c.is_active ? "Active" : "Inactive"}
-                    </span>
+              {/* Inline add row */}
+              {adding && (
+                <tr className="bg-action/5">
+                  <td className="px-3 py-2">
+                    <input value={addForm.id} onChange={(e) => setAddForm((f) => ({ ...f, id: e.target.value.toUpperCase() }))}
+                      className={cn(inputCls, "text-xs py-1.5 font-mono w-20")} placeholder="WHEAT" required autoFocus />
                   </td>
+                  <td className="px-3 py-2">
+                    <input value={addForm.name} onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
+                      className={cn(inputCls, "text-xs py-1.5 w-32")} placeholder="Wheat" required />
+                  </td>
+                  <td className="px-3 py-2">
+                    <select value={addForm.category} onChange={(e) => setAddForm((f) => ({ ...f, category: e.target.value }))}
+                      className={cn(selectCls, "text-xs py-1.5 w-24")}>
+                      {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-3 py-2">
+                    <select value={addForm.unit} onChange={(e) => setAddForm((f) => ({ ...f, unit: e.target.value }))}
+                      className={cn(selectCls, "text-xs py-1.5 w-28")}>
+                      {UOM_OPTIONS.map((u) => <option key={u.value} value={u.value}>{u.value}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-3 py-2">
+                    <select value={addForm.currency} onChange={(e) => setAddForm((f) => ({ ...f, currency: e.target.value }))}
+                      className={cn(selectCls, "text-xs py-1.5 w-16")}>
+                      {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-3 py-2" colSpan={2}>
+                    <div className="flex items-center gap-2">
+                      <button onClick={handleCreate} disabled={creating || !addForm.id || !addForm.name}
+                        className="px-3 py-1.5 text-xs font-medium bg-[#378ADD] text-white rounded-md hover:bg-[#378ADD]/90 disabled:opacity-50 transition-colors">
+                        {creating ? "Creating..." : "Create"}
+                      </button>
+                      <button onClick={() => { setAdding(false); setAddForm({ id: "", name: "", category: "ag", unit: "Bushels", currency: "USD" }); }}
+                        className="text-xs text-faint hover:text-secondary">Cancel</button>
+                    </div>
+                  </td>
+                  <td />
                 </tr>
-              ))}
+              )}
+              {commodities.length === 0 && !adding ? (
+                <tr><td colSpan={8} className="px-3 py-12 text-center text-sm text-faint">No commodities configured</td></tr>
+              ) : (
+                commodities.map((c) => (
+                  <tr key={c.id} onClick={() => setSelectedId(c.id)}
+                    className="hover:bg-row-hover transition-colors cursor-pointer">
+                    <td className="px-3 py-3 font-mono text-xs text-action">{c.id}</td>
+                    <td className="px-3 py-3 text-secondary">{c.display_name ?? c.name}</td>
+                    <td className="px-3 py-3 text-muted capitalize">{CATEGORIES.find((cat) => cat.value === c.category)?.label ?? c.category}</td>
+                    <td className="px-3 py-3 text-muted">{c.trade_volume_unit ?? c.unit}</td>
+                    <td className="px-3 py-3 text-muted">{c.currency}</td>
+                    <td className="px-3 py-3 text-muted">{c.exchange ?? "—"}</td>
+                    <td className="px-3 py-3 text-muted font-mono text-xs">{c.contract_size ? c.contract_size.toLocaleString() : "—"}</td>
+                    <td className="px-3 py-3">
+                      <span className={cn("inline-flex px-2 py-0.5 rounded-full text-xs font-medium",
+                        c.is_active ? "text-profit bg-profit-10 ring-1 ring-profit-20" : "text-muted bg-hover/50")}>
+                        {c.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -154,92 +279,76 @@ export function CommoditiesTab() {
 
 // ─── Detail View ────────────────────────────────────────────────────────────
 
-function CommodityDetail({
-  commodity,
-  onBack,
-  onSaved,
-}: {
-  commodity: Commodity | null;
+function CommodityDetail({ commodity, onBack, onSaved }: {
+  commodity: Commodity;
   onBack: () => void;
   onSaved: () => void;
 }) {
-  const isNew = commodity === null;
-  const [tab, setTab] = useState<DetailTab>("general");
+  const [tab, setTab] = useState<DetailTab>("setup");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state for all fields
+  // Form state
   const [form, setForm] = useState(() => initForm(commodity));
-  const [mappings, setMappings] = useState<MonthMappings>(() => {
-    const existing = (commodity?.config as Record<string, unknown>)?.month_mappings;
-    if (existing && typeof existing === "object") return existing as MonthMappings;
-    return {};
-  });
-  const [units, setUnits] = useState<CommodityUnit[]>(commodity?.units ?? []);
+  const [units, setUnits] = useState<CommodityUnit[]>(commodity.units ?? []);
+  const [dirty, setDirty] = useState(false);
 
   function set(key: string, value: unknown) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setDirty(true);
   }
 
-  const letters = (form.contract_months ?? "").split("").filter((ch) => /[A-Z]/.test(ch));
-
-  function toggleMonth(letter: string, monthNum: number) {
-    setMappings((prev) => {
-      const next = { ...prev };
-      const arr = [...(next[letter] ?? [])];
-      const idx = arr.indexOf(monthNum);
-      if (idx >= 0) arr.splice(idx, 1); else arr.push(monthNum);
-      arr.sort((a, b) => a - b);
-      next[letter] = arr;
-      return next;
-    });
+  function setMapping(m: MonthMappings) {
+    setForm((prev) => ({ ...prev, futures_budget_mapping: m }));
+    setDirty(true);
   }
+
+  // Active futures letters
+  const activeLetters = (form.contract_months ?? "").split("").filter((ch: string) => /[A-Z]/.test(ch));
+
+  // Price unit options based on UOM
+  const uomLabel = UOM_OPTIONS.find((u) => u.abbr === form.trade_volume_unit || u.value === form.trade_volume_unit)?.value ?? form.trade_volume_unit;
+  const priceUnitOptions = PRICE_UNITS_BY_UOM[uomLabel ?? ""] ?? [form.trade_price_unit || "$/unit"];
+
+  // UOM abbreviation for suffix
+  const uomAbbr = UOM_OPTIONS.find((u) => u.abbr === form.trade_volume_unit || u.value === form.trade_volume_unit)?.abbr ?? form.trade_volume_unit;
+
+  // Price preview
+  const samplePrice = form.trade_price_unit?.startsWith("cents") ? 52.30 : 4.8725;
+  const pricePreview = formatPreview(samplePrice, form.trade_price_unit ?? "$/bu", Number(form.price_decimal_places) || 4);
 
   async function handleSave() {
     setSaving(true);
     setError(null);
-
-    const cleanedMappings: MonthMappings = {};
-    for (const l of letters) {
-      if (mappings[l] && mappings[l].length > 0) cleanedMappings[l] = mappings[l];
-    }
-
-    const payload = {
-      ...(isNew ? { id: form.id.toUpperCase() } : {}),
-      name: form.name,
-      display_name: form.display_name || form.name,
-      category: form.category,
-      commodity_class: form.commodity_class,
-      unit: form.unit,
-      currency: form.currency,
-      exchange: form.exchange || null,
-      ticker_root: form.ticker_root || null,
-      contract_size: form.contract_size ? Number(form.contract_size) : null,
-      tick_size: form.tick_size ? Number(form.tick_size) : null,
-      tick_value: form.tick_value ? Number(form.tick_value) : null,
-      contract_months: form.contract_months || null,
-      decimal_places: Number(form.decimal_places),
-      price_unit: form.price_unit || null,
-      volume_unit: form.volume_unit || null,
-      trade_price_unit: form.trade_price_unit || null,
-      trade_volume_unit: form.trade_volume_unit || null,
-      price_decimal_places: form.price_decimal_places ? Number(form.price_decimal_places) : null,
-      point_value: form.point_value ? Number(form.point_value) : null,
-      basis_unit: form.basis_unit || null,
-      basis_reference: form.basis_reference || null,
-      is_active: form.is_active,
-      config: { month_mappings: cleanedMappings },
-      units: units.map((u, i) => ({ ...u, sort_order: i })),
-    };
-
     try {
-      if (isNew) {
-        await apiFetch("/api/kernel/commodities", { method: "POST", body: JSON.stringify(payload) });
-      } else {
-        await apiFetch(`/api/kernel/commodities/${commodity!.id}`, { method: "PUT", body: JSON.stringify(payload) });
-      }
+      const payload = {
+        name: form.name,
+        display_name: form.display_name || form.name,
+        category: form.category,
+        commodity_class: form.commodity_class,
+        unit: form.trade_volume_unit || form.unit,
+        currency: form.currency,
+        exchange: form.exchange || null,
+        ticker_root: form.ticker_root || null,
+        contract_size: form.contract_size ? Number(form.contract_size) : null,
+        tick_size: form.tick_size ? Number(form.tick_size) : null,
+        tick_value: form.tick_value ? Number(form.tick_value) : null,
+        point_value: form.point_value ? Number(form.point_value) : null,
+        contract_months: form.contract_months || null,
+        trade_price_unit: form.trade_price_unit || null,
+        trade_volume_unit: form.trade_volume_unit || null,
+        price_decimal_places: Number(form.price_decimal_places) || 4,
+        volume_entry_mode: form.volume_entry_mode || "units",
+        basis_unit: form.basis_unit || null,
+        basis_reference: form.basis_reference || null,
+        basis_sign_convention: form.basis_sign_convention || "positive_above",
+        futures_budget_mapping: form.futures_budget_mapping,
+        is_active: form.is_active,
+        units: units.map((u, i) => ({ ...u, sort_order: i })),
+      };
+      await apiFetch(`/api/kernel/commodities/${commodity.id}`, { method: "PUT", body: JSON.stringify(payload) });
+      setDirty(false);
       onSaved();
-      if (!isNew) onBack();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -247,56 +356,46 @@ function CommodityDetail({
     }
   }
 
-  const DETAIL_TABS: { key: DetailTab; label: string }[] = [
-    { key: "general", label: "General" },
-    { key: "trade", label: "Trade Setup" },
-    { key: "units", label: "Reporting Units" },
-    { key: "futures", label: "Futures Months" },
-    { key: "basis", label: "Basis Config" },
-    ...(!isNew ? [{ key: "market-data" as DetailTab, label: "Market Data" }] : []),
-  ];
-
   return (
     <div className="space-y-4">
-      {/* Back button + title */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="text-muted hover:text-secondary transition-colors">
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-          <div>
-            <h3 className="text-sm font-semibold text-secondary">
-              {isNew ? "New Commodity" : (commodity!.display_name ?? commodity!.name)}
-            </h3>
-            {!isNew && (
-              <p className="text-xs text-faint font-mono">{commodity!.id}</p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={onBack} className={btnCancel}>Cancel</button>
-          <button onClick={handleSave} disabled={saving} className={btnPrimary}>
-            {saving ? "Saving..." : isNew ? "Create" : "Save Changes"}
+          <button onClick={onBack} className="text-xs text-[#378ADD] hover:text-[#378ADD]/80 transition-colors flex items-center gap-1">
+            <ArrowLeft className="h-3.5 w-3.5" /> Commodities
           </button>
         </div>
+        {dirty && (
+          <button onClick={handleSave} disabled={saving}
+            className="px-4 py-2 text-sm font-medium bg-[#378ADD] text-white rounded-md hover:bg-[#378ADD]/90 disabled:opacity-50 transition-colors">
+            {saving ? "Saving..." : "Save changes"}
+          </button>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <h2 className="text-lg font-semibold text-[#E8ECF1]">{form.display_name || form.name || commodity.id}</h2>
+        <span className="px-2 py-0.5 text-xs font-mono bg-[#378ADD]/10 text-[#378ADD] rounded">{commodity.id}</span>
+        <span className={cn("px-2 py-0.5 text-xs font-medium rounded-full",
+          form.is_active ? "bg-[#1D9E75]/10 text-[#1D9E75]" : "bg-[#556170]/20 text-[#556170]")}>
+          {form.is_active ? "Active" : "Inactive"}
+        </span>
       </div>
 
       {error && <div className="p-3 bg-loss/10 border border-loss/20 rounded-lg text-sm text-loss">{error}</div>}
 
-      {/* Sub-tabs */}
-      <div className="border-b border-b-default">
+      {/* Tabs */}
+      <div className="border-b border-[#1E3A5F]">
         <div className="flex gap-0">
-          {DETAIL_TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
+          {[
+            { key: "setup" as DetailTab, label: "Setup" },
+            { key: "units" as DetailTab, label: "Reporting Units" },
+          ].map((t) => (
+            <button key={t.key} onClick={() => setTab(t.key)}
               className={cn(
-                "px-4 py-2.5 text-sm font-medium transition-colors border-b-2",
-                tab === t.key
-                  ? "border-action text-secondary"
-                  : "border-transparent text-muted hover:text-secondary"
-              )}
-            >
+                "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+                tab === t.key ? "border-[#378ADD] text-[#E8ECF1]" : "border-transparent text-[#556170] hover:text-[#8B95A5]"
+              )}>
               {t.label}
             </button>
           ))}
@@ -304,176 +403,366 @@ function CommodityDetail({
       </div>
 
       {/* Tab content */}
-      {tab === "market-data" && !isNew && commodity ? (
-        <MarketDataTab
-          commodityId={commodity.id}
-          commodityName={commodity.display_name ?? commodity.name}
-          tickerRoot={commodity.ticker_root ?? ""}
-          tradePriceUnit={commodity.trade_price_unit ?? commodity.price_unit ?? "$/bu"}
-          priceDecimalPlaces={commodity.price_decimal_places ?? commodity.decimal_places ?? 4}
-          config={commodity.config}
+      {tab === "setup" && (
+        <SetupTab
+          form={form}
+          set={set}
+          activeLetters={activeLetters}
+          priceUnitOptions={priceUnitOptions}
+          uomAbbr={uomAbbr ?? ""}
+          pricePreview={pricePreview}
+          setMapping={setMapping}
         />
-      ) : (
-        <div className="bg-surface border border-b-default rounded-lg p-5">
-          {tab === "general" && (
-            <GeneralTab form={form} set={set} isNew={isNew} />
-          )}
-          {tab === "trade" && (
-            <TradeSetupTab form={form} set={set} />
-          )}
-          {tab === "units" && (
-            <ReportingUnitsTab units={units} setUnits={setUnits} />
-          )}
-          {tab === "futures" && (
-            <FuturesMonthsTab
-              form={form}
-              set={set}
-              letters={letters}
-              mappings={mappings}
-              toggleMonth={toggleMonth}
-            />
-          )}
-          {tab === "basis" && (
-            <BasisConfigTab form={form} set={set} />
-          )}
-        </div>
+      )}
+      {tab === "units" && (
+        <ReportingUnitsTab
+          units={units}
+          setUnits={(fn) => { setUnits(fn); setDirty(true); }}
+          tradeUnit={form.trade_volume_unit ?? form.unit ?? "bu"}
+          contractSize={Number(form.contract_size) || 5000}
+          samplePrice={samplePrice}
+          priceUnit={form.trade_price_unit ?? "$/bu"}
+          priceDecimals={Number(form.price_decimal_places) || 4}
+        />
       )}
     </div>
   );
 }
 
-// ─── General Tab ────────────────────────────────────────────────────────────
+// ─── Setup Tab ──────────────────────────────────────────────────────────────
 
-function GeneralTab({
-  form,
-  set,
-  isNew,
-}: {
+function SetupTab({ form, set, activeLetters, priceUnitOptions, uomAbbr, pricePreview, setMapping }: {
   form: ReturnType<typeof initForm>;
   set: (key: string, value: unknown) => void;
-  isNew: boolean;
+  activeLetters: string[];
+  priceUnitOptions: string[];
+  uomAbbr: string;
+  pricePreview: string;
+  setMapping: (m: MonthMappings) => void;
 }) {
+  const mapping = form.futures_budget_mapping as MonthMappings;
+
+  // Detect preset
+  const isGrainPreset = form.contract_months === "HKNUZ" && JSON.stringify(mapping) === JSON.stringify(GRAIN_PRESET);
+  const isAll12Preset = form.contract_months === "FGHJKMNQUVXZ" && JSON.stringify(mapping) === JSON.stringify(ALL12_PRESET);
+  const presetMode = isGrainPreset ? "grain" : isAll12Preset ? "all12" : "custom";
+
+  function applyPreset(preset: "grain" | "all12") {
+    if (preset === "grain") {
+      set("contract_months", "HKNUZ");
+      setMapping({ ...GRAIN_PRESET });
+    } else {
+      set("contract_months", "FGHJKMNQUVXZ");
+      setMapping({ ...ALL12_PRESET });
+    }
+  }
+
+  function toggleFuturesMonth(code: string) {
+    const current = form.contract_months ?? "";
+    let letters = current.split("").filter((ch: string) => /[A-Z]/.test(ch));
+    if (letters.includes(code)) {
+      letters = letters.filter((l: string) => l !== code);
+      // Remove from mapping
+      const newMap = { ...mapping };
+      delete newMap[code];
+      setMapping(newMap);
+    } else {
+      letters.push(code);
+      letters.sort((a: string, b: string) => ALL_FUTURES.findIndex((f) => f.code === a) - ALL_FUTURES.findIndex((f) => f.code === b));
+    }
+    set("contract_months", letters.join(""));
+  }
+
+  function toggleBudgetCell(futuresCode: string, monthNum: number) {
+    const newMap = { ...mapping };
+    const arr = [...(newMap[futuresCode] ?? [])];
+    const idx = arr.indexOf(monthNum);
+    if (idx >= 0) arr.splice(idx, 1); else arr.push(monthNum);
+    arr.sort((a, b) => a - b);
+    newMap[futuresCode] = arr;
+    setMapping(newMap);
+  }
+
+  // Validation: check coverage
+  const allCovered = new Map<number, string[]>();
+  for (let m = 1; m <= 12; m++) allCovered.set(m, []);
+  for (const [code, months] of Object.entries(mapping)) {
+    if (!activeLetters.includes(code)) continue;
+    for (const m of months) {
+      allCovered.get(m)?.push(code);
+    }
+  }
+
+  // UOM change: auto-update price unit
+  function handleUomChange(uomValue: string) {
+    const abbr = UOM_OPTIONS.find((u) => u.value === uomValue)?.abbr ?? uomValue;
+    set("trade_volume_unit", abbr);
+    const newPriceUnits = PRICE_UNITS_BY_UOM[uomValue] ?? [];
+    if (newPriceUnits.length > 0 && !newPriceUnits.includes(form.trade_price_unit ?? "")) {
+      set("trade_price_unit", newPriceUnits[0]);
+    }
+  }
+
+  // Summary line for budget mapping
+  const summaryParts = activeLetters.map((code) => {
+    const months = (mapping[code] ?? []).map((m) => MONTH_ABBR[m - 1]);
+    return `${code} covers ${months.join(", ") || "none"}`;
+  });
+
   return (
-    <div className="space-y-5">
-      <h4 className="text-xs font-semibold text-muted uppercase tracking-wider">Identity</h4>
-      <div className="grid grid-cols-2 gap-4">
-        {isNew && (
-          <Field label="Code (ID)" required>
-            <input value={form.id} onChange={(e) => set("id", e.target.value.toUpperCase())}
-              className={inputCls} placeholder="e.g. WHEAT" required />
-          </Field>
+    <div className="space-y-4">
+      {/* SECTION 1: Identity */}
+      <div className={sectionCard}>
+        <p className={sectionLabel}>Identity</p>
+        <div className="grid grid-cols-[120px_1fr_1fr_1fr] gap-3">
+          <div>
+            <label className={fieldLabel}>Code</label>
+            <input value={form.id} readOnly className={readOnlyInput + " font-mono"} />
+          </div>
+          <div>
+            <label className={fieldLabel}>Name</label>
+            <input value={form.name} onChange={(e) => set("name", e.target.value)} className={fieldInput} />
+          </div>
+          <div>
+            <label className={fieldLabel}>Category</label>
+            <select value={form.category} onChange={(e) => set("category", e.target.value)} className={fieldSelect}>
+              {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={fieldLabel}>Active</label>
+            <ToggleSwitch checked={form.is_active} onChange={(v) => set("is_active", v)} />
+          </div>
+        </div>
+        <div className="grid grid-cols-[120px_1fr_1fr_1fr] gap-3">
+          <div>
+            <label className={fieldLabel}>Ticker root</label>
+            <input value={form.ticker_root} onChange={(e) => set("ticker_root", e.target.value)} className={fieldInput + " font-mono"} placeholder="ZC" />
+          </div>
+          <div>
+            <label className={fieldLabel}>Exchange</label>
+            <select value={form.exchange} onChange={(e) => set("exchange", e.target.value)} className={fieldSelect}>
+              <option value="">—</option>
+              {EXCHANGES.map((e) => <option key={e} value={e}>{e}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={fieldLabel}>Currency</label>
+            <select value={form.currency} onChange={(e) => set("currency", e.target.value)} className={fieldSelect}>
+              {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div />
+        </div>
+      </div>
+
+      {/* SECTION 2: Contract & Pricing */}
+      <div className={sectionCard}>
+        <p className={sectionLabel}>Contract & Pricing</p>
+        <div className="grid grid-cols-5 gap-3">
+          <div>
+            <label className={fieldLabel}>Contract size</label>
+            <div className="flex">
+              <input type="number" step="any" value={form.contract_size}
+                onChange={(e) => set("contract_size", e.target.value)}
+                className={fieldInput + " rounded-r-none border-r-0"} placeholder="5000" />
+              <span className="bg-[#1A2740] border border-[#1E3A5F] border-l-0 rounded-r-md px-2 py-[7px] text-[10px] text-[#556170] flex items-center">
+                {uomAbbr}
+              </span>
+            </div>
+          </div>
+          <div>
+            <label className={fieldLabel}>Tick size</label>
+            <input type="number" step="any" value={form.tick_size} onChange={(e) => set("tick_size", e.target.value)}
+              className={fieldInput} placeholder="0.0025" />
+          </div>
+          <div>
+            <label className={fieldLabel}>Tick value ($)</label>
+            <input type="number" step="any" value={form.tick_value} onChange={(e) => set("tick_value", e.target.value)}
+              className={fieldInput} placeholder="12.50" />
+          </div>
+          <div>
+            <label className={fieldLabel}>UOM (trade)</label>
+            <select value={UOM_OPTIONS.find((u) => u.abbr === form.trade_volume_unit)?.value ?? form.trade_volume_unit}
+              onChange={(e) => handleUomChange(e.target.value)} className={fieldSelect}>
+              {UOM_OPTIONS.map((u) => <option key={u.value} value={u.value}>{u.value}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={fieldLabel}>Price unit</label>
+            <select value={form.trade_price_unit} onChange={(e) => set("trade_price_unit", e.target.value)} className={fieldSelect}>
+              {priceUnitOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-5 gap-3">
+          <div>
+            <label className={fieldLabel}>Decimals</label>
+            <select value={form.price_decimal_places} onChange={(e) => set("price_decimal_places", e.target.value)} className={fieldSelect}>
+              {DECIMALS_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={fieldLabel}>Volume entry</label>
+            <select value={form.volume_entry_mode} onChange={(e) => set("volume_entry_mode", e.target.value)} className={fieldSelect}>
+              {UOM_OPTIONS.map((u) => <option key={u.value} value={u.abbr}>{u.value}</option>)}
+              <option value="contracts">Contracts</option>
+            </select>
+          </div>
+          <div className="col-span-2">
+            <label className={fieldLabel}>Price preview</label>
+            <div className="bg-[#0B1426] border border-[#1E3A5F] rounded-md px-3 py-[7px] text-sm font-mono text-[#1D9E75]">
+              {pricePreview}
+            </div>
+          </div>
+          <div />
+        </div>
+      </div>
+
+      {/* SECTION 3: Futures Months & Budget Mapping */}
+      <div className={sectionCard}>
+        {/* PART A: Active Futures Months */}
+        <div className="flex items-center justify-between">
+          <p className={sectionLabel}>Futures Months</p>
+          <div className="flex items-center gap-2">
+            <button onClick={() => applyPreset("grain")} className={presetMode === "grain" ? presetActive : presetInactive}>
+              Grain (HKNUZ)
+            </button>
+            <button onClick={() => applyPreset("all12")} className={presetMode === "all12" ? presetActive : presetInactive}>
+              All 12 — 1:1
+            </button>
+            <span className={presetMode === "custom" ? presetActive : presetInactive}>Custom</span>
+          </div>
+        </div>
+
+        {/* 12-column month grid */}
+        <div className="grid grid-cols-12 gap-1.5">
+          {ALL_FUTURES.map((f) => {
+            const isActive = activeLetters.includes(f.code);
+            return (
+              <button key={f.code} onClick={() => toggleFuturesMonth(f.code)}
+                className={cn(
+                  "text-center py-2 rounded-md transition-colors",
+                  isActive ? "bg-[#378ADD] text-white" : "bg-[#1A2740] text-[#556170]"
+                )}>
+                <span className="block text-sm font-semibold font-mono">{f.code}</span>
+                <span className="block text-[9px]">{f.name.slice(0, 3)}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="text-[10px] text-[#556170]">
+          Active: {activeLetters.join(" ") || "none"} · Click to toggle
+        </p>
+
+        {/* PART B: Budget Month Mapping */}
+        {activeLetters.length > 0 && (
+          <>
+            <div className="flex items-center justify-between pt-2">
+              <div>
+                <p className={sectionLabel}>Budget Month Mapping</p>
+                <p className="text-[10px] text-[#556170]">Which budget/delivery months does each futures contract cover?</p>
+              </div>
+              <button onClick={() => {
+                // Reset to default based on current active months
+                if (activeLetters.join("") === "HKNUZ") setMapping({ ...GRAIN_PRESET });
+                else if (activeLetters.length === 12) setMapping({ ...ALL12_PRESET });
+              }} className={presetInactive}>Reset to default</button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr>
+                    <th className="text-left px-2 py-1.5 text-[10px] font-medium text-[#556170] uppercase w-20">Futures</th>
+                    {MONTH_ABBR.map((m, idx) => {
+                      const monthNum = idx + 1;
+                      const covers = allCovered.get(monthNum) ?? [];
+                      const uncovered = covers.length === 0;
+                      const doubleCovered = covers.length > 1;
+                      return (
+                        <th key={m} className={cn(
+                          "px-0.5 py-1.5 text-center text-[10px] font-medium uppercase w-8",
+                          uncovered ? "text-[#E24B4A]" : doubleCovered ? "text-[#EF9F27]" : "text-[#556170]"
+                        )}>{m}</th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeLetters.map((code) => {
+                    const fm = ALL_FUTURES.find((f) => f.code === code);
+                    return (
+                      <tr key={code}>
+                        <td className="px-2 py-1.5">
+                          <span className="text-sm font-mono font-semibold text-[#378ADD]">{code}</span>
+                          <span className="text-[10px] text-[#8B95A5] ml-1.5">{fm?.name ?? ""}</span>
+                        </td>
+                        {MONTH_ABBR.map((m, idx) => {
+                          const monthNum = idx + 1;
+                          const isSelected = (mapping[code] ?? []).includes(monthNum);
+                          return (
+                            <td key={idx} className="px-0.5 py-1.5 text-center">
+                              <button onClick={() => toggleBudgetCell(code, monthNum)}
+                                className={cn(
+                                  "inline-flex items-center justify-center h-7 w-7 rounded-md text-[10px] font-medium transition-colors",
+                                  isSelected ? "bg-[#378ADD] text-white" : "bg-[#1A2740] text-[#556170]"
+                                )}>
+                                {m}
+                              </button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Validation warnings */}
+            {Array.from(allCovered.entries()).some(([, codes]) => codes.length === 0) && (
+              <p className="text-[10px] text-[#E24B4A]">
+                Warning: {Array.from(allCovered.entries()).filter(([, codes]) => codes.length === 0).map(([m]) => MONTH_ABBR[m - 1]).join(", ")} not covered by any futures month.
+              </p>
+            )}
+            {Array.from(allCovered.entries()).some(([, codes]) => codes.length > 1) && (
+              <p className="text-[10px] text-[#EF9F27]">
+                Warning: {Array.from(allCovered.entries()).filter(([, codes]) => codes.length > 1).map(([m]) => MONTH_ABBR[m - 1]).join(", ")} covered by multiple futures months.
+              </p>
+            )}
+
+            {/* Summary */}
+            <p className="text-[10px] text-[#556170]">{summaryParts.join(" · ")}</p>
+            <p className="text-[10px] text-[#556170]">Every calendar month must be covered by exactly one futures month.</p>
+          </>
         )}
-        <Field label="Name" required>
-          <input value={form.name} onChange={(e) => set("name", e.target.value)}
-            className={inputCls} placeholder="e.g. Wheat" required />
-        </Field>
-        <Field label="Display Name">
-          <input value={form.display_name} onChange={(e) => set("display_name", e.target.value)}
-            className={inputCls} placeholder="e.g. Wheat (SRW)" />
-        </Field>
-        <Field label="Category">
-          <select value={form.category} onChange={(e) => set("category", e.target.value)} className={selectCls}>
-            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </Field>
-        <Field label="Commodity Class">
-          <select value={form.commodity_class} onChange={(e) => set("commodity_class", e.target.value)} className={selectCls}>
-            {COMMODITY_CLASSES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </Field>
-        <Field label="Exchange">
-          <input value={form.exchange} onChange={(e) => set("exchange", e.target.value)}
-            className={inputCls} placeholder="e.g. CBOT" />
-        </Field>
-        <Field label="Ticker Root">
-          <input value={form.ticker_root} onChange={(e) => set("ticker_root", e.target.value)}
-            className={inputCls} placeholder="e.g. ZC" />
-        </Field>
-        <Field label="Currency">
-          <input value={form.currency} onChange={(e) => set("currency", e.target.value)}
-            className={inputCls} placeholder="USD" />
-        </Field>
-        <Field label="Active">
-          <label className="flex items-center gap-2 cursor-pointer mt-1">
-            <input type="checkbox" checked={form.is_active} onChange={(e) => set("is_active", e.target.checked)}
-              className="rounded border-b-input bg-input-bg text-action focus:ring-action" />
-            <span className="text-sm text-secondary">{form.is_active ? "Active" : "Inactive"}</span>
-          </label>
-        </Field>
-      </div>
-    </div>
-  );
-}
-
-// ─── Trade Setup Tab ────────────────────────────────────────────────────────
-
-function TradeSetupTab({
-  form,
-  set,
-}: {
-  form: ReturnType<typeof initForm>;
-  set: (key: string, value: unknown) => void;
-}) {
-  return (
-    <div className="space-y-5">
-      <h4 className="text-xs font-semibold text-muted uppercase tracking-wider">Trade Entry</h4>
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Trade Price Unit">
-          <input value={form.trade_price_unit} onChange={(e) => set("trade_price_unit", e.target.value)}
-            className={inputCls} placeholder="e.g. $/bu, cents/lb" />
-          <p className="text-xs text-faint mt-0.5">Unit shown in trade entry price column</p>
-        </Field>
-        <Field label="Trade Volume Unit">
-          <input value={form.trade_volume_unit} onChange={(e) => set("trade_volume_unit", e.target.value)}
-            className={inputCls} placeholder="e.g. bu, lb, MT" />
-        </Field>
-        <Field label="Price Decimal Places">
-          <input type="number" min={0} max={8} value={form.price_decimal_places}
-            onChange={(e) => set("price_decimal_places", e.target.value)}
-            className={inputCls} />
-        </Field>
-        <Field label="Legacy Decimal Places">
-          <input type="number" min={0} max={8} value={form.decimal_places}
-            onChange={(e) => set("decimal_places", e.target.value)}
-            className={inputCls} />
-        </Field>
       </div>
 
-      <h4 className="text-xs font-semibold text-muted uppercase tracking-wider pt-4">Contract Spec</h4>
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Contract Size">
-          <input type="number" step="any" value={form.contract_size}
-            onChange={(e) => set("contract_size", e.target.value)}
-            className={inputCls} placeholder="5000" />
-        </Field>
-        <Field label="Point Value">
-          <input type="number" step="any" value={form.point_value}
-            onChange={(e) => set("point_value", e.target.value)}
-            className={inputCls} placeholder="50" />
-          <p className="text-xs text-faint mt-0.5">Dollar value of a 1-point move per contract</p>
-        </Field>
-        <Field label="Tick Size">
-          <input type="number" step="any" value={form.tick_size}
-            onChange={(e) => set("tick_size", e.target.value)}
-            className={inputCls} placeholder="0.0025" />
-        </Field>
-        <Field label="Tick Value">
-          <input type="number" step="any" value={form.tick_value}
-            onChange={(e) => set("tick_value", e.target.value)}
-            className={inputCls} placeholder="12.50" />
-        </Field>
-        <Field label="Price Unit (legacy)">
-          <input value={form.price_unit} onChange={(e) => set("price_unit", e.target.value)}
-            className={inputCls} placeholder="cents/bu" />
-        </Field>
-        <Field label="Volume Unit (legacy)">
-          <input value={form.volume_unit} onChange={(e) => set("volume_unit", e.target.value)}
-            className={inputCls} placeholder="MT" />
-        </Field>
-        <Field label="Base Unit">
-          <input value={form.unit} onChange={(e) => set("unit", e.target.value)}
-            className={inputCls} placeholder="MT" />
-        </Field>
+      {/* SECTION 4: Basis Configuration */}
+      <div className={sectionCard}>
+        <p className={sectionLabel}>Basis Configuration</p>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className={fieldLabel}>Basis unit</label>
+            <select value={form.basis_unit} onChange={(e) => set("basis_unit", e.target.value)} className={fieldSelect}>
+              <option value="">—</option>
+              {BASIS_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={fieldLabel}>Basis reference</label>
+            <input value={form.basis_reference} onChange={(e) => set("basis_reference", e.target.value)}
+              className={fieldInput} placeholder="CBOT settlement" />
+          </div>
+          <div>
+            <label className={fieldLabel}>Sign convention</label>
+            <select value={form.basis_sign_convention} onChange={(e) => set("basis_sign_convention", e.target.value)} className={fieldSelect}>
+              {SIGN_CONVENTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -481,36 +770,35 @@ function TradeSetupTab({
 
 // ─── Reporting Units Tab ────────────────────────────────────────────────────
 
-function ReportingUnitsTab({
-  units,
-  setUnits,
-}: {
+function ReportingUnitsTab({ units, setUnits, tradeUnit, contractSize, samplePrice, priceUnit, priceDecimals }: {
   units: CommodityUnit[];
-  setUnits: React.Dispatch<React.SetStateAction<CommodityUnit[]>>;
+  setUnits: (fn: (prev: CommodityUnit[]) => CommodityUnit[]) => void;
+  tradeUnit: string;
+  contractSize: number;
+  samplePrice: number;
+  priceUnit: string;
+  priceDecimals: number;
 }) {
-  function addUnit() {
-    setUnits((prev) => [
-      ...prev,
-      {
-        unit_name: "",
-        abbreviation: "",
-        to_trade_unit: 1,
-        from_trade_unit: 1,
-        is_default_report: prev.length === 0,
-        sort_order: prev.length,
-      },
-    ]);
-  }
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [addingNew, setAddingNew] = useState(false);
+  const [newUnit, setNewUnit] = useState<CommodityUnit>({ unit_name: "", abbreviation: "", to_trade_unit: 1, from_trade_unit: 1, is_default_report: false, sort_order: 0 });
 
-  function removeUnit(index: number) {
-    setUnits((prev) => prev.filter((_, i) => i !== index));
-  }
+  // Determine the trade-unit row (always first)
+  const tradeAbbr = tradeUnit;
+  const tradeUnitObj: CommodityUnit = { unit_name: UOM_OPTIONS.find((u) => u.abbr === tradeAbbr)?.value ?? tradeAbbr, abbreviation: tradeAbbr, to_trade_unit: 1, from_trade_unit: 1, is_default_report: !units.some((u) => u.is_default_report), sort_order: -1 };
 
   function updateUnit(index: number, key: keyof CommodityUnit, value: unknown) {
     setUnits((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [key]: value };
-      // If setting default, unset others
+      // Auto-calculate reciprocal
+      if (key === "to_trade_unit" && typeof value === "number" && value > 0) {
+        next[index].from_trade_unit = Number((1 / value).toFixed(4));
+      }
+      if (key === "from_trade_unit" && typeof value === "number" && value > 0) {
+        next[index].to_trade_unit = Number((1 / value).toFixed(4));
+      }
+      // Only one default
       if (key === "is_default_report" && value === true) {
         next.forEach((u, i) => { if (i !== index) u.is_default_report = false; });
       }
@@ -518,236 +806,265 @@ function ReportingUnitsTab({
     });
   }
 
+  function handleAddSave() {
+    if (!newUnit.unit_name || !newUnit.abbreviation) return;
+    setUnits((prev) => [...prev, { ...newUnit, sort_order: prev.length, is_default_report: prev.length === 0 && !newUnit.is_default_report ? true : newUnit.is_default_report }]);
+    setAddingNew(false);
+    setNewUnit({ unit_name: "", abbreviation: "", to_trade_unit: 1, from_trade_unit: 1, is_default_report: false, sort_order: 0 });
+  }
+
+  function removeUnit(index: number) {
+    setUnits((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function setDefaultReport(index: number | "trade") {
+    if (index === "trade") {
+      // Unset all units' default
+      setUnits((prev) => prev.map((u) => ({ ...u, is_default_report: false })));
+    } else {
+      setUnits((prev) => prev.map((u, i) => ({ ...u, is_default_report: i === index })));
+    }
+  }
+
+  const isTradeDefault = !units.some((u) => u.is_default_report);
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h4 className="text-xs font-semibold text-muted uppercase tracking-wider">Reporting Units</h4>
-          <p className="text-xs text-faint mt-0.5">Define units for volume conversion and reporting</p>
-        </div>
-        <button type="button" onClick={addUnit} className={btnPrimary}>
-          <Plus className="h-4 w-4" /> Add Unit
-        </button>
-      </div>
-
-      {units.length === 0 ? (
-        <div className="text-center py-8 border border-dashed border-b-default rounded-lg">
-          <p className="text-sm text-faint">No reporting units configured</p>
-          <button type="button" onClick={addUnit} className="mt-2 text-sm text-action hover:text-action-hover transition-colors">
-            Add your first unit
+      {/* SECTION 1: Unit Conversions */}
+      <div className={sectionCard}>
+        <div className="flex items-center justify-between">
+          <p className={sectionLabel}>Unit Conversions</p>
+          <button onClick={() => setAddingNew(true)} className={cn(btnPrimary, "text-xs")}>
+            <Plus className="h-3.5 w-3.5" /> Add unit
           </button>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {units.map((u, i) => (
-            <div key={i} className="bg-input-bg/30 border border-b-default rounded-lg p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-faint">#{i + 1}</span>
-                  {u.is_default_report && (
-                    <span className="text-xs bg-action/10 text-action px-2 py-0.5 rounded">Default</span>
-                  )}
-                </div>
-                <button type="button" onClick={() => removeUnit(i)}
-                  className="text-faint hover:text-loss transition-colors">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <Field label="Unit Name">
-                  <input value={u.unit_name} onChange={(e) => updateUnit(i, "unit_name", e.target.value)}
-                    className={inputCls} placeholder="e.g. Metric tons" />
-                </Field>
-                <Field label="Abbreviation">
-                  <input value={u.abbreviation} onChange={(e) => updateUnit(i, "abbreviation", e.target.value)}
-                    className={inputCls} placeholder="e.g. MT" />
-                </Field>
-                <Field label="To Trade Unit">
-                  <input type="number" step="any" value={u.to_trade_unit}
-                    onChange={(e) => updateUnit(i, "to_trade_unit", Number(e.target.value))}
-                    className={inputCls} />
-                  <p className="text-xs text-faint mt-0.5">1 of this = X trade units</p>
-                </Field>
-                <Field label="From Trade Unit">
-                  <input type="number" step="any" value={u.from_trade_unit}
-                    onChange={(e) => updateUnit(i, "from_trade_unit", Number(e.target.value))}
-                    className={inputCls} />
-                  <p className="text-xs text-faint mt-0.5">1 trade unit = X of this</p>
-                </Field>
-                <Field label="Default Report">
-                  <label className="flex items-center gap-2 cursor-pointer mt-1">
-                    <input type="checkbox" checked={u.is_default_report}
-                      onChange={(e) => updateUnit(i, "is_default_report", e.target.checked)}
-                      className="rounded border-b-input bg-input-bg text-action focus:ring-action" />
-                    <span className="text-sm text-secondary">{u.is_default_report ? "Yes" : "No"}</span>
-                  </label>
-                </Field>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
-// ─── Futures Months Tab ─────────────────────────────────────────────────────
-
-function FuturesMonthsTab({
-  form,
-  set,
-  letters,
-  mappings,
-  toggleMonth,
-}: {
-  form: ReturnType<typeof initForm>;
-  set: (key: string, value: unknown) => void;
-  letters: string[];
-  mappings: MonthMappings;
-  toggleMonth: (letter: string, monthNum: number) => void;
-}) {
-  return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Contract Months">
-          <input value={form.contract_months}
-            onChange={(e) => set("contract_months", e.target.value.toUpperCase())}
-            className={inputCls} placeholder="e.g. HKNUZ" />
-          <p className="text-xs text-faint mt-0.5">
-            Futures letter codes (F=Jan, G=Feb, H=Mar, J=Apr, K=May, M=Jun, N=Jul, Q=Aug, U=Sep, V=Oct, X=Nov, Z=Dec)
-          </p>
-        </Field>
-      </div>
-
-      {letters.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="text-xs font-semibold text-muted uppercase tracking-wider">
-            Budget-to-Futures Month Mapping
-          </h4>
-          <p className="text-xs text-faint">
-            For each contract month, toggle which budget months (1-12) it covers.
-          </p>
-          <div className="bg-input-bg/30 border border-b-default rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-input-bg/50 border-b border-b-default">
-                  <th className="text-left px-3 py-2 text-xs font-medium text-muted uppercase tracking-wider w-10">Letter</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium text-muted uppercase tracking-wider w-24">Contract</th>
-                  {MONTH_ABBR.map((m) => (
-                    <th key={m} className="px-1 py-2 text-center text-xs font-medium text-muted uppercase tracking-wider w-10">{m}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-b-default">
-                {letters.map((letter) => (
-                  <tr key={letter} className="hover:bg-row-hover transition-colors">
-                    <td className="px-3 py-2 font-mono text-sm font-bold text-action">{letter}</td>
-                    <td className="px-3 py-2 text-xs text-muted">{FUTURES_LETTER_NAMES[letter] ?? letter}</td>
-                    {MONTH_ABBR.map((_, idx) => {
-                      const monthNum = idx + 1;
-                      const isSelected = (mappings[letter] ?? []).includes(monthNum);
-                      return (
-                        <td key={idx} className="px-1 py-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => toggleMonth(letter, monthNum)}
-                            className={cn(
-                              "h-6 w-6 rounded text-xs font-medium transition-colors",
-                              isSelected
-                                ? "bg-action text-white"
-                                : "bg-input-bg text-ph hover:bg-hover hover:text-muted"
-                            )}
-                          >
-                            {MONTH_ABBR[idx]}
-                          </button>
-                        </td>
-                      );
-                    })}
-                  </tr>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-[#1E3A5F]">
+                {["Unit Name","Abbreviation","1 Trade Unit =","1 Report Unit =","Default Report","",""].map((h) => (
+                  <th key={h} className="text-left px-2 py-2 text-[10px] font-medium text-[#556170] uppercase">{h}</th>
                 ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="space-y-0.5">
-            {letters.map((letter) => (
-              <p key={letter} className="text-xs text-faint">
-                <span className="font-mono text-muted">{letter}</span> = {FUTURES_LETTER_NAMES[letter] ?? letter} &rarr;{" "}
-                {(mappings[letter] ?? []).map((m) => MONTH_ABBR[m - 1]).join(", ") || "none"}
-              </p>
-            ))}
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Trade unit row (read-only) */}
+              <tr className={cn("border-b border-[#1E3A5F]/50", isTradeDefault && "bg-[#378ADD]/[0.04]")}>
+                <td className="px-2 py-2.5 text-[13px] text-[#E8ECF1]">
+                  {tradeUnitObj.unit_name}
+                  <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-[#378ADD]/10 text-[#378ADD] rounded">trade unit</span>
+                </td>
+                <td className="px-2 py-2.5 font-mono text-[#E8ECF1]">{tradeAbbr}</td>
+                <td className="px-2 py-2.5 font-mono text-[#E8ECF1]">1.0000</td>
+                <td className="px-2 py-2.5 font-mono text-[#E8ECF1]">1.0000</td>
+                <td className="px-2 py-2.5">
+                  <RadioDot selected={isTradeDefault} onClick={() => setDefaultReport("trade")} />
+                </td>
+                <td />
+                <td />
+              </tr>
+              {/* Additional units */}
+              {units.map((u, i) => (
+                <tr key={i} className={cn("border-b border-[#1E3A5F]/50 hover:bg-[#1A2740]",
+                  u.is_default_report && "bg-[#378ADD]/[0.04]")}>
+                  {editingIdx === i ? (
+                    <>
+                      <td className="px-2 py-2"><input value={u.unit_name} onChange={(e) => updateUnit(i, "unit_name", e.target.value)} className={fieldInput + " text-xs"} /></td>
+                      <td className="px-2 py-2"><input value={u.abbreviation} onChange={(e) => updateUnit(i, "abbreviation", e.target.value)} className={fieldInput + " font-mono text-xs"} /></td>
+                      <td className="px-2 py-2"><input type="number" step="any" value={u.to_trade_unit} onChange={(e) => updateUnit(i, "to_trade_unit", Number(e.target.value))} className={fieldInput + " font-mono text-xs"} /></td>
+                      <td className="px-2 py-2"><input type="number" step="any" value={u.from_trade_unit} onChange={(e) => updateUnit(i, "from_trade_unit", Number(e.target.value))} className={fieldInput + " font-mono text-xs"} /></td>
+                      <td className="px-2 py-2"><RadioDot selected={u.is_default_report} onClick={() => setDefaultReport(i)} /></td>
+                      <td className="px-2 py-2"><button onClick={() => setEditingIdx(null)} className="text-[#1D9E75] hover:text-[#1D9E75]/80"><Check className="h-3.5 w-3.5" /></button></td>
+                      <td />
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-2 py-2.5 text-[13px] text-[#E8ECF1]">{u.unit_name}</td>
+                      <td className="px-2 py-2.5 font-mono text-[#E8ECF1]">{u.abbreviation}</td>
+                      <td className="px-2 py-2.5 font-mono text-[#E8ECF1]">{Number(u.to_trade_unit).toFixed(4)}</td>
+                      <td className="px-2 py-2.5 font-mono text-[#E8ECF1]">{Number(u.from_trade_unit).toFixed(4)}</td>
+                      <td className="px-2 py-2.5"><RadioDot selected={u.is_default_report} onClick={() => setDefaultReport(i)} /></td>
+                      <td className="px-2 py-2.5"><button onClick={() => setEditingIdx(i)} className="text-[#556170] hover:text-[#8B95A5]"><Pencil className="h-3.5 w-3.5" /></button></td>
+                      <td className="px-2 py-2.5"><button onClick={() => removeUnit(i)} className="text-[#556170] hover:text-[#E24B4A]"><Trash2 className="h-3.5 w-3.5" /></button></td>
+                    </>
+                  )}
+                </tr>
+              ))}
+              {/* Add new row */}
+              {addingNew && (
+                <tr className="border-b border-[#1E3A5F]/50 bg-action/5">
+                  <td className="px-2 py-2"><input value={newUnit.unit_name} onChange={(e) => setNewUnit((n) => ({ ...n, unit_name: e.target.value }))} className={fieldInput + " text-xs"} placeholder="Metric tons" autoFocus /></td>
+                  <td className="px-2 py-2"><input value={newUnit.abbreviation} onChange={(e) => setNewUnit((n) => ({ ...n, abbreviation: e.target.value }))} className={fieldInput + " font-mono text-xs"} placeholder="MT" /></td>
+                  <td className="px-2 py-2">
+                    <input type="number" step="any" value={newUnit.to_trade_unit}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setNewUnit((n) => ({ ...n, to_trade_unit: v, from_trade_unit: v > 0 ? Number((1 / v).toFixed(4)) : 0 }));
+                      }} className={fieldInput + " font-mono text-xs"} />
+                  </td>
+                  <td className="px-2 py-2">
+                    <input type="number" step="any" value={newUnit.from_trade_unit}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setNewUnit((n) => ({ ...n, from_trade_unit: v, to_trade_unit: v > 0 ? Number((1 / v).toFixed(4)) : 0 }));
+                      }} className={fieldInput + " font-mono text-xs"} />
+                  </td>
+                  <td className="px-2 py-2"><RadioDot selected={false} onClick={() => setNewUnit((n) => ({ ...n, is_default_report: true }))} /></td>
+                  <td className="px-2 py-2">
+                    <button onClick={handleAddSave} className="text-[#1D9E75] hover:text-[#1D9E75]/80"><Check className="h-3.5 w-3.5" /></button>
+                  </td>
+                  <td className="px-2 py-2">
+                    <button onClick={() => setAddingNew(false)} className="text-[#556170] hover:text-[#8B95A5]"><X className="h-3.5 w-3.5" /></button>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
+
+      {/* SECTION 2: Live Preview */}
+      <div className={sectionCard}>
+        <p className={sectionLabel}>Live Preview</p>
+        <p className="text-[11px] text-[#556170]">
+          How a position of {contractSize.toLocaleString()} {tradeUnit} at {formatPreview(samplePrice, priceUnit, priceDecimals)} displays in each unit:
+        </p>
+
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
+          {/* Trade unit card */}
+          <PreviewCard
+            label={tradeUnitObj.unit_name}
+            isDefault={isTradeDefault}
+            volume={contractSize}
+            volumeAbbr={tradeAbbr}
+            price={samplePrice}
+            priceUnit={priceUnit}
+            totalValue={contractSize * samplePrice}
+            priceDecimals={priceDecimals}
+          />
+          {/* Report unit cards */}
+          {units.map((u, i) => {
+            const vol = contractSize * u.from_trade_unit;
+            const convertedPrice = u.to_trade_unit > 0 ? samplePrice / u.from_trade_unit : samplePrice;
+            return (
+              <PreviewCard
+                key={i}
+                label={u.unit_name}
+                isDefault={u.is_default_report}
+                volume={vol}
+                volumeAbbr={u.abbreviation}
+                price={convertedPrice}
+                priceUnit={`$/${u.abbreviation}`}
+                totalValue={contractSize * samplePrice}
+                priceDecimals={priceDecimals}
+              />
+            );
+          })}
+        </div>
+
+        <p className="text-[10px] text-[#556170]">
+          Total value is always the same — only the unit expression changes.
+          The default reporting unit is used on dashboards, reports, and exports.
+        </p>
+      </div>
     </div>
   );
 }
 
-// ─── Basis Config Tab ───────────────────────────────────────────────────────
+// ─── Sub-components ─────────────────────────────────────────────────────────
 
-function BasisConfigTab({
-  form,
-  set,
-}: {
-  form: ReturnType<typeof initForm>;
-  set: (key: string, value: unknown) => void;
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button type="button" onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors mt-0.5",
+        checked ? "bg-[#1D9E75]" : "bg-[#1A2740]"
+      )}>
+      <span className={cn(
+        "inline-block h-4 w-4 rounded-full bg-white transition-transform",
+        checked ? "translate-x-4" : "translate-x-0.5"
+      )} />
+    </button>
+  );
+}
+
+function RadioDot({ selected, onClick }: { selected: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick}
+      className={cn(
+        "h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors",
+        selected ? "border-[#378ADD] bg-[#378ADD]" : "border-[#556170]"
+      )}>
+      {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+    </button>
+  );
+}
+
+function PreviewCard({ label, isDefault, volume, volumeAbbr, price, priceUnit, totalValue, priceDecimals }: {
+  label: string;
+  isDefault: boolean;
+  volume: number;
+  volumeAbbr: string;
+  price: number;
+  priceUnit: string;
+  totalValue: number;
+  priceDecimals: number;
 }) {
   return (
-    <div className="space-y-5">
-      <h4 className="text-xs font-semibold text-muted uppercase tracking-wider">Basis Configuration</h4>
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Basis Unit">
-          <input value={form.basis_unit} onChange={(e) => set("basis_unit", e.target.value)}
-            className={inputCls} placeholder="e.g. cents/bu" />
-          <p className="text-xs text-faint mt-0.5">Unit for basis values (e.g. cents/bu, $/MT)</p>
-        </Field>
-        <Field label="Basis Reference">
-          <input value={form.basis_reference} onChange={(e) => set("basis_reference", e.target.value)}
-            className={inputCls} placeholder="e.g. CBOT settlement" />
-          <p className="text-xs text-faint mt-0.5">Reference point for basis quotes</p>
-        </Field>
-      </div>
+    <div className={cn(
+      "bg-[#1A2740] rounded-md p-3",
+      isDefault && "border border-[#378ADD]/30"
+    )}>
+      <p className={cn("text-[10px] uppercase mb-1", isDefault ? "text-[#378ADD]" : "text-[#556170]")}>
+        {label} {isDefault && "(default)"}
+      </p>
+      <p className="text-base font-semibold font-mono text-[#E8ECF1]">
+        {volume.toLocaleString("en-US", { maximumFractionDigits: 2 })} {volumeAbbr}
+      </p>
+      <p className="text-xs font-mono text-[#8B95A5]">
+        {formatPreview(price, priceUnit, priceDecimals)}
+      </p>
+      <p className="text-xs font-mono text-[#1D9E75]">
+        ${totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </p>
     </div>
   );
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function initForm(commodity: Commodity | null) {
+function initForm(commodity: Commodity) {
   const c = commodity;
   return {
-    id: c?.id ?? "",
-    name: c?.name ?? "",
-    display_name: c?.display_name ?? c?.name ?? "",
-    category: c?.category ?? "ag",
-    commodity_class: c?.commodity_class ?? "grains",
-    unit: c?.unit ?? "MT",
-    currency: c?.currency ?? "USD",
-    exchange: c?.exchange ?? "",
-    ticker_root: c?.ticker_root ?? "",
-    contract_size: c?.contract_size != null ? String(c.contract_size) : "",
-    tick_size: c?.tick_size != null ? String(c.tick_size) : "",
-    tick_value: c?.tick_value != null ? String(c.tick_value) : "",
-    contract_months: c?.contract_months ?? "",
-    decimal_places: c?.decimal_places ?? 2,
-    price_unit: c?.price_unit ?? "",
-    volume_unit: c?.volume_unit ?? "",
-    trade_price_unit: c?.trade_price_unit ?? "",
-    trade_volume_unit: c?.trade_volume_unit ?? "",
-    price_decimal_places: c?.price_decimal_places ?? 4,
-    point_value: c?.point_value != null ? String(c.point_value) : "",
-    basis_unit: c?.basis_unit ?? "",
-    basis_reference: c?.basis_reference ?? "",
-    is_active: c?.is_active ?? true,
+    id: c.id,
+    name: c.name ?? "",
+    display_name: c.display_name ?? c.name ?? "",
+    category: c.category ?? "ag",
+    commodity_class: c.commodity_class ?? c.category ?? "grains",
+    unit: c.unit ?? "MT",
+    currency: c.currency ?? "USD",
+    exchange: c.exchange ?? "",
+    ticker_root: c.ticker_root ?? "",
+    contract_size: c.contract_size != null ? String(c.contract_size) : "",
+    tick_size: c.tick_size != null ? String(c.tick_size) : "",
+    tick_value: c.tick_value != null ? String(c.tick_value) : "",
+    point_value: c.point_value != null ? String(c.point_value) : "",
+    contract_months: c.contract_months ?? "",
+    trade_price_unit: c.trade_price_unit ?? "",
+    trade_volume_unit: c.trade_volume_unit ?? c.unit ?? "",
+    price_decimal_places: c.price_decimal_places ?? 4,
+    volume_entry_mode: c.volume_entry_mode ?? "units",
+    basis_unit: c.basis_unit ?? "",
+    basis_reference: c.basis_reference ?? "",
+    basis_sign_convention: c.basis_sign_convention ?? "positive_above",
+    futures_budget_mapping: c.futures_budget_mapping ?? (c.config as Record<string, unknown>)?.month_mappings as MonthMappings ?? {},
+    is_active: c.is_active ?? true,
   };
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
-  return (
-    <label className="block space-y-1">
-      <span className="text-xs font-medium text-muted">
-        {label}{required && <span className="text-loss ml-0.5">*</span>}
-      </span>
-      {children}
-    </label>
-  );
+function formatPreview(value: number, unit: string, decimals: number): string {
+  if (unit.startsWith("cents")) return `${value.toFixed(decimals)} ${unit}`;
+  if (unit.startsWith("$")) return `$${value.toFixed(decimals)}${unit.replace("$", "").replace("/", "/") ? "/" + unit.split("/")[1] : ""}`;
+  return `${value.toFixed(decimals)} ${unit}`;
 }

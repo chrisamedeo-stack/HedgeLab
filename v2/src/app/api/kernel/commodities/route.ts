@@ -11,6 +11,7 @@ export async function GET() {
               c.display_name, c.commodity_class, c.ticker_root,
               c.trade_price_unit, c.trade_volume_unit, c.price_decimal_places,
               c.point_value, c.basis_unit, c.basis_reference,
+              c.volume_entry_mode, c.basis_sign_convention, c.futures_budget_mapping,
               COALESCE(
                 json_agg(
                   json_build_object(
@@ -68,6 +69,9 @@ export async function POST(request: Request) {
       point_value,
       basis_unit,
       basis_reference,
+      volume_entry_mode,
+      basis_sign_convention,
+      futures_budget_mapping,
       units,
     } = body;
 
@@ -84,9 +88,10 @@ export async function POST(request: Request) {
           tick_value, contract_months, decimal_places, price_unit, volume_unit, config,
           display_name, commodity_class, ticker_root,
           trade_price_unit, trade_volume_unit, price_decimal_places,
-          point_value, basis_unit, basis_reference)
+          point_value, basis_unit, basis_reference,
+          volume_entry_mode, basis_sign_convention, futures_budget_mapping)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-               $15, $16, $17, $18, $19, $20, $21, $22, $23)
+               $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
        RETURNING *`,
       [
         id,
@@ -112,6 +117,9 @@ export async function POST(request: Request) {
         point_value || null,
         basis_unit || null,
         basis_reference || null,
+        volume_entry_mode || "units",
+        basis_sign_convention || "positive_above",
+        futures_budget_mapping ? JSON.stringify(futures_budget_mapping) : "{}",
       ]
     );
 

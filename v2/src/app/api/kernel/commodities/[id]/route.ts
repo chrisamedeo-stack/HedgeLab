@@ -43,6 +43,9 @@ export async function PUT(
       point_value,
       basis_unit,
       basis_reference,
+      volume_entry_mode,
+      basis_sign_convention,
+      futures_budget_mapping,
       units,
     } = body;
 
@@ -76,7 +79,10 @@ export async function PUT(
          price_decimal_places = COALESCE($21, price_decimal_places),
          point_value = COALESCE($22, point_value),
          basis_unit = COALESCE($23, basis_unit),
-         basis_reference = COALESCE($24, basis_reference)
+         basis_reference = COALESCE($24, basis_reference),
+         volume_entry_mode = COALESCE($25, volume_entry_mode),
+         basis_sign_convention = COALESCE($26, basis_sign_convention),
+         futures_budget_mapping = COALESCE($27, futures_budget_mapping)
        WHERE id = $1
        RETURNING *`,
       [
@@ -104,6 +110,9 @@ export async function PUT(
         point_value ?? null,
         basis_unit ?? null,
         basis_reference ?? null,
+        volume_entry_mode ?? null,
+        basis_sign_convention ?? null,
+        futures_budget_mapping ? JSON.stringify(futures_budget_mapping) : null,
       ]
     );
 

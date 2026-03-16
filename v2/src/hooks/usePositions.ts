@@ -191,7 +191,7 @@ export interface Commodity {
   is_active?: boolean;
   tick_size?: number;
   tick_value?: number;
-  // New commodity config columns
+  // Commodity config columns
   display_name?: string;
   commodity_class?: string;
   ticker_root?: string;
@@ -199,8 +199,11 @@ export interface Commodity {
   trade_volume_unit?: string;
   price_decimal_places?: number;
   point_value?: number;
+  volume_entry_mode?: string;
   basis_unit?: string;
   basis_reference?: string;
+  basis_sign_convention?: string;
+  futures_budget_mapping?: Record<string, number[]>;
   // Reporting units (from commodity_units table)
   units?: CommodityUnit[];
   config?: {

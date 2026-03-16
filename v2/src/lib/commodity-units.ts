@@ -158,6 +158,35 @@ export function toPerPriceUnit(
   return value;
 }
 
+// ─── Budget ↔ Futures Mapping ────────────────────────────────────────────────
+
+/**
+ * Get which budget/calendar months a given futures code covers.
+ * e.g., getBudgetMonthsForFutures(corn, "H") → [12, 1, 2]
+ */
+export function getBudgetMonthsForFutures(
+  commodity: Commodity | null,
+  futuresCode: string
+): number[] {
+  const mapping = commodity?.futures_budget_mapping ?? commodity?.config?.month_mappings ?? {};
+  return mapping[futuresCode] ?? [];
+}
+
+/**
+ * Get which futures month code covers a given calendar month (1-12).
+ * e.g., getFuturesForBudgetMonth(corn, 1) → "H" (January covered by March futures)
+ */
+export function getFuturesForBudgetMonth(
+  commodity: Commodity | null,
+  calendarMonth: number
+): string {
+  const mapping = commodity?.futures_budget_mapping ?? commodity?.config?.month_mappings ?? {};
+  for (const [code, months] of Object.entries(mapping)) {
+    if (months.includes(calendarMonth)) return code;
+  }
+  return "";
+}
+
 // ─── Internal helpers ───────────────────────────────────────────────────────
 
 function formatWithUnit(value: number, unit: string, decimals: number): string {
