@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getTradeWithAllocations, updateTrade, cancelTrade, deleteTrade } from "@/lib/tradeService";
+import { getApiUser } from "@/lib/auth";
 
 export async function GET(
   _request: Request,
@@ -47,11 +48,17 @@ export async function DELETE(
   try {
     const { id } = await params;
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    let userId = searchParams.get("userId");
     const reason = searchParams.get("reason") ?? undefined;
 
+    // Fall back to authenticated user from cookie if userId not in query
     if (!userId) {
-      return NextResponse.json({ error: "Missing required parameter: userId" }, { status: 400 });
+      try {
+        const authUser = await getApiUser();
+        userId = authUser.id;
+      } catch {
+        return NextResponse.json({ error: "Missing required parameter: userId" }, { status: 400 });
+      }
     }
 
     const action = searchParams.get("action");
