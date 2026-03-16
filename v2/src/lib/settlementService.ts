@@ -271,7 +271,7 @@ export async function generateFromDeliveries(
   if (deliveries.length === 0) throw new Error("No deliveries found");
 
   const lineItems = deliveries.map((d) => ({
-    description: `Delivery ${d.id.slice(0, 8)} — ${d.commodity_name ?? d.commodity_id}`,
+    description: `Delivery ${d.id.slice(0, 8)} · ${d.commodity_name ?? d.commodity_id}`,
     quantity: Number(d.volume),
     unit_price: 0,
     amount: 0,

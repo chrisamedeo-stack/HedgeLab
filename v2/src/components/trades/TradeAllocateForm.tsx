@@ -24,6 +24,7 @@ interface TradeAllocateFormProps {
   remainingVolume: number;
   sites: { id: string; name: string; code: string }[];
   onSuccess: () => void;
+  priceUnit?: string;
 }
 
 export function TradeAllocateForm({
@@ -38,6 +39,7 @@ export function TradeAllocateForm({
   remainingVolume,
   sites,
   onSuccess,
+  priceUnit,
 }: TradeAllocateFormProps) {
   const { allocate } = usePositionStore();
   const { user } = useAuth();
@@ -134,7 +136,7 @@ export function TradeAllocateForm({
       <div className="flex flex-wrap gap-4 text-xs text-faint bg-input-bg/50 rounded px-3 py-2">
         <span><span className="text-muted">Direction:</span> <span className={direction === "long" ? "text-profit" : "text-loss"}>{direction}</span></span>
         <span><span className="text-muted">Contract:</span> {formatContractMonth(contractMonth)}</span>
-        <span><span className="text-muted">Price:</span> ${tradePrice.toFixed(4)}/bu</span>
+        <span><span className="text-muted">Price:</span> ${tradePrice.toFixed(4)}{priceUnit ? `/${priceUnit}` : ""}</span>
         <span><span className="text-muted">Currency:</span> {currency}</span>
       </div>
 

@@ -84,7 +84,7 @@ export default function TradesPage() {
           value={filters.contractMonth ?? ""}
           onChange={(e) => setFilter("contractMonth", e.target.value)}
           placeholder="Contract month (e.g. Z26)"
-          className="w-44 rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary placeholder-faint focus:border-focus focus:outline-none"
+          className="w-44 rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary placeholder:text-faint focus:border-focus focus:outline-none"
         />
 
         {Object.values(filters).some(Boolean) && (

@@ -452,11 +452,11 @@ export default function SettlementPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-faint mb-1">Counterparty</label>
-                <input type="text" value={form.counterpartyName} onChange={(e) => setForm({ ...form, counterpartyName: e.target.value })} className={inputClass} />
+                <input type="text" value={form.counterpartyName} onChange={(e) => setForm({ ...form, counterpartyName: e.target.value })} className={inputClass} placeholder="e.g. Cargill" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-faint mb-1">Invoice #</label>
-                <input type="text" value={form.invoiceNumber} onChange={(e) => setForm({ ...form, invoiceNumber: e.target.value })} className={inputClass} />
+                <input type="text" value={form.invoiceNumber} onChange={(e) => setForm({ ...form, invoiceNumber: e.target.value })} className={inputClass} placeholder="e.g. INV-2026-001" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-faint mb-1">Currency</label>

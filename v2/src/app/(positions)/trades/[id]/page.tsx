@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useTrade } from "@/hooks/useTrades";
-import { useSites } from "@/hooks/usePositions";
+import { useSites, useCommodities } from "@/hooks/usePositions";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { TradeAllocateForm } from "@/components/trades/TradeAllocateForm";
@@ -60,6 +60,7 @@ export default function TradeDetailPage() {
   const { orgId } = useOrgContext();
   const { user } = useAuth();
   const { data: sites } = useSites(orgId);
+  const { data: commodities } = useCommodities();
 
   const trade = tradeData?.trade;
   const isSwap = trade?.trade_type === "swap";
@@ -159,6 +160,8 @@ export default function TradeDetailPage() {
   const unallocated = Number(trade.unallocated_volume) || 0;
 
   const style = typeStyle[trade.trade_type] ?? typeStyle.futures;
+  const tradeCommodity = commodities?.find((c) => c.id === trade.commodity_id);
+  const priceUnit = tradeCommodity?.price_unit ?? "";
 
   // Instrument-specific details
   const details = trade.details;
@@ -212,7 +215,7 @@ export default function TradeDetailPage() {
             <DetailField label="Contracts" value={String(trade.num_contracts)} />
             <DetailField label="Contract Size" value={String(trade.contract_size)} />
             <DetailField label="Total Volume" value={Number(trade.total_volume).toLocaleString()} />
-            <DetailField label="Trade Price" value={trade.trade_price != null ? `$${Number(trade.trade_price).toFixed(4)}/bu` : null} />
+            <DetailField label="Trade Price" value={trade.trade_price != null ? `$${Number(trade.trade_price).toFixed(4)}${priceUnit ? `/${priceUnit}` : ""}` : null} />
             <DetailField label="Currency" value={trade.currency} />
             <DetailField label="Commission" value={trade.commission != null ? `$${Number(trade.commission).toFixed(2)}` : null} />
             <DetailField label="Fees" value={trade.fees != null ? `$${Number(trade.fees).toFixed(2)}` : null} />
@@ -438,6 +441,7 @@ export default function TradeDetailPage() {
                 remainingVolume={unallocated}
                 sites={sites}
                 onSuccess={refetch}
+                priceUnit={priceUnit}
               />
             ) : (
               <div className="rounded-lg border border-warning-20 bg-warning-10 px-4 py-3 text-xs text-warning">
@@ -477,7 +481,7 @@ export default function TradeDetailPage() {
                       ) : "—"}
                     </td>
                     <td className="px-4 py-2.5 tabular-nums text-secondary">
-                      {a.trade_price != null ? `$${Number(a.trade_price).toFixed(4)}/bu` : "—"}
+                      {a.trade_price != null ? `$${Number(a.trade_price).toFixed(4)}${priceUnit ? `/${priceUnit}` : ""}` : "—"}
                     </td>
                     <td className="px-4 py-2.5">
                       <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${allocStatusStyle[a.status] ?? "bg-hover text-muted"}`}>

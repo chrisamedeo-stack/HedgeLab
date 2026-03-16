@@ -32,7 +32,7 @@ export async function runMigrations(): Promise<string[]> {
     for (const file of files) {
       if (appliedSet.has(file)) continue;
 
-      console.log(`[migrate] Applying ${file}...`);
+      console.info(`[migrate] Applying ${file}...`);
       const sql = readFileSync(join(migrationsDir, file), "utf-8");
 
       await client.query(sql);
@@ -41,11 +41,11 @@ export async function runMigrations(): Promise<string[]> {
         [file]
       );
       newlyApplied.push(file);
-      console.log(`[migrate] Applied ${file}`);
+      console.info(`[migrate] Applied ${file}`);
     }
 
     if (newlyApplied.length === 0) {
-      console.log("[migrate] No new migrations to apply.");
+      console.info("[migrate] No new migrations to apply.");
     }
 
     return newlyApplied;

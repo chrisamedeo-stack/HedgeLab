@@ -521,7 +521,7 @@ export default function ForecastPage() {
             <div className="flex gap-3 items-end">
               <div className="flex-1 space-y-1">
                 <label className="text-xs text-muted">Price Change</label>
-                <input type="number" step="0.01" value={formPriceChange} onChange={(e) => setFormPriceChange(e.target.value)} className={inputCls} />
+                <input type="number" step="0.01" value={formPriceChange} onChange={(e) => setFormPriceChange(e.target.value)} className={inputCls} placeholder="e.g. 0.50" />
               </div>
               <label className="flex items-center gap-1.5 pb-1.5 text-xs text-muted cursor-pointer">
                 <input type="checkbox" checked={formIsPercent} onChange={(e) => setFormIsPercent(e.target.checked)} className="rounded" />
@@ -534,7 +534,7 @@ export default function ForecastPage() {
             <div className="flex gap-3 items-end">
               <div className="flex-1 space-y-1">
                 <label className="text-xs text-muted">Volume Change ({commodity?.volume_unit || "MT"})</label>
-                <input type="number" step="1" value={formVolumeChange} onChange={(e) => setFormVolumeChange(e.target.value)} className={inputCls} />
+                <input type="number" step="1" value={formVolumeChange} onChange={(e) => setFormVolumeChange(e.target.value)} className={inputCls} placeholder="e.g. 5000" />
               </div>
               <label className="flex items-center gap-1.5 pb-1.5 text-xs text-muted cursor-pointer">
                 <input type="checkbox" checked={formIsPercent} onChange={(e) => setFormIsPercent(e.target.checked)} className="rounded" />
@@ -561,11 +561,11 @@ export default function ForecastPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted">Volume ({commodity?.volume_unit || "MT"})</label>
-                  <input type="number" step="1" value={formHedgeVol} onChange={(e) => setFormHedgeVol(e.target.value)} className={inputCls} />
+                  <input type="number" step="1" value={formHedgeVol} onChange={(e) => setFormHedgeVol(e.target.value)} className={inputCls} placeholder="e.g. 5000" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted">Price ($/unit)</label>
-                  <input type="number" step="0.01" value={formHedgePrice} onChange={(e) => setFormHedgePrice(e.target.value)} className={inputCls} />
+                  <input type="number" step="0.01" value={formHedgePrice} onChange={(e) => setFormHedgePrice(e.target.value)} className={inputCls} placeholder="e.g. 4.50" />
                 </div>
               </div>
             </div>

@@ -48,8 +48,6 @@ function changeColor(v: number | null): string {
   return "text-muted";
 }
 
-// TabButton removed — using TabGroup component
-
 // ─── Price Board Tab ────────────────────────────────────────────────────────
 
 function PriceBoardTab() {

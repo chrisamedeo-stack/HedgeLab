@@ -123,7 +123,7 @@ export default function BudgetDetailPage() {
         <div>
           <h1 className="text-xl font-bold text-primary">Budget Period</h1>
           <p className="mt-0.5 text-lg font-semibold text-primary">
-            {period.site_name} · {period.budget_year}
+            {period.site_name} &middot; {period.budget_year}
           </p>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-faint">{period.commodity_name}</span>

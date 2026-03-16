@@ -27,7 +27,7 @@ export async function PUT(
            site_type_id = COALESCE($4, site_type_id),
            org_unit_id = $5,
            timezone = COALESCE($6, timezone),
-           config = COALESCE($7, config),
+           config = COALESCE($7, config)
        WHERE id = $8
        RETURNING *`,
       [code || null, name || null, region ?? null, siteTypeId || null, orgUnitId ?? null, timezone || null, config ? JSON.stringify(config) : null, siteId]
