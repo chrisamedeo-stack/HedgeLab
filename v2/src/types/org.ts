@@ -87,6 +87,20 @@ export interface HierarchyTemplateLevel {
   is_site_level?: boolean;
 }
 
+// ─── Commodity Assignment Types ──────────────────────────────────────────
+
+export interface CommodityAssignment {
+  commodity_id: string;
+  commodity_name: string;
+}
+
+export interface InheritedCommodity {
+  commodity_id: string;
+  commodity_name: string;
+  source_name: string;
+  source_level: string;
+}
+
 // ─── Nav Config Types ────────────────────────────────────────────────────
 
 export interface NavItem {

@@ -9,11 +9,11 @@ import { usePlatformStore } from "@/store/platformStore";
 import { OrgPluginsManager } from "@/components/platform/OrgPluginsManager";
 import { SubscriptionEditor } from "@/components/platform/SubscriptionEditor";
 import { UsersTab } from "@/components/admin/UsersTab";
-import { SitesTab } from "@/components/admin/SitesTab";
+import { StructureTab } from "@/components/admin/structure/StructureTab";
 import { OrgSettingsTab } from "@/components/admin/OrgSettingsTab";
 import { ConfirmDialog } from "@/components/admin/SharedUI";
 
-const TABS = ["Overview", "Plugins", "Users", "Sites", "Settings"] as const;
+const TABS = ["Overview", "Plugins", "Users", "Structure", "Settings"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function OrgManagePage({ params }: { params: Promise<{ orgId: string }> }) {
@@ -172,7 +172,7 @@ export default function OrgManagePage({ params }: { params: Promise<{ orgId: str
 
         {tab === "Plugins" && <OrgPluginsManager orgId={orgId} />}
         {tab === "Users" && <UsersTab orgId={orgId} />}
-        {tab === "Sites" && <SitesTab orgId={orgId} />}
+        {tab === "Structure" && <StructureTab orgId={orgId} />}
         {tab === "Settings" && <OrgSettingsTab orgId={orgId} />}
       </div>
 

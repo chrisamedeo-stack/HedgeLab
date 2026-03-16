@@ -91,9 +91,27 @@ export function OrgSettingsTab({ orgId: propOrgId }: { orgId?: string } = {}) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Org profile state
+  const [orgName, setOrgName] = useState("");
+  const [originalName, setOriginalName] = useState("");
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [baseCurrency, setBaseCurrency] = useState("USD");
+  const [savingName, setSavingName] = useState(false);
+
   useEffect(() => {
-    apiFetch(`/api/kernel/org-settings?orgId=${orgId}`)
-      .then(data => setSettings(data))
+    Promise.all([
+      apiFetch(`/api/kernel/org-settings?orgId=${orgId}`),
+      apiFetch(`/api/kernel/organizations?id=${orgId}`).catch(() => null),
+    ])
+      .then(([settingsData, orgData]) => {
+        setSettings(settingsData);
+        if (orgData?.org) {
+          setOrgName(orgData.org.name);
+          setOriginalName(orgData.org.name);
+          setProfileId(orgData.org.customer_profile_id ?? null);
+          setBaseCurrency(orgData.org.base_currency ?? "USD");
+        }
+      })
       .catch(err => setError((err as Error).message))
       .finally(() => setLoading(false));
   }, [orgId]);
@@ -140,6 +158,57 @@ export function OrgSettingsTab({ orgId: propOrgId }: { orgId?: string } = {}) {
     <div className="space-y-6 max-w-3xl">
       {error && <div className="p-3 bg-loss/10 border border-loss/20 rounded-lg text-sm text-loss">{error}</div>}
       {success && <div className="p-3 bg-profit/10 border border-profit/20 rounded-lg text-sm text-profit">Settings saved successfully.</div>}
+
+      {/* Organization Profile */}
+      <SectionCard title="Organization Profile">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs text-muted">Organization Name</label>
+            <input
+              type="text"
+              className={inputCls}
+              value={orgName}
+              onChange={e => { setOrgName(e.target.value); setSuccess(false); }}
+              maxLength={200}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted">Customer Profile</label>
+            <div className="px-3 py-2 bg-input-bg/50 border border-b-default rounded-lg text-sm text-muted capitalize">
+              {profileId ?? "—"}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted">Base Currency</label>
+            <div className="px-3 py-2 bg-input-bg/50 border border-b-default rounded-lg text-sm text-muted">
+              {baseCurrency}
+            </div>
+          </div>
+        </div>
+        {orgName.trim() !== originalName && (
+          <div className="flex justify-end">
+            <button
+              onClick={async () => {
+                setSavingName(true);
+                setError(null);
+                try {
+                  await apiFetch("/api/kernel/organizations", {
+                    method: "PATCH",
+                    body: JSON.stringify({ orgId, name: orgName.trim() }),
+                  });
+                  setOriginalName(orgName.trim());
+                  setSuccess(true);
+                } catch (err) { setError((err as Error).message); }
+                finally { setSavingName(false); }
+              }}
+              disabled={savingName}
+              className={btnPrimary}
+            >
+              {savingName ? "Saving..." : "Save Name"}
+            </button>
+          </div>
+        )}
+      </SectionCard>
 
       {/* General */}
       <SectionCard title="General" description="Currency, timezone, and display formats.">

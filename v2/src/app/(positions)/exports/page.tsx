@@ -114,8 +114,8 @@ export default function ExportsPage() {
   return (
     <div className="space-y-6 page-fade">
       <div>
-        <h1 className="text-xl font-bold text-primary">Exports</h1>
-        <p className="text-sm text-muted mt-0.5">Download position data and reports</p>
+        <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Exports</h1>
+        <p className="mt-0.5 text-xs text-faint">Download position data and reports</p>
       </div>
 
       {/* Date filters */}

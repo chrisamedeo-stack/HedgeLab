@@ -112,7 +112,7 @@ export default function DashboardPage() {
   if (loading && !summary) {
     return (
       <div className="space-y-6">
-        <h1 className="text-xl font-bold text-primary">Dashboard</h1>
+        <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Dashboard</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-surface border border-b-default rounded-lg p-5 space-y-3">
@@ -132,7 +132,7 @@ export default function DashboardPage() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-primary">Dashboard</h1>
+            <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Dashboard</h1>
             <p className="text-sm text-muted mt-0.5">
               {selectedCommodityName} &middot; {sites?.length ?? 0} sites
             </p>

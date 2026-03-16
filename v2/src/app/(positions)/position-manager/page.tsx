@@ -59,8 +59,8 @@ export default function PositionManagerPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-primary">Position Manager</h1>
-          <p className="text-sm text-muted mt-0.5">Manage hedge allocations across delivery and budget months</p>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Position Manager</h1>
+          <p className="mt-0.5 text-xs text-faint">Manage hedge allocations across delivery and budget months</p>
         </div>
       </div>
 

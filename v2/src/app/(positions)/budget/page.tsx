@@ -82,8 +82,8 @@ export default function BudgetPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-primary">Budget & Forecast</h1>
-          <p className="text-sm text-muted mt-0.5">Manage budget periods, track coverage, and run scenarios</p>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Budget & Forecast</h1>
+          <p className="mt-0.5 text-xs text-faint">Manage budget periods, track coverage, and run scenarios</p>
         </div>
         <button
           onClick={() => setShowNewBudget(!showNewBudget)}

@@ -196,7 +196,7 @@ export default function FormulasPage() {
     return (
       <div className="space-y-6 page-fade">
         <div>
-          <h1 className="text-xl font-bold text-primary">Formula Pricing</h1>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Formula Pricing</h1>
           <p className="mt-0.5 text-xs text-faint">Formula pricing plugin is not enabled for this organization.</p>
         </div>
       </div>
@@ -206,7 +206,7 @@ export default function FormulasPage() {
   return (
     <div className="space-y-6 page-fade">
       <div>
-        <h1 className="text-xl font-bold text-primary">Formula Pricing</h1>
+        <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Formula Pricing</h1>
         <p className="mt-0.5 text-xs text-faint">Manage pricing formulas, rate tables, and evaluate pricing models</p>
       </div>
 

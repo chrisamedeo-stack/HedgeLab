@@ -174,7 +174,7 @@ export default function LogisticsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-primary">Logistics</h1>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Logistics</h1>
           <p className="text-sm text-muted mt-0.5">
             {deliveries.length} delivery record{deliveries.length !== 1 ? "s" : ""} &middot; track shipments &amp; inventory
           </p>

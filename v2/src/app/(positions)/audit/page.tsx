@@ -74,8 +74,8 @@ export default function AuditPage() {
     <div className="space-y-6 page-fade">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-primary">Audit Log</h1>
-          <p className="text-sm text-muted mt-0.5">Review all system actions and data changes</p>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Audit Log</h1>
+          <p className="mt-0.5 text-xs text-faint">Review all system actions and data changes</p>
         </div>
         <span className="text-sm text-faint">{entries.length} entries</span>
       </div>

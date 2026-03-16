@@ -563,8 +563,8 @@ export default function MarketViewPage() {
     <div className="space-y-6 page-fade">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-primary">Market View</h1>
-        <p className="text-sm text-muted mt-0.5">Prices, charts, forward curves, and data upload</p>
+        <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Market View</h1>
+        <p className="mt-0.5 text-xs text-faint">Prices, charts, forward curves, and data upload</p>
       </div>
 
       {/* Tabs */}

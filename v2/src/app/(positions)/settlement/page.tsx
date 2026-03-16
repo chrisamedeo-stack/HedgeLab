@@ -184,7 +184,7 @@ export default function SettlementPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-primary">Settlement</h1>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Settlement</h1>
           <p className="text-sm text-muted mt-0.5">
             {invoices.length} invoice{invoices.length !== 1 ? "s" : ""} &middot; invoicing &amp; payments
           </p>

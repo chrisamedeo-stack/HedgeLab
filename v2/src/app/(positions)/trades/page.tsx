@@ -28,7 +28,7 @@ export default function TradesPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-primary">Trade Blotter</h1>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Trade Blotter</h1>
           <p className="text-sm text-muted mt-0.5">
             {trades.length} trade{trades.length !== 1 ? "s" : ""} &middot; book and manage financial trades
           </p>

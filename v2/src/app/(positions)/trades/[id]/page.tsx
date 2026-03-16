@@ -179,7 +179,7 @@ export default function TradeDetailPage() {
           </svg>
           Trades
         </Link>
-        <h1 className="text-xl font-bold text-primary font-mono">
+        <h1 className="text-sm font-semibold text-muted uppercase tracking-wider font-mono">
           {trade.external_ref || trade.id.slice(0, 8)}
         </h1>
         <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${style.bg} ${style.text}`}>
