@@ -159,65 +159,83 @@ export function SuppliersTab({ orgId: propOrgId }: { orgId?: string } = {}) {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-surface border border-b-default rounded-lg p-5 space-y-3">
+        <form onSubmit={handleSubmit} className="bg-surface border border-b-default rounded-lg p-6 space-y-5">
           <h3 className="text-sm font-semibold text-secondary">
             {editing ? <>Edit <span className="text-action">{editing.name}</span></> : "New Supplier / Counterparty"}
           </h3>
-          <div className="grid grid-cols-6 gap-3">
-            <div className="col-span-2 space-y-1">
-              <label className="text-xs text-muted">Name *</label>
-              <input type="text" required className={inputCls} value={form.name} onChange={e => field("name", e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted">Short Name</label>
-              <input type="text" className={inputCls} value={form.shortName} onChange={e => field("shortName", e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted">Entity Type</label>
-              <select className={selectCls} value={form.entityType} onChange={e => field("entityType", e.target.value)}>
-                <option value="supplier">Supplier</option>
-                <option value="counterparty">Counterparty</option>
-                <option value="both">Both</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted">CP Type</label>
-              <select className={selectCls} value={form.counterpartyType} onChange={e => field("counterpartyType", e.target.value)}>
-                <option value="commercial">Commercial</option>
-                <option value="broker">Broker</option>
-                <option value="exchange">Exchange</option>
-                <option value="producer">Producer</option>
-                <option value="consumer">Consumer</option>
-                <option value="trader">Trader</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted">Credit Rating</label>
-              <input type="text" className={inputCls} value={form.creditRating} onChange={e => field("creditRating", e.target.value)} placeholder="e.g. A+" />
+
+          {/* Section 1 — Identity */}
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-faint uppercase tracking-wider">Identity</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="sm:col-span-2 space-y-1">
+                <label className="text-xs text-muted">Name *</label>
+                <input type="text" required className={inputCls} placeholder="e.g. Cargill" value={form.name} onChange={e => field("name", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted">Short Name</label>
+                <input type="text" className={inputCls} placeholder="e.g. CARG" value={form.shortName} onChange={e => field("shortName", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted">Entity Type</label>
+                <select className={selectCls} value={form.entityType} onChange={e => field("entityType", e.target.value)}>
+                  <option value="supplier">Supplier</option>
+                  <option value="counterparty">Counterparty</option>
+                  <option value="both">Both</option>
+                </select>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-6 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs text-muted">Credit Limit</label>
-              <input type="number" step="any" className={inputCls} value={form.creditLimit} onChange={e => field("creditLimit", e.target.value)} placeholder="$" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted">Pay Terms (d)</label>
-              <input type="number" className={inputCls} value={form.paymentTermsDays} onChange={e => field("paymentTermsDays", e.target.value)} />
-            </div>
-            <div className="col-span-2 space-y-1">
-              <label className="text-xs text-muted">Contact Name</label>
-              <input type="text" className={inputCls} value={form.contactName} onChange={e => field("contactName", e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted">Email</label>
-              <input type="email" className={inputCls} value={form.contactEmail} onChange={e => field("contactEmail", e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted">Phone</label>
-              <input type="text" className={inputCls} value={form.contactPhone} onChange={e => field("contactPhone", e.target.value)} />
+
+          {/* Section 2 — Classification & Terms */}
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-faint uppercase tracking-wider">Classification & Terms</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs text-muted">CP Type</label>
+                <select className={selectCls} value={form.counterpartyType} onChange={e => field("counterpartyType", e.target.value)}>
+                  <option value="commercial">Commercial</option>
+                  <option value="broker">Broker</option>
+                  <option value="exchange">Exchange</option>
+                  <option value="producer">Producer</option>
+                  <option value="consumer">Consumer</option>
+                  <option value="trader">Trader</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted">Credit Limit</label>
+                <input type="number" step="any" className={inputCls} placeholder="e.g. 500000" value={form.creditLimit} onChange={e => field("creditLimit", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted">Credit Rating</label>
+                <input type="text" className={inputCls} placeholder="e.g. A+" value={form.creditRating} onChange={e => field("creditRating", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted">Payment Terms (days)</label>
+                <input type="number" className={inputCls} placeholder="30" value={form.paymentTermsDays} onChange={e => field("paymentTermsDays", e.target.value)} />
+              </div>
             </div>
           </div>
+
+          {/* Section 3 — Contact Information */}
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-faint uppercase tracking-wider">Contact Information</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs text-muted">Contact Name</label>
+                <input type="text" className={inputCls} placeholder="e.g. John Smith" value={form.contactName} onChange={e => field("contactName", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted">Email</label>
+                <input type="email" className={inputCls} placeholder="contact@example.com" value={form.contactEmail} onChange={e => field("contactEmail", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted">Phone</label>
+                <input type="text" className={inputCls} placeholder="e.g. +1 204 555 1234" value={form.contactPhone} onChange={e => field("contactPhone", e.target.value)} />
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={cancelForm} className={btnCancel}>Cancel</button>
             <button type="submit" disabled={submitting} className={btnPrimary}>
@@ -274,7 +292,7 @@ export function SuppliersTab({ orgId: propOrgId }: { orgId?: string } = {}) {
                           </div>
                         </div>
                       ) : (
-                        <span className="text-xs text-faint">\u2014</span>
+                        <span className="text-xs text-faint">{"\u2014"}</span>
                       )}
                     </td>
                     <td className="px-3 py-3">
@@ -283,7 +301,7 @@ export function SuppliersTab({ orgId: propOrgId }: { orgId?: string } = {}) {
                           {cp.credit_status}
                         </span>
                       ) : (
-                        <span className="text-xs text-faint">\u2014</span>
+                        <span className="text-xs text-faint">{"\u2014"}</span>
                       )}
                     </td>
                     <td className="px-3 py-3 text-xs text-muted">{cp.payment_terms_days}d</td>

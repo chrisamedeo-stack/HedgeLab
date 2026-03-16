@@ -5,28 +5,42 @@ import { Plus, X, Edit2, Trash2 } from "lucide-react";
 import { useOrgContextSafe } from "@/contexts/OrgContext";
 import { apiFetch, btnPrimary, btnCancel, inputCls, selectCls } from "./shared";
 import { TableSkeleton, EmptyState, ConfirmDialog } from "./SharedUI";
+import type { OrgTreeNode } from "@/types/org";
+
+/** Flatten an OrgTreeNode[] into a flat list of { id, name } for dropdown */
+function flattenUnits(nodes: OrgTreeNode[]): { id: string; name: string }[] {
+  const out: { id: string; name: string }[] = [];
+  for (const n of nodes) {
+    out.push({ id: n.id, name: n.name });
+    if (n.children?.length) out.push(...flattenUnits(n.children));
+  }
+  return out;
+}
 
 export function SitesTab({ orgId: propOrgId }: { orgId?: string } = {}) {
   const ctx = useOrgContextSafe();
   const orgId = propOrgId ?? ctx?.orgId ?? "";
   const [sites, setSites] = useState<any[]>([]);
   const [siteTypes, setSiteTypes] = useState<{ id: string; name: string }[]>([]);
+  const [orgUnits, setOrgUnits] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
-  const [form, setForm] = useState({ code: "", name: "", region: "", siteTypeId: "" });
+  const [form, setForm] = useState({ code: "", name: "", region: "", siteTypeId: "", orgUnitId: "" });
 
   const load = useCallback(async () => {
     try {
-      const [sitesData, typesData] = await Promise.all([
+      const [sitesData, typesData, treeData] = await Promise.all([
         apiFetch(`/api/kernel/sites?orgId=${orgId}`),
         apiFetch("/api/kernel/site-types"),
+        apiFetch(`/api/kernel/org-hierarchy?orgId=${orgId}`).catch(() => []),
       ]);
       setSites(sitesData);
       setSiteTypes(typesData ?? []);
+      setOrgUnits(flattenUnits(treeData ?? []));
     } catch (err) { setError((err as Error).message); }
     finally { setLoading(false); }
   }, [orgId]);
@@ -37,19 +51,32 @@ export function SitesTab({ orgId: propOrgId }: { orgId?: string } = {}) {
 
   function startEdit(s: any) {
     setEditing(s);
-    setForm({ code: s.code ?? "", name: s.name, region: s.region ?? "", siteTypeId: s.site_type_id ?? "" });
+    setForm({
+      code: s.code ?? "",
+      name: s.name,
+      region: s.region ?? "",
+      siteTypeId: s.site_type_id ?? "",
+      orgUnitId: s.org_unit_id ?? "",
+    });
     setShowForm(true);
   }
 
   function cancelForm() {
     setShowForm(false); setEditing(null);
-    setForm({ code: "", name: "", region: "", siteTypeId: "" });
+    setForm({ code: "", name: "", region: "", siteTypeId: "", orgUnitId: "" });
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setSubmitting(true);
     try {
-      const payload = { orgId, code: form.code, name: form.name, region: form.region || null, siteTypeId: form.siteTypeId };
+      const payload = {
+        orgId,
+        code: form.code,
+        name: form.name,
+        region: form.region || null,
+        siteTypeId: form.siteTypeId,
+        orgUnitId: form.orgUnitId || null,
+      };
       if (editing) {
         await apiFetch(`/api/kernel/sites/${editing.id}`, { method: "PUT", body: JSON.stringify({ ...payload, id: editing.id }) });
       } else {
@@ -69,9 +96,22 @@ export function SitesTab({ orgId: propOrgId }: { orgId?: string } = {}) {
     finally { setDeleteTarget(null); }
   }
 
+  // Build a lookup of orgUnit id → name
+  const unitNameMap: Record<string, string> = {};
+  for (const u of orgUnits) unitNameMap[u.id] = u.name;
+
+  // Group sites by org_unit name (country/region), fallback "Unassigned"
   const grouped: Record<string, any[]> = {};
-  for (const s of sites) { const key = s.region ?? "Other"; (grouped[key] ??= []).push(s); }
-  const regions = Object.keys(grouped).sort();
+  for (const s of sites) {
+    const key = s.org_unit_id ? (unitNameMap[s.org_unit_id] ?? "Unassigned") : "Unassigned";
+    (grouped[key] ??= []).push(s);
+  }
+  // Sort groups: named groups first (alphabetical), "Unassigned" last
+  const groupKeys = Object.keys(grouped).sort((a, b) => {
+    if (a === "Unassigned") return 1;
+    if (b === "Unassigned") return -1;
+    return a.localeCompare(b);
+  });
 
   return (
     <div className="space-y-4">
@@ -89,23 +129,40 @@ export function SitesTab({ orgId: propOrgId }: { orgId?: string } = {}) {
           <h3 className="text-sm font-semibold text-secondary">
             {editing ? <>Edit <span className="text-action">{editing.code}</span></> : "New Site"}
           </h3>
+          {/* Row 1: Code, Name (wider), Site Type */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="space-y-1"><label className="text-xs text-muted">Code</label>
-              <input type="text" maxLength={20} required className={inputCls} placeholder="e.g. LETH" value={form.code} onChange={e => field("code", e.target.value)} />
+            <div className="space-y-1">
+              <label className="text-xs text-muted">Code *</label>
+              <input type="text" maxLength={20} required className={inputCls} placeholder="e.g. GM1" value={form.code} onChange={e => field("code", e.target.value)} />
             </div>
-            <div className="space-y-1"><label className="text-xs text-muted">Name</label>
-              <input type="text" maxLength={200} required className={inputCls} placeholder="e.g. Lethbridge Elevator" value={form.name} onChange={e => field("name", e.target.value)} />
+            <div className="sm:col-span-2 space-y-1">
+              <label className="text-xs text-muted">Name *</label>
+              <input type="text" maxLength={200} required className={inputCls} placeholder="e.g. Gimli Elevator" value={form.name} onChange={e => field("name", e.target.value)} />
             </div>
-            <div className="space-y-1"><label className="text-xs text-muted">Region</label>
-              <input type="text" className={inputCls} placeholder="e.g. Alberta" value={form.region} onChange={e => field("region", e.target.value)} />
-            </div>
-            <div className="space-y-1"><label className="text-xs text-muted">Site Type</label>
+            <div className="space-y-1">
+              <label className="text-xs text-muted">Site Type</label>
               <select className={selectCls} value={form.siteTypeId} onChange={e => field("siteTypeId", e.target.value)}>
                 <option value="">Select...</option>
                 {siteTypes.map(st => (
                   <option key={st.id} value={st.id}>{st.name}</option>
                 ))}
               </select>
+            </div>
+          </div>
+          {/* Row 2: Country/Region, Province/State */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs text-muted">Country / Region</label>
+              <select className={selectCls} value={form.orgUnitId} onChange={e => field("orgUnitId", e.target.value)}>
+                <option value="">Select...</option>
+                {orgUnits.map(u => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted">Province / State</label>
+              <input type="text" className={inputCls} placeholder="e.g. MB" value={form.region} onChange={e => field("region", e.target.value)} />
             </div>
           </div>
           <div className="flex justify-end gap-2">
@@ -120,21 +177,22 @@ export function SitesTab({ orgId: propOrgId }: { orgId?: string } = {}) {
       {loading ? <TableSkeleton /> : sites.length === 0 ? (
         <EmptyState title="No sites" desc="Add your first site to get started." onAction={() => setShowForm(true)} actionLabel="Add Site" />
       ) : (
-        regions.map(region => (
-          <div key={region} className="space-y-2">
-            <h3 className="text-xs font-semibold text-faint uppercase tracking-wider">{region}</h3>
+        groupKeys.map(group => (
+          <div key={group} className="space-y-2">
+            <h3 className="text-xs font-semibold text-faint uppercase tracking-wider">{group}</h3>
             <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-input-bg/50 border-b border-b-default">
-                    {["Code","Name","Type",""].map(h => <th key={h} className="text-left px-3 py-3 text-xs font-medium text-muted uppercase tracking-wider">{h}</th>)}
+                    {["Code", "Name", "Province / State", "Type", ""].map(h => <th key={h} className="text-left px-3 py-3 text-xs font-medium text-muted uppercase tracking-wider">{h}</th>)}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-b-default">
-                  {grouped[region].map((s: any) => (
+                  {grouped[group].map((s: any) => (
                     <tr key={s.id} className="hover:bg-row-hover transition-colors">
                       <td className="px-3 py-3 font-mono text-xs text-action">{s.code}</td>
                       <td className="px-3 py-3 text-secondary">{s.name}</td>
+                      <td className="px-3 py-3 text-muted">{s.region ?? "\u2014"}</td>
                       <td className="px-3 py-3 text-muted">{s.site_type_name ?? s.site_type_id ?? "\u2014"}</td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-2 justify-end">
