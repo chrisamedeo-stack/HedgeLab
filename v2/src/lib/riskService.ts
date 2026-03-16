@@ -32,31 +32,47 @@ export async function runMtm(orgId: string, userId: string): Promise<MtmSnapshot
   const snapshots: MtmSnapshot[] = [];
 
   for (const { commodity_id } of commodities) {
-    // Get latest market price
-    const priceRow = await queryOne<{ price: string }>(
-      `SELECT price FROM md_prices
-       WHERE commodity_id = $1 ORDER BY price_date DESC LIMIT 1`,
-      [commodity_id]
+    // Build price map: contract_month → latest price (org-scoped)
+    const priceRows = await queryAll<{ contract_month: string; price: string }>(
+      `SELECT DISTINCT ON (contract_month) contract_month, price
+       FROM md_prices
+       WHERE org_id = $1 AND commodity_id = $2
+       ORDER BY contract_month, price_date DESC`,
+      [orgId, commodity_id]
     );
-    const marketPrice = priceRow ? Number(priceRow.price) : 0;
+    const priceMap = new Map(priceRows.map((r) => [r.contract_month, Number(r.price)]));
 
-    // Futures P&L: sum of (market_price - trade_price) * volume * direction_sign
-    const futuresRow = await queryOne<{ pnl: string; net_pos: string }>(
-      `SELECT
-         COALESCE(SUM(
-           (CASE WHEN direction = 'long' THEN 1 ELSE -1 END)
-           * allocated_volume
-           * ($2 - COALESCE(trade_price, 0))
-         ), 0) as pnl,
-         COALESCE(SUM(
-           (CASE WHEN direction = 'long' THEN 1 ELSE -1 END) * allocated_volume
-         ), 0) as net_pos
-       FROM pm_allocations
-       WHERE org_id = $1 AND commodity_id = $3 AND status NOT IN ('cancelled', 'offset')`,
-      [orgId, marketPrice, commodity_id]
+    // Fallback: commodity-wide latest price (for allocations with no contract_month match)
+    const fallbackRow = await queryOne<{ price: string }>(
+      `SELECT price FROM md_prices
+       WHERE org_id = $1 AND commodity_id = $2 ORDER BY price_date DESC LIMIT 1`,
+      [orgId, commodity_id]
     );
-    const futuresPnl = Number(futuresRow?.pnl ?? 0);
-    const netPosition = Number(futuresRow?.net_pos ?? 0);
+    const fallbackPrice = fallbackRow ? Number(fallbackRow.price) : 0;
+
+    // Get all active allocations for per-contract-month P&L
+    const allocations = await queryAll<{
+      direction: string; allocated_volume: string; trade_price: string | null; contract_month: string | null;
+    }>(
+      `SELECT direction, allocated_volume, trade_price, contract_month
+       FROM pm_allocations
+       WHERE org_id = $1 AND commodity_id = $2 AND status NOT IN ('cancelled', 'offset')`,
+      [orgId, commodity_id]
+    );
+
+    let futuresPnl = 0;
+    let netPosition = 0;
+    for (const a of allocations) {
+      const sign = a.direction === "long" ? 1 : -1;
+      const vol = Number(a.allocated_volume);
+      const tradePrice = Number(a.trade_price ?? 0);
+      const mktPrice = (a.contract_month ? priceMap.get(a.contract_month) : undefined) ?? fallbackPrice;
+      futuresPnl += sign * vol * (mktPrice - tradePrice);
+      netPosition += sign * vol;
+    }
+
+    // Use the most recent price across all contract months as the snapshot market_price
+    const marketPrice = fallbackPrice;
 
     // Physical P&L from ct_physical_contracts
     const physicalRow = await queryOne<{ pnl: string }>(
@@ -71,18 +87,24 @@ export async function runMtm(orgId: string, userId: string): Promise<MtmSnapshot
     );
     const physicalPnl = Number(physicalRow?.pnl ?? 0);
 
-    // Realized from offset allocations
-    const realizedRow = await queryOne<{ pnl: string }>(
-      `SELECT COALESCE(SUM(
-         (CASE WHEN direction = 'long' THEN 1 ELSE -1 END)
-         * allocated_volume
-         * ($2 - COALESCE(trade_price, 0))
-       ), 0) as pnl
+    // Realized from offset allocations (use contract-month-specific prices)
+    const offsetAllocations = await queryAll<{
+      direction: string; allocated_volume: string; trade_price: string | null; contract_month: string | null;
+    }>(
+      `SELECT direction, allocated_volume, trade_price, contract_month
        FROM pm_allocations
-       WHERE org_id = $1 AND commodity_id = $3 AND status = 'offset'`,
-      [orgId, marketPrice, commodity_id]
+       WHERE org_id = $1 AND commodity_id = $2 AND status = 'offset'`,
+      [orgId, commodity_id]
     );
-    const realizedPnl = Number(realizedRow?.pnl ?? 0);
+
+    let realizedPnl = 0;
+    for (const a of offsetAllocations) {
+      const sign = a.direction === "long" ? 1 : -1;
+      const vol = Number(a.allocated_volume);
+      const tradePrice = Number(a.trade_price ?? 0);
+      const mktPrice = (a.contract_month ? priceMap.get(a.contract_month) : undefined) ?? fallbackPrice;
+      realizedPnl += sign * vol * (mktPrice - tradePrice);
+    }
     const unrealizedPnl = futuresPnl;
 
     // Upsert snapshot

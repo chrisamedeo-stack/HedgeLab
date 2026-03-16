@@ -12,7 +12,8 @@ import { TabGroup } from "@/components/ui/TabGroup";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PriceEntryForm } from "@/components/market/PriceEntryForm";
-import { btnPrimary } from "@/lib/ui-classes";
+import { btnPrimary, btnSecondary } from "@/lib/ui-classes";
+import { API_BASE } from "@/lib/api";
 import { ForwardCurveChart } from "@/components/charts/ForwardCurveChart";
 import { CandlestickChart } from "@/components/charts/CandlestickChart";
 import { formatContractMonth } from "@/lib/commodity-utils";
@@ -54,6 +55,29 @@ function PriceBoardTab() {
   const { commodityId } = useCommodityContext();
   const { data: boardRows, loading, refetch } = usePriceBoard(commodityId ?? undefined);
   const [showEntryForm, setShowEntryForm] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMsg, setRefreshMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setRefreshMsg(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/market/prices/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days: 1 }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Refresh failed");
+      setRefreshMsg({ type: "success", text: `${data.upserted} prices updated` });
+      refetch();
+    } catch (err) {
+      setRefreshMsg({ type: "error", text: (err as Error).message });
+    } finally {
+      setRefreshing(false);
+      setTimeout(() => setRefreshMsg(null), 5000);
+    }
+  }, [refetch]);
 
   // Auto-refresh every 60s
   useEffect(() => {
@@ -108,8 +132,34 @@ function PriceBoardTab() {
         <KPICard label="Price Changes" value={String(totalChanges)} />
       </div>
 
-      {/* Entry button */}
-      <div className="flex justify-end">
+      {/* Action buttons */}
+      <div className="flex items-center justify-end gap-2">
+        {refreshMsg && (
+          <span className={`text-xs ${refreshMsg.type === "success" ? "text-profit" : "text-loss"}`}>
+            {refreshMsg.text}
+          </span>
+        )}
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className={btnSecondary}
+        >
+          {refreshing ? (
+            <>
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.49-8.49l2.83-2.83M2 12h4m12 0h4m-3.93 7.07l-2.83-2.83M7.76 7.76L4.93 4.93" />
+              </svg>
+              Refreshing...
+            </>
+          ) : (
+            <>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+              </svg>
+              Refresh Prices
+            </>
+          )}
+        </button>
         <button
           onClick={() => setShowEntryForm(true)}
           className={btnPrimary}
