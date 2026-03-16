@@ -61,7 +61,7 @@ export function FiscalYearTab({ orgId: propOrgId }: { orgId?: string } = {}) {
       {error && <div className="p-3 bg-loss/10 border border-loss/20 rounded-lg text-sm text-loss">{error}</div>}
       <div className="bg-surface border border-b-default rounded-lg p-6 space-y-5">
         <div>
-          <h3 className="text-sm font-semibold text-secondary">Fiscal Year Start Month</h3>
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">Fiscal Year Start Month</h3>
           <p className="text-xs text-faint mt-1">The month when each fiscal year begins. Budget lines are grouped into fiscal years based on this setting.</p>
         </div>
         <div className="space-y-1"><label className="text-xs text-muted">Start Month</label>
@@ -71,7 +71,7 @@ export function FiscalYearTab({ orgId: propOrgId }: { orgId?: string } = {}) {
         </div>
         <div className="p-4 bg-input-bg/50 rounded-lg">
           <p className="text-xs text-faint mb-1">Preview</p>
-          <p className="text-sm font-semibold text-secondary">FY {startYear}/{endYear} = {startLabel} {startYear} &ndash; {endLabel} {endYear}</p>
+          <p className="text-xs font-semibold text-muted uppercase tracking-wider">FY {startYear}/{endYear} = {startLabel} {startYear} &ndash; {endLabel} {endYear}</p>
         </div>
         <button onClick={handleSave} disabled={saving} className={btnPrimary}>{saving ? "Saving..." : "Save"}</button>
       </div>

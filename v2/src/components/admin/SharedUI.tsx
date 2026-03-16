@@ -32,7 +32,7 @@ export function ConfirmDialog({ title, desc, onConfirm, onCancel }: { title: str
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-surface border border-b-default rounded-lg p-6 max-w-md w-full mx-4 space-y-4">
-        <h3 className="text-sm font-semibold text-secondary">{title}</h3>
+        <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">{title}</h3>
         <p className="text-sm text-muted">{desc}</p>
         <div className="flex justify-end gap-2">
           <button onClick={onCancel} className={btnCancel}>Cancel</button>

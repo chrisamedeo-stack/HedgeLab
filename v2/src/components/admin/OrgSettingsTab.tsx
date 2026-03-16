@@ -74,7 +74,7 @@ function SectionCard({ title, description, children }: { title: string; descript
   return (
     <div className="bg-surface border border-b-default rounded-lg p-6 space-y-4">
       <div>
-        <h3 className="text-sm font-semibold text-secondary">{title}</h3>
+        <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">{title}</h3>
         {description && <p className="text-xs text-faint mt-1">{description}</p>}
       </div>
       {children}

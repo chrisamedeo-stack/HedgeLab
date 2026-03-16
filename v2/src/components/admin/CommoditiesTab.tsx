@@ -271,7 +271,7 @@ function EditPanel({
   return (
     <form onSubmit={handleSubmit} className="border-t border-b-default bg-input-bg/30 p-4 space-y-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-secondary">
+        <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">
           {isNew ? "New Commodity" : `Edit ${commodity!.name}`}
         </h3>
         <button type="button" onClick={onCancel} className="text-faint hover:text-secondary transition-colors">

@@ -192,7 +192,7 @@ export function OrganizationTab({ orgId: propOrgId }: { orgId?: string } = {}) {
 
       {/* Section 1: Organization Profile */}
       <div className="bg-surface border border-b-default rounded-lg p-6 space-y-4">
-        <h3 className="text-sm font-semibold text-secondary flex items-center gap-2">
+        <h3 className="text-xs font-semibold text-muted uppercase tracking-wider flex items-center gap-2">
           <Building2 className="h-4 w-4 text-action" /> Organization Profile
         </h3>
 
@@ -235,7 +235,7 @@ export function OrganizationTab({ orgId: propOrgId }: { orgId?: string } = {}) {
       {/* Section 2: Org Hierarchy */}
       <div className="bg-surface border border-b-default rounded-lg p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-secondary flex items-center gap-2">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider flex items-center gap-2">
             <Globe className="h-4 w-4 text-action" /> {groupingLevel?.label ?? "Region"}s
           </h3>
           <button

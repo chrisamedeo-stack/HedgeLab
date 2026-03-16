@@ -160,7 +160,7 @@ export function SuppliersTab({ orgId: propOrgId }: { orgId?: string } = {}) {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-surface border border-b-default rounded-lg p-6 space-y-5">
-          <h3 className="text-sm font-semibold text-secondary">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">
             {editing ? <>Edit <span className="text-action">{editing.name}</span></> : "New Supplier / Counterparty"}
           </h3>
 

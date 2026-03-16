@@ -97,7 +97,7 @@ export function UsersTab({ orgId: propOrgId }: { orgId?: string } = {}) {
 
       {showForm && (
         <form onSubmit={handleCreate} className="bg-surface border border-b-default rounded-lg p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-secondary">New User</h3>
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">New User</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="space-y-1"><label className="text-xs text-muted">Name</label>
               <input type="text" required maxLength={100} className={inputCls} placeholder="John Smith" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
@@ -120,7 +120,7 @@ export function UsersTab({ orgId: propOrgId }: { orgId?: string } = {}) {
 
       {editing && (
         <form onSubmit={handleEdit} className="bg-surface border border-b-default rounded-lg p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-secondary">Edit <span className="text-action">{editing.name}</span></h3>
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">Edit <span className="text-action">{editing.name}</span></h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="space-y-1"><label className="text-xs text-muted">Email</label>
               <input type="email" maxLength={150} className={inputCls} placeholder="email@company.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
