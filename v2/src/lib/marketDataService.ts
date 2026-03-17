@@ -1,4 +1,4 @@
-import { queryOne, queryAll } from "./db";
+import { queryOne, queryAll, query } from "./db";
 import { requirePermission } from "./permissions";
 import { manualProvider } from "./marketData/providers/manual";
 import { excelProvider } from "./marketData/providers/excel";
@@ -381,6 +381,185 @@ export async function commitUpload(
 ): Promise<IngestResult> {
   await requirePermission(userId, "market.upload_prices");
   return excelProvider.ingestPrices(rows, orgId, userId);
+}
+
+// ─── External API Refresh (shared by manual trigger + cron) ─────────────────
+
+// CME month letter → month number
+const LETTER_TO_MONTH: Record<string, number> = {
+  F: 1, G: 2, H: 3, J: 4, K: 5, M: 6,
+  N: 7, Q: 8, U: 9, V: 10, X: 11, Z: 12,
+};
+
+// HedgeLab commodity ID → CommodityPriceAPI symbol
+const API_SYMBOL_MAP: Record<string, string> = {
+  ZC: "CORN",
+  ZS: "SOYBEAN-FUT",
+  ZW: "ZW-FUT",
+  ZL: "ZL",
+  ZM: "ZM",
+};
+
+interface CommodityRow {
+  id: string;
+  contract_months: string | null;
+  config: { futures_prefix?: string } | null;
+}
+
+function getFrontMonth(date: Date, contractMonths: string, prefix: string): string {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const letters = contractMonths.split("");
+
+  for (const yr of [year, year + 1]) {
+    for (const letter of letters) {
+      const contractMonth = LETTER_TO_MONTH[letter];
+      const expiryDay = 14;
+      if (yr > year || contractMonth > month || (contractMonth === month && day <= expiryDay)) {
+        const yrStr = String(yr).slice(-2);
+        return `${prefix}${letter}${yrStr}`;
+      }
+    }
+  }
+
+  const firstLetter = letters[0];
+  return `${prefix}${firstLetter}${String(year + 1).slice(-2)}`;
+}
+
+function formatDateStr(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function isWeekday(date: Date): boolean {
+  const day = date.getDay();
+  return day !== 0 && day !== 6;
+}
+
+/**
+ * Refresh prices from CommodityPriceAPI for a given org.
+ */
+export async function refreshFromExternalApi(
+  orgId: string,
+  days: number = 1
+): Promise<{ upserted: number; errors: number }> {
+  const apiKey = process.env.COMMODITY_PRICE_API_KEY;
+  if (!apiKey) {
+    throw new Error("COMMODITY_PRICE_API_KEY not configured");
+  }
+
+  const commodities = await queryAll<CommodityRow>(
+    `SELECT id, contract_months, config FROM commodities WHERE org_id = $1`,
+    [orgId]
+  );
+
+  // Build date list (weekdays going back from yesterday)
+  const dates: Date[] = [];
+  const today = new Date();
+  for (let i = 1; dates.length < days; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    if (isWeekday(d)) dates.push(d);
+    if (i > days + 10) break;
+  }
+  dates.reverse();
+
+  // Build API symbol list and reverse map
+  const reverseMap: Record<string, { commodityId: string; contractMonths: string; prefix: string }> = {};
+  const apiSymbols: string[] = [];
+
+  for (const c of commodities) {
+    const apiSymbol = API_SYMBOL_MAP[c.id];
+    if (!apiSymbol || !c.contract_months) continue;
+    const prefix = c.config?.futures_prefix ?? "";
+    reverseMap[apiSymbol] = { commodityId: c.id, contractMonths: c.contract_months, prefix };
+    apiSymbols.push(apiSymbol);
+  }
+
+  if (apiSymbols.length === 0) {
+    return { upserted: 0, errors: 0 };
+  }
+
+  let upserted = 0;
+  let errors = 0;
+
+  for (const date of dates) {
+    const dateStr = formatDateStr(date);
+    try {
+      const url = `https://api.commoditypriceapi.com/v2/rates/historical?apiKey=${apiKey}&symbols=${apiSymbols.join(",")}&date=${dateStr}`;
+      const res = await fetch(url);
+      if (!res.ok) { errors++; continue; }
+
+      const data = await res.json();
+      if (!data.success || !data.rates) { errors++; continue; }
+
+      for (const [apiSymbol, priceData] of Object.entries(data.rates)) {
+        const info = reverseMap[apiSymbol];
+        if (!info) continue;
+
+        const pd = priceData as { close?: number; open?: number; high?: number; low?: number };
+        if (pd.close === undefined) continue;
+
+        const contractMonth = getFrontMonth(date, info.contractMonths, info.prefix);
+
+        await queryOne(
+          `INSERT INTO md_prices
+             (org_id, commodity_id, contract_month, price_date, price_type,
+              price, open_price, high_price, low_price, source)
+           VALUES ($1, $2, $3, $4, 'settlement', $5, $6, $7, $8, 'commodity-price-api')
+           ON CONFLICT (org_id, commodity_id, contract_month, price_date, price_type)
+           DO UPDATE SET price = EXCLUDED.price,
+                         open_price = EXCLUDED.open_price,
+                         high_price = EXCLUDED.high_price,
+                         low_price = EXCLUDED.low_price
+           RETURNING id`,
+          [
+            orgId,
+            info.commodityId,
+            contractMonth,
+            dateStr,
+            pd.close,
+            pd.open ?? null,
+            pd.high ?? null,
+            pd.low ?? null,
+          ]
+        );
+        upserted++;
+      }
+    } catch {
+      errors++;
+    }
+  }
+
+  return { upserted, errors };
+}
+
+/**
+ * Get the last poll status for display on the market page.
+ */
+export async function getLastPollStatus(orgId: string): Promise<{
+  lastPollAt: string | null;
+  lastPollStatus: string | null;
+  providerName: string | null;
+} | null> {
+  const row = await queryOne<{
+    last_poll_at: string | null;
+    last_poll_status: string | null;
+    name: string;
+  }>(
+    `SELECT last_poll_at, last_poll_status, name
+     FROM md_providers
+     WHERE org_id = $1 AND is_active = true
+     ORDER BY last_poll_at DESC NULLS LAST
+     LIMIT 1`,
+    [orgId]
+  );
+  if (!row) return null;
+  return {
+    lastPollAt: row.last_poll_at,
+    lastPollStatus: row.last_poll_status,
+    providerName: row.name,
+  };
 }
 
 // ─── Basis CRUD ─────────────────────────────────────────────────────────────

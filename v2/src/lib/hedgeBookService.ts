@@ -78,66 +78,82 @@ export async function getBookPositions(
 
 export async function getBookSummary(bookId: string): Promise<HedgeBookSummary> {
   const row = await queryOne<HedgeBookSummary>(
-    `SELECT
-       -- MTM P&L (placeholder — needs market data join, returns 0 for now)
-       0 AS mtm_pnl,
+    `WITH latest_prices AS (
+       SELECT DISTINCT ON (commodity_id, contract_month)
+         commodity_id, contract_month, price
+       FROM md_prices
+       WHERE org_id = (SELECT org_id FROM hedge_books WHERE id = $1)
+         AND price_type = 'settlement'
+       ORDER BY commodity_id, contract_month, price_date DESC
+     )
+     SELECT
+       -- MTM P&L: mark-to-market using latest settlement prices
+       COALESCE(SUM(
+         CASE WHEN ft.position_status IN ('unallocated','budget_allocated','site_allocated')
+              AND NOT ft.is_split_parent AND lp.price IS NOT NULL
+         THEN (lp.price - ft.trade_price) * ft.total_volume *
+              CASE ft.direction WHEN 'long' THEN 1 ELSE -1 END
+         ELSE 0 END
+       ), 0) AS mtm_pnl,
 
        -- Realized P&L: sum of realized_pnl for terminal states
-       COALESCE(SUM(CASE WHEN position_status IN ('offset','efp','exercised','expired')
-         THEN COALESCE(realized_pnl, 0) + COALESCE(futures_realized_pnl, 0)
+       COALESCE(SUM(CASE WHEN ft.position_status IN ('offset','efp','exercised','expired')
+         THEN COALESCE(ft.realized_pnl, 0) + COALESCE(ft.futures_realized_pnl, 0)
          ELSE 0 END), 0) AS realized_pnl,
 
        -- Avg Board Price: VWAP of entry_price across open futures
-       CASE WHEN SUM(CASE WHEN trade_type = 'futures' AND position_status IN ('unallocated','budget_allocated','site_allocated') AND NOT is_split_parent
-                        THEN total_volume ELSE 0 END) > 0
-         THEN SUM(CASE WHEN trade_type = 'futures' AND position_status IN ('unallocated','budget_allocated','site_allocated') AND NOT is_split_parent
-                        THEN trade_price * total_volume ELSE 0 END)
-            / SUM(CASE WHEN trade_type = 'futures' AND position_status IN ('unallocated','budget_allocated','site_allocated') AND NOT is_split_parent
-                        THEN total_volume ELSE 0 END)
+       CASE WHEN SUM(CASE WHEN ft.trade_type = 'futures' AND ft.position_status IN ('unallocated','budget_allocated','site_allocated') AND NOT ft.is_split_parent
+                        THEN ft.total_volume ELSE 0 END) > 0
+         THEN SUM(CASE WHEN ft.trade_type = 'futures' AND ft.position_status IN ('unallocated','budget_allocated','site_allocated') AND NOT ft.is_split_parent
+                        THEN ft.trade_price * ft.total_volume ELSE 0 END)
+            / SUM(CASE WHEN ft.trade_type = 'futures' AND ft.position_status IN ('unallocated','budget_allocated','site_allocated') AND NOT ft.is_split_parent
+                        THEN ft.total_volume ELSE 0 END)
          ELSE NULL END AS avg_board_price,
 
        -- Avg Basis: VWAP of efp_basis for site_allocated + efp positions
-       CASE WHEN SUM(CASE WHEN position_status IN ('site_allocated','efp') AND efp_basis IS NOT NULL AND NOT is_split_parent
-                        THEN total_volume ELSE 0 END) > 0
-         THEN SUM(CASE WHEN position_status IN ('site_allocated','efp') AND efp_basis IS NOT NULL AND NOT is_split_parent
-                        THEN efp_basis * total_volume ELSE 0 END)
-            / SUM(CASE WHEN position_status IN ('site_allocated','efp') AND efp_basis IS NOT NULL AND NOT is_split_parent
-                        THEN total_volume ELSE 0 END)
+       CASE WHEN SUM(CASE WHEN ft.position_status IN ('site_allocated','efp') AND ft.efp_basis IS NOT NULL AND NOT ft.is_split_parent
+                        THEN ft.total_volume ELSE 0 END) > 0
+         THEN SUM(CASE WHEN ft.position_status IN ('site_allocated','efp') AND ft.efp_basis IS NOT NULL AND NOT ft.is_split_parent
+                        THEN ft.efp_basis * ft.total_volume ELSE 0 END)
+            / SUM(CASE WHEN ft.position_status IN ('site_allocated','efp') AND ft.efp_basis IS NOT NULL AND NOT ft.is_split_parent
+                        THEN ft.total_volume ELSE 0 END)
          ELSE NULL END AS avg_basis,
 
        -- Avg Net Premium: VWAP of premium across option positions
-       CASE WHEN SUM(CASE WHEN trade_type = 'options' AND NOT is_split_parent
-                        THEN total_volume ELSE 0 END) > 0
-         THEN SUM(CASE WHEN trade_type = 'options' AND NOT is_split_parent
-                        THEN COALESCE(premium, 0) * total_volume ELSE 0 END)
-            / SUM(CASE WHEN trade_type = 'options' AND NOT is_split_parent
-                        THEN total_volume ELSE 0 END)
+       CASE WHEN SUM(CASE WHEN ft.trade_type = 'options' AND NOT ft.is_split_parent
+                        THEN ft.total_volume ELSE 0 END) > 0
+         THEN SUM(CASE WHEN ft.trade_type = 'options' AND NOT ft.is_split_parent
+                        THEN COALESCE(ft.premium, 0) * ft.total_volume ELSE 0 END)
+            / SUM(CASE WHEN ft.trade_type = 'options' AND NOT ft.is_split_parent
+                        THEN ft.total_volume ELSE 0 END)
          ELSE NULL END AS avg_net_premium,
 
        -- All-in Price: VWAP where physical linked
-       CASE WHEN SUM(CASE WHEN linked_physical_id IS NOT NULL AND NOT is_split_parent
-                        THEN total_volume ELSE 0 END) > 0
-         THEN SUM(CASE WHEN linked_physical_id IS NOT NULL AND NOT is_split_parent
-                        THEN (COALESCE(efp_market_price, trade_price) + COALESCE(efp_basis, 0)) * total_volume ELSE 0 END)
-            / SUM(CASE WHEN linked_physical_id IS NOT NULL AND NOT is_split_parent
-                        THEN total_volume ELSE 0 END)
+       CASE WHEN SUM(CASE WHEN ft.linked_physical_id IS NOT NULL AND NOT ft.is_split_parent
+                        THEN ft.total_volume ELSE 0 END) > 0
+         THEN SUM(CASE WHEN ft.linked_physical_id IS NOT NULL AND NOT ft.is_split_parent
+                        THEN (COALESCE(ft.efp_market_price, ft.trade_price) + COALESCE(ft.efp_basis, 0)) * ft.total_volume ELSE 0 END)
+            / SUM(CASE WHEN ft.linked_physical_id IS NOT NULL AND NOT ft.is_split_parent
+                        THEN ft.total_volume ELSE 0 END)
          ELSE NULL END AS all_in_price,
 
        -- Open Volume
-       COALESCE(SUM(CASE WHEN position_status IN ('unallocated','budget_allocated','site_allocated') AND NOT is_split_parent
-         THEN total_volume ELSE 0 END), 0) AS open_volume,
+       COALESCE(SUM(CASE WHEN ft.position_status IN ('unallocated','budget_allocated','site_allocated') AND NOT ft.is_split_parent
+         THEN ft.total_volume ELSE 0 END), 0) AS open_volume,
 
        -- EFP Volume
-       COALESCE(SUM(CASE WHEN position_status = 'efp' AND NOT is_split_parent
-         THEN total_volume ELSE 0 END), 0) AS efp_volume,
+       COALESCE(SUM(CASE WHEN ft.position_status = 'efp' AND NOT ft.is_split_parent
+         THEN ft.total_volume ELSE 0 END), 0) AS efp_volume,
 
        -- Offset Volume
-       COALESCE(SUM(CASE WHEN position_status IN ('offset','expired') AND NOT is_split_parent
-         THEN total_volume ELSE 0 END), 0) AS offset_volume
+       COALESCE(SUM(CASE WHEN ft.position_status IN ('offset','expired') AND NOT ft.is_split_parent
+         THEN ft.total_volume ELSE 0 END), 0) AS offset_volume
 
-     FROM tc_financial_trades
-     WHERE hedge_book_id = $1
-       AND status != 'cancelled'`,
+     FROM tc_financial_trades ft
+     LEFT JOIN latest_prices lp ON lp.commodity_id = ft.commodity_id
+       AND lp.contract_month = ft.contract_month
+     WHERE ft.hedge_book_id = $1
+       AND ft.status != 'cancelled'`,
     [bookId]
   );
 

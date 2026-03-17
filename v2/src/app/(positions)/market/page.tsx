@@ -57,6 +57,15 @@ function PriceBoardTab() {
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMsg, setRefreshMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [lastPollAt, setLastPollAt] = useState<string | null>(null);
+
+  // Fetch last poll status on mount
+  useEffect(() => {
+    fetch(`${API_BASE}/api/market/poll-status`)
+      .then((r) => r.json())
+      .then((d) => { if (d.lastPollAt) setLastPollAt(d.lastPollAt); })
+      .catch(() => {});
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -70,6 +79,7 @@ function PriceBoardTab() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Refresh failed");
       setRefreshMsg({ type: "success", text: `${data.upserted} prices updated` });
+      setLastPollAt(new Date().toISOString());
       refetch();
     } catch (err) {
       setRefreshMsg({ type: "error", text: (err as Error).message });
@@ -134,6 +144,11 @@ function PriceBoardTab() {
 
       {/* Action buttons */}
       <div className="flex items-center justify-end gap-2">
+        {lastPollAt && !refreshMsg && (
+          <span className="text-xs text-faint">
+            Last refreshed {new Date(lastPollAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+          </span>
+        )}
         {refreshMsg && (
           <span className={`text-xs ${refreshMsg.type === "success" ? "text-profit" : "text-loss"}`}>
             {refreshMsg.text}
