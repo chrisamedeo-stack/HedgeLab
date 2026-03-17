@@ -370,7 +370,7 @@ function LineChartFallback({ prices, contractMonth }: { prices: MarketPrice[]; c
           <YAxis stroke={chartColors.tick} fontSize={11} tickLine={false} tickFormatter={(v: number) => `$${v.toFixed(2)}`} />
           <Tooltip
             contentStyle={tooltipStyle}
-            formatter={(value: number | undefined) => value != null ? [`$${value.toFixed(4)}`, "Price"] : ["—", "Price"]}
+            formatter={(value: unknown) => typeof value === "number" ? [`$${value.toFixed(4)}`, "Price"] : ["—", "Price"]}
           />
           <Line dataKey="price" stroke={chartColors.action} strokeWidth={2} dot={false} />
         </LineChart>
