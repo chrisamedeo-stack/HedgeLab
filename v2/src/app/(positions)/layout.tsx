@@ -4,11 +4,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
-import { CommodityProvider, useCommodityContext } from "@/contexts/CommodityContext";
+import { CommodityProvider } from "@/contexts/CommodityContext";
 import { OrgProvider, useOrgContext } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { OrgImpersonationBanner } from "@/components/platform/OrgImpersonationBanner";
-import { useCommodities } from "@/hooks/usePositions";
 import { useEnabledPlugins } from "@/hooks/useOrgHierarchy";
 
 // ─── Nav icon paths ──────────────────────────────────────────────────────
@@ -34,84 +33,6 @@ const NAV_ICONS: Record<string, string> = {
 
 function getIcon(href: string): string {
   return NAV_ICONS[href] ?? "M4 6h16M4 12h16M4 18h16";
-}
-
-// ─── Commodity Switcher ──────────────────────────────────────────────────
-
-function CommoditySwitcher({ collapsed }: { collapsed: boolean }) {
-  const { data: commodities } = useCommodities();
-  const { commodityId, setCommodityId } = useCommodityContext();
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (!commodityId && commodities && commodities.length > 0) {
-      setCommodityId(commodities[0].id);
-    }
-  }, [commodities, commodityId, setCommodityId]);
-
-  const selected = commodities?.find((c) => c.id === commodityId);
-
-  if (collapsed) {
-    return (
-      <div className="relative px-2 py-2 flex justify-center">
-        <button
-          onClick={() => setOpen(!open)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg bg-input-bg text-xs font-bold text-secondary hover:bg-hover transition-colors"
-          title={selected?.name ?? "Commodity"}
-        >
-          {selected?.name?.slice(0, 2).toUpperCase() ?? "??"}
-        </button>
-        {open && commodities && (
-          <div className="absolute left-full top-0 z-50 ml-1 w-40 rounded-lg border border-b-default bg-surface shadow-lg">
-            {commodities.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => { setCommodityId(c.id); setOpen(false); }}
-                className={`flex w-full items-center px-3 py-2 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                  c.id === commodityId
-                    ? "bg-action-10 text-secondary"
-                    : "text-muted hover:bg-hover hover:text-secondary"
-                }`}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative px-3 py-2">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center rounded-lg bg-input-bg border border-b-input px-3 py-2 gap-2 text-sm font-medium hover:bg-hover transition-colors"
-      >
-        <span className="font-semibold text-primary">{selected?.name ?? "Select Commodity"}</span>
-        <svg className="h-3.5 w-3.5 text-faint ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
-        </svg>
-      </button>
-      {open && commodities && (
-        <div className="absolute left-3 right-3 z-50 mt-1 rounded-lg border border-b-default bg-surface shadow-lg">
-          {commodities.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => { setCommodityId(c.id); setOpen(false); }}
-              className={`flex w-full items-center px-3 py-2 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                c.id === commodityId
-                  ? "bg-action-10 text-secondary"
-                  : "text-muted hover:bg-hover hover:text-secondary"
-              }`}
-            >
-              {c.name}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 // ─── Nav Link ────────────────────────────────────────────────────────────
@@ -294,11 +215,6 @@ function Sidebar() {
           <Image src="/hedgelab-icon.png" alt="HL" width={28} height={28} className="shrink-0" />
           {!collapsed && <span className="text-sm font-semibold text-primary tracking-tight">HedgeLab</span>}
         </Link>
-      </div>
-
-      {/* Commodity Switcher */}
-      <div className="border-b border-b-default">
-        <CommoditySwitcher collapsed={collapsed} />
       </div>
 
       {/* Nav Sections — scrollable */}

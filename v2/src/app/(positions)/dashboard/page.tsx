@@ -25,11 +25,17 @@ import Link from "next/link";
 
 function DashboardInner() {
   const { orgId, orgTree, hierarchyLevels, isPluginEnabled } = useOrgContext();
-  const { commodityId } = useCommodityContext();
-  const { nav, selectUnit, selectSite, setCommodity, reset } = useDashboardNav();
+  const { commodityId, setCommodityId } = useCommodityContext();
+  const { nav, selectUnit, selectSite, setCommodity: setNavCommodity, reset } = useDashboardNav();
 
   // Merge commodity context with nav
   const effectiveNav = { ...nav, commodityId: nav.commodityId ?? commodityId ?? undefined };
+
+  // Sync CascadingNav commodity selection to global context (persists across pages)
+  const setCommodity = useCallback((id: string | undefined) => {
+    setNavCommodity(id);
+    setCommodityId(id ?? null);
+  }, [setNavCommodity, setCommodityId]);
 
   // Dashboard data
   const { kpis, alerts, children, operational, coverageBySite, positionsByMonth, loading, refetch } =
