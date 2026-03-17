@@ -6,13 +6,12 @@ import { useSites, useCommodities } from "@/hooks/usePositions";
 import { useCommodityContext } from "@/contexts/CommodityContext";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
-import MultiMonthContractGrid from "@/components/contracts/MultiMonthContractGrid";
+import { PhysicalContractForm } from "@/components/contracts/PhysicalContractForm";
+import type { Commodity } from "@/hooks/usePositions";
 import type {
   PhysicalContract,
   ContractStatus,
   ContractType,
-  ContractDirection,
-  ContractPricingType,
   ContractFilters,
 } from "@/types/contracts";
 
@@ -49,83 +48,34 @@ export default function ContractsPage() {
   const { data: counterparties } = useCounterparties(orgId);
   const { data: sites } = useSites(orgId);
   const { data: commodities } = useCommodities();
-  const { createContract, transitionContract, cancelContract } = useContractStore();
+  const { transitionContract, cancelContract } = useContractStore();
 
+  // Form state — commodity pre-selection like trades page
   const [showForm, setShowForm] = useState(false);
-  const [showMultiMonth, setShowMultiMonth] = useState(false);
+  const [formCommodity, setFormCommodity] = useState<Commodity | null>(null);
+
   const [deliverContractId, setDeliverContractId] = useState<string | null>(null);
   const [deliverVolume, setDeliverVolume] = useState("");
 
-  const [form, setForm] = useState({
-    counterpartyId: "",
-    commodityId: commodityId ?? "",
-    siteId: "",
-    contractRef: "",
-    contractType: "purchase" as ContractType,
-    direction: "buy" as ContractDirection,
-    pricingType: "fixed" as ContractPricingType,
-    totalVolume: "",
-    price: "",
-    basisPrice: "",
-    basisMonth: "",
-    deliveryStart: "",
-    deliveryEnd: "",
-    deliveryLocation: "",
-    notes: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await createContract({
-        orgId,
-        userId: user!.id,
-        counterpartyId: form.counterpartyId || undefined,
-        commodityId: form.commodityId || undefined,
-        siteId: form.siteId || undefined,
-        contractRef: form.contractRef || undefined,
-        contractType: form.contractType,
-        direction: form.direction,
-        pricingType: form.pricingType,
-        totalVolume: Number(form.totalVolume),
-        price: form.price ? Number(form.price) : undefined,
-        basisPrice: form.basisPrice ? Number(form.basisPrice) : undefined,
-        basisMonth: form.basisMonth || undefined,
-        deliveryStart: form.deliveryStart || undefined,
-        deliveryEnd: form.deliveryEnd || undefined,
-        deliveryLocation: form.deliveryLocation || undefined,
-        notes: form.notes || undefined,
-      });
-      setShowForm(false);
-      resetForm();
-      refetch();
-    } catch {
-      // error handled by store
-    } finally {
-      setSubmitting(false);
+  function handleNewContract() {
+    // If commodity filter is active, pre-select that commodity
+    const filtered = (commodities ?? []).find((c) => c.id === commodityId);
+    if (filtered) {
+      setFormCommodity(filtered);
+      setShowForm(true);
+    } else if ((commodities ?? []).length === 1) {
+      setFormCommodity(commodities![0]);
+      setShowForm(true);
+    } else {
+      // Show commodity picker
+      setFormCommodity(null);
+      setShowForm(true);
     }
   }
 
-  function resetForm() {
-    setForm({
-      counterpartyId: "",
-      commodityId: commodityId ?? "",
-      siteId: "",
-      contractRef: "",
-      contractType: "purchase",
-      direction: "buy",
-      pricingType: "fixed",
-      totalVolume: "",
-      price: "",
-      basisPrice: "",
-      basisMonth: "",
-      deliveryStart: "",
-      deliveryEnd: "",
-      deliveryLocation: "",
-      notes: "",
-    });
+  function closeForm() {
+    setShowForm(false);
+    setFormCommodity(null);
   }
 
   async function handleAction(contractId: string, action: string) {
@@ -180,26 +130,15 @@ export default function ContractsPage() {
             {contracts.length} contract{contracts.length !== 1 ? "s" : ""} &middot; full lifecycle management
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => { setShowMultiMonth(true); setShowForm(false); }}
-            className="inline-flex items-center gap-2 rounded-lg border border-b-input px-4 py-2 text-sm font-medium text-secondary transition-colors hover:bg-input-bg"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-            </svg>
-            Multi-Month
-          </button>
-          <button
-            onClick={() => { setShowForm(true); setShowMultiMonth(false); }}
-            className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            New Contract
-          </button>
-        </div>
+        <button
+          onClick={handleNewContract}
+          className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          New Contract
+        </button>
       </div>
 
       {/* Filter Bar */}
@@ -331,7 +270,7 @@ export default function ContractsPage() {
           </div>
           <p className="text-sm font-medium text-secondary">No physical contracts yet</p>
           <p className="mt-1 text-xs text-faint">Create your first contract to start tracking deliveries.</p>
-          <button onClick={() => setShowForm(true)} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors">
+          <button onClick={handleNewContract} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors">
             New Contract
           </button>
         </div>
@@ -370,105 +309,49 @@ export default function ContractsPage() {
         </div>
       )}
 
-      {/* Multi-Month Contract Grid */}
-      {showMultiMonth && (
-        <MultiMonthContractGrid
-          orgId={orgId}
-          userId={user!.id}
-          defaultCommodityId={commodityId ?? undefined}
-          counterparties={counterparties}
-          commodities={commodities ?? []}
-          sites={sites ?? []}
-          onSaved={() => { setShowMultiMonth(false); refetch(); }}
-          onCancel={() => setShowMultiMonth(false)}
-        />
+      {/* Commodity picker (when no commodity pre-selected) */}
+      {showForm && !formCommodity && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-80 rounded-xl border border-b-default bg-[#111D32] p-5 shadow-2xl">
+            <h3 className="text-sm font-semibold text-primary mb-3">Select commodity</h3>
+            <div className="space-y-1">
+              {(commodities ?? []).map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setFormCommodity(c)}
+                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-secondary hover:bg-hover transition-colors flex items-center gap-2"
+                >
+                  <span className="font-mono text-xs text-action bg-action/10 px-1.5 py-0.5 rounded">
+                    {c.ticker_root || c.id}
+                  </span>
+                  {c.name}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={closeForm}
+              className="mt-3 text-xs text-faint hover:text-secondary"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* Inline New Contract Form */}
-      {showForm && (
-        <div className="animate-fade-in rounded-lg border border-b-default bg-surface p-4">
-          <h3 className="text-sm font-medium text-secondary mb-3">New Physical Contract</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-faint mb-1">Contract Type *</label>
-                <select
-                  required
-                  value={form.contractType}
-                  onChange={(e) => {
-                    const ct = e.target.value as ContractType;
-                    setForm({ ...form, contractType: ct, direction: ct === "purchase" ? "buy" : "sell" });
-                  }}
-                  className={inputClass}
-                >
-                  <option value="purchase">Purchase</option>
-                  <option value="sale">Sale</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-faint mb-1">Counterparty</label>
-                <select value={form.counterpartyId} onChange={(e) => setForm({ ...form, counterpartyId: e.target.value })} className={inputClass}>
-                  <option value="">Select counterparty</option>
-                  {counterparties.map((cp) => <option key={cp.id} value={cp.id}>{cp.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-faint mb-1">Commodity</label>
-                <select value={form.commodityId} onChange={(e) => setForm({ ...form, commodityId: e.target.value })} className={inputClass}>
-                  <option value="">Select commodity</option>
-                  {(commodities ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-faint mb-1">Site</label>
-                <select value={form.siteId} onChange={(e) => setForm({ ...form, siteId: e.target.value })} className={inputClass}>
-                  <option value="">Select site</option>
-                  {(sites ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-faint mb-1">Volume *</label>
-                <input required type="number" step="any" value={form.totalVolume} onChange={(e) => setForm({ ...form, totalVolume: e.target.value })} className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-faint mb-1">Pricing Type</label>
-                <select value={form.pricingType} onChange={(e) => setForm({ ...form, pricingType: e.target.value as ContractPricingType })} className={inputClass}>
-                  <option value="fixed">Fixed</option>
-                  <option value="basis">Basis</option>
-                  <option value="formula">Formula</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-faint mb-1">Price</label>
-                <input type="number" step="any" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-faint mb-1">Contract Ref</label>
-                <input type="text" value={form.contractRef} onChange={(e) => setForm({ ...form, contractRef: e.target.value })} className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-faint mb-1">Delivery Start</label>
-                <input type="date" value={form.deliveryStart} onChange={(e) => setForm({ ...form, deliveryStart: e.target.value })} className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-faint mb-1">Delivery End</label>
-                <input type="date" value={form.deliveryEnd} onChange={(e) => setForm({ ...form, deliveryEnd: e.target.value })} className={inputClass} />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-faint mb-1">Notes</label>
-              <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className={inputClass} />
-            </div>
-            <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-b-input px-4 py-2 text-sm text-muted hover:bg-input-bg transition-colors">
-                Cancel
-              </button>
-              <button type="submit" disabled={submitting} className="rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors disabled:opacity-50">
-                {submitting ? "Creating..." : "Create Contract"}
-              </button>
-            </div>
-          </form>
-        </div>
+      {/* Physical Contract Form modal */}
+      {showForm && formCommodity && (
+        <PhysicalContractForm
+          orgId={orgId}
+          commodity={formCommodity}
+          commodities={commodities ?? []}
+          counterparties={counterparties}
+          sites={(sites ?? []).map((s) => ({ id: s.id, name: s.name, code: s.code }))}
+          onClose={closeForm}
+          onSuccess={() => {
+            closeForm();
+            refetch();
+          }}
+        />
       )}
     </div>
   );

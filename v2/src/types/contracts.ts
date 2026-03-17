@@ -4,7 +4,7 @@
 export type ContractStatus = "draft" | "active" | "completed" | "cancelled";
 export type ContractType = "purchase" | "sale";
 export type ContractDirection = "buy" | "sell";
-export type ContractPricingType = "fixed" | "basis" | "formula";
+export type ContractPricingType = "fixed" | "basis" | "formula" | "hta" | "index";
 export type CounterpartyType = "commercial" | "broker" | "exchange" | "producer" | "consumer" | "trader";
 export type EntityType = "supplier" | "counterparty" | "both";
 export type CreditStatus = "good" | "warning" | "exceeded" | "suspended";
