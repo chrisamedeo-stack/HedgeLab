@@ -487,6 +487,7 @@ function UnitRow(props: UnitRowProps) {
               orgId={orgId}
               userId={userId}
               parentUnitId={node.id}
+              parentUnitName={node.name}
               siteTypes={siteTypes}
               depth={depth + 1}
               onDone={() => {
@@ -590,6 +591,7 @@ function AddSiteForm({
   orgId,
   userId,
   parentUnitId,
+  parentUnitName,
   siteTypes,
   depth,
   onDone,
@@ -599,6 +601,7 @@ function AddSiteForm({
   orgId: string;
   userId: string;
   parentUnitId: string;
+  parentUnitName: string;
   siteTypes: { id: string; name: string }[];
   depth: number;
   onDone: () => void;
@@ -620,6 +623,7 @@ function AddSiteForm({
           orgId,
           code: code.trim(),
           name: name.trim(),
+          region: parentUnitName,
           siteTypeId: siteTypeId || null,
           orgUnitId: parentUnitId,
         }),
