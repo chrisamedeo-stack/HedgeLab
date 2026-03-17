@@ -1,6 +1,108 @@
 // ─── Position Manager Types ──────────────────────────────────────────────────
 
-// ─── Core Entities ───────────────────────────────────────────────────────────
+// ─── V2 Position Status State Machine ───────────────────────────────────────
+
+export type PositionStatus =
+  | "unallocated"
+  | "budget_allocated"
+  | "site_allocated"
+  | "efp"
+  | "offset"
+  | "exercised"
+  | "expired"
+  | "partial";
+
+// ─── Hedge Book Entity ──────────────────────────────────────────────────────
+
+export interface HedgeBook {
+  id: string;
+  org_id: string;
+  name: string;
+  currency: string;
+  org_unit_id: string | null;
+  commodity_id: string | null;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  // joined
+  org_unit_name?: string;
+  commodity_name?: string;
+}
+
+export interface HedgeBookSummary {
+  mtm_pnl: number;
+  realized_pnl: number;
+  avg_board_price: number | null;
+  avg_basis: number | null;
+  avg_net_premium: number | null;
+  all_in_price: number | null;
+  open_volume: number;
+  efp_volume: number;
+  offset_volume: number;
+}
+
+// ─── Position (V2 — trade header as position) ──────────────────────────────
+
+export interface Position {
+  id: string;
+  org_id: string;
+  commodity_id: string;
+  trade_type: string;
+  direction: Direction;
+  position_status: PositionStatus;
+  trade_date: string;
+  contract_month: string;
+  total_volume: number;
+  trade_price: number;
+  currency: string;
+  hedge_book_id: string | null;
+  budget_month: string | null;
+  site_id: string | null;
+  parent_trade_id: string | null;
+  is_split_parent: boolean;
+  split_volume: number | null;
+  efp_pair_id: string | null;
+  efp_basis: number | null;
+  efp_date: string | null;
+  efp_market_price: number | null;
+  linked_physical_id: string | null;
+  futures_realized_pnl: number | null;
+  offset_pair_id: string | null;
+  offset_price: number | null;
+  offset_date: string | null;
+  realized_pnl: number | null;
+  // joined
+  commodity_name?: string;
+  site_name?: string;
+  site_code?: string;
+  hedge_book_name?: string;
+  broker?: string | null;
+  strike_price?: number | null;
+  premium?: number | null;
+  option_type?: string | null;
+  expiration_date?: string | null;
+}
+
+// ─── Position Event ─────────────────────────────────────────────────────────
+
+export interface PositionEvent {
+  id: string;
+  org_id: string;
+  trade_header_id: string;
+  event_type: string;
+  from_status: string | null;
+  to_status: string | null;
+  performed_by: string;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+// ─── Pipeline Tab Types ─────────────────────────────────────────────────────
+
+export type PipelineTab = "delivery" | "budget" | "site" | "efp" | "offset" | "all";
+
+// ─── Core Entities (V1 — preserved for backward compat) ─────────────────────
 
 export type AllocationStatus = "open" | "efp_closed" | "offset" | "rolled" | "cancelled";
 export type PhysicalStatus = "open" | "filled" | "cancelled";

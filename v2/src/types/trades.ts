@@ -1,6 +1,6 @@
 // ─── Trade Capture Types ─────────────────────────────────────────────────────
 
-import type { Direction, Allocation } from "./positions";
+import type { Direction, Allocation, PositionStatus } from "./positions";
 
 // ─── Status & Enums ─────────────────────────────────────────────────────────
 
@@ -52,6 +52,28 @@ export interface FinancialTrade {
   import_job_id: string | null;
   created_at: string;
   updated_at: string;
+
+  // ─── V2 Position Manager fields ───────────────────────────────────────────
+  position_status: PositionStatus;
+  hedge_book_id: string | null;
+  budget_month: string | null;
+  site_id: string | null;
+  parent_trade_id: string | null;
+  is_split_parent: boolean;
+  split_volume: number | null;
+  // EFP
+  efp_pair_id: string | null;
+  efp_basis: number | null;
+  efp_date: string | null;
+  efp_market_price: number | null;
+  linked_physical_id: string | null;
+  futures_realized_pnl: number | null;
+  // Offset
+  offset_pair_id: string | null;
+  offset_price: number | null;
+  offset_date: string | null;
+  realized_pnl: number | null;
+
   // joined fields
   commodity_name?: string;
   // detail sub-object (populated by getTrade)
@@ -83,6 +105,12 @@ export interface OptionDetails {
   accountNumber: string | null;
   exchange: string;
   exerciseStatus: ExerciseStatus;
+  // V2 fields
+  optionSide: string | null;
+  premiumPerUnit: number | null;
+  exerciseFuturesId: string | null;
+  collarPairId: string | null;
+  parentOptionId: string | null;
 }
 
 export interface SwapDetails {

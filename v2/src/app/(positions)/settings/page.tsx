@@ -9,6 +9,7 @@ import {
   Calculator,
   Truck,
   Network,
+  BookOpen,
 } from "lucide-react";
 
 import { StructureTab } from "@/components/admin/structure/StructureTab";
@@ -18,8 +19,9 @@ import { FiscalYearTab } from "@/components/admin/FiscalYearTab";
 import { UsersTab } from "@/components/admin/UsersTab";
 import { PricingTab } from "@/components/admin/PricingTab";
 import { SuppliersTab } from "@/components/admin/SuppliersTab";
+import HedgeBooksSettingsPage from "./hedge-books/page";
 
-type Tab = "structure" | "org-settings" | "commodities" | "fiscal-year" | "users" | "suppliers" | "pricing";
+type Tab = "structure" | "org-settings" | "commodities" | "fiscal-year" | "users" | "suppliers" | "pricing" | "hedge-books";
 
 const TABS: { key: Tab; label: string; icon: typeof Settings }[] = [
   { key: "structure", label: "Structure", icon: Network },
@@ -29,6 +31,7 @@ const TABS: { key: Tab; label: string; icon: typeof Settings }[] = [
   { key: "users", label: "Users", icon: Shield },
   { key: "suppliers", label: "Suppliers & Counterparties", icon: Truck },
   { key: "pricing", label: "Pricing", icon: Calculator },
+  { key: "hedge-books", label: "Hedge Books", icon: BookOpen },
 ];
 
 function cn(...classes: (string | false | null | undefined)[]) {
@@ -64,6 +67,7 @@ export default function SettingsPage() {
       {tab === "users" && <UsersTab />}
       {tab === "suppliers" && <SuppliersTab />}
       {tab === "pricing" && <PricingTab />}
+      {tab === "hedge-books" && <HedgeBooksSettingsPage />}
     </div>
   );
 }

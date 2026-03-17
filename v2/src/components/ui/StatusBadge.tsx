@@ -66,6 +66,14 @@ const statusToColor: Record<string, BadgeColor> = {
   draft: "neutral",
   submitted: "action",
   approved: "profit",
+  // V2 Position statuses
+  unallocated: "warning",
+  budget_allocated: "action",
+  site_allocated: "accent",
+  efp: "profit",
+  exercised: "profit",
+  expired: "neutral",
+  partial: "neutral",
 };
 
 const statusLabels: Record<string, string> = {
@@ -89,6 +97,14 @@ const statusLabels: Record<string, string> = {
   submitted: "Submitted",
   approved: "Approved",
   locked: "Locked",
+  // V2 Position statuses
+  unallocated: "Unallocated",
+  budget_allocated: "Budget",
+  site_allocated: "Site Allocated",
+  efp: "EFP",
+  exercised: "Exercised",
+  expired: "Expired",
+  partial: "Split",
 };
 
 interface StatusBadgeProps {

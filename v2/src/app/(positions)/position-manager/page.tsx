@@ -1,133 +1,176 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { useHedgeBook, useCommodities, useSites } from "@/hooks/usePositions";
-import { usePositionStore } from "@/store/positionStore";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect, useCallback } from "react";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useCommodityContext } from "@/contexts/CommodityContext";
-import { HierarchyTabs } from "@/components/ui/HierarchyTabs";
-import { KPICard } from "@/components/ui/KPICard";
-import { TabGroup } from "@/components/ui/TabGroup";
-import { SkeletonTable, SkeletonKPIGrid } from "@/components/ui/Skeleton";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { DeliveryMonthTable } from "@/components/positions/DeliveryMonthTable";
-import { BudgetMonthTable } from "@/components/positions/BudgetMonthTable";
-
-function fmtVol(v: unknown): string {
-  const n = Number(v);
-  if (!n) return "—";
-  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
+import { useAuth } from "@/contexts/AuthContext";
+import { useHedgeBookStore } from "@/store/hedgeBookStore";
+import { useSites } from "@/hooks/usePositions";
+import { HedgeBookTabs } from "@/components/positions/HedgeBookTabs";
+import { PositionSummaryCards } from "@/components/positions/PositionSummaryCards";
+import { PipelineTabs } from "@/components/positions/PipelineTabs";
+import { PositionTable } from "@/components/positions/PositionTable";
+import { AllocateModal } from "@/components/positions/AllocateModal";
+import { EFPModal } from "@/components/positions/EFPModal";
+import { OffsetModalV2 } from "@/components/positions/OffsetModalV2";
+import { ExerciseModal } from "@/components/positions/ExerciseModal";
+import { SplitModal } from "@/components/positions/SplitModal";
+import { SkeletonTable } from "@/components/ui/Skeleton";
+import type { Position, PipelineTab } from "@/types/positions";
 
 export default function PositionManagerPage() {
-  const { orgId, orgTree, selectedOrgUnit, setSelectedOrgUnit, groupingLevelLabel } = useOrgContext();
+  const { orgId } = useOrgContext();
   const { commodityId } = useCommodityContext();
-  const searchParams = useSearchParams();
-  const tabParam = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"delivery" | "budget">(
-    tabParam === "budget" ? "budget" : "delivery"
-  );
-
-  // Sync tab state when URL changes (e.g. sidebar navigation)
-  useEffect(() => {
-    if (tabParam === "budget") setActiveTab("budget");
-    else if (!tabParam) setActiveTab("delivery");
-  }, [tabParam]);
-
-  const { data: hedgeBook, loading, refetch } = useHedgeBook(
-    orgId,
-    commodityId ?? undefined,
-    undefined,
-    selectedOrgUnit ?? undefined
-  );
-  const { data: commodities } = useCommodities();
-  const { data: sites } = useSites(orgId);
-  const { cancelAllocation } = usePositionStore();
   const { user } = useAuth();
+  const { data: sites } = useSites(orgId);
 
-  const handleCancelAllocation = async (allocationId: string) => {
-    await cancelAllocation(user!.id, allocationId);
-    refetch();
-  };
+  const {
+    books, activeBookId, positions, summary, activeTab, loading,
+    fetchBooks, setActiveBook, setActiveTab, fetchPositions, fetchSummary,
+    allocatePosition, executeEFP, executeOffset, exerciseOption, expireOption, splitPosition,
+  } = useHedgeBookStore();
 
-  const kpis = hedgeBook?.kpis;
+  // Modal state
+  const [modalAction, setModalAction] = useState<string | null>(null);
+  const [modalPosition, setModalPosition] = useState<Position | null>(null);
+
+  // Load books on mount
+  useEffect(() => {
+    if (orgId) fetchBooks(orgId);
+  }, [orgId, fetchBooks]);
+
+  // Load positions + summary when book or tab changes
+  useEffect(() => {
+    if (activeBookId) {
+      fetchPositions(activeBookId, activeTab);
+      fetchSummary(activeBookId);
+    }
+  }, [activeBookId, activeTab, fetchPositions, fetchSummary]);
+
+  const activeBook = books.find((b) => b.id === activeBookId);
+
+  // ─── Action handler ─────────────────────────────────────────────────
+  const handleAction = useCallback(
+    (positionId: string, action: string) => {
+      const pos = positions.find((p) => p.id === positionId);
+      if (!pos) return;
+      setModalPosition(pos);
+      setModalAction(action);
+    },
+    [positions]
+  );
+
+  const closeModal = useCallback(() => {
+    setModalAction(null);
+    setModalPosition(null);
+  }, []);
+
+  const handleTabChange = useCallback(
+    (tab: PipelineTab) => {
+      setActiveTab(tab);
+    },
+    [setActiveTab]
+  );
 
   return (
     <div className="space-y-6 page-fade">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Position Manager</h1>
-          <p className="mt-0.5 text-xs text-faint">Manage hedge allocations across delivery and budget months</p>
-        </div>
+      <div>
+        <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">
+          Position Manager
+        </h1>
+        <p className="mt-0.5 text-xs text-faint">
+          Unified position pipeline — allocate, EFP, offset, exercise, and expire
+        </p>
       </div>
 
-      {/* Org unit filter */}
-      {orgTree.length > 0 && (
-        <HierarchyTabs
-          nodes={orgTree}
-          selected={selectedOrgUnit}
-          onSelect={setSelectedOrgUnit}
-          allLabel={`All ${groupingLevelLabel}`}
-        />
-      )}
-
-      {/* KPIs */}
-      {kpis && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICard
-            label="Total Positions"
-            value={kpis.totalAllocations}
-            icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" /></svg>}
-          />
-          <KPICard
-            label="Open Volume"
-            value={fmtVol(kpis.openVolume)}
-            icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>}
-          />
-          <KPICard
-            label="Locked Volume"
-            value={fmtVol(kpis.lockedVolume)}
-            icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>}
-          />
-          <KPICard
-            label="Offset Volume"
-            value={fmtVol(kpis.offsetVolume)}
-            icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>}
-          />
-        </div>
-      )}
-
-      {/* Tab toggle: Delivery Month vs Budget Month */}
-      <TabGroup
-        tabs={[
-          { key: "delivery", label: "Delivery Month" },
-          { key: "budget", label: "Budget Month" },
-        ]}
-        active={activeTab}
-        onChange={(key) => setActiveTab(key as "delivery" | "budget")}
+      {/* Book tabs */}
+      <HedgeBookTabs
+        books={books}
+        activeBookId={activeBookId}
+        onSelect={setActiveBook}
       />
 
-      {/* Content */}
+      {/* Summary cards */}
+      <PositionSummaryCards summary={summary} currency={activeBook?.currency} />
+
+      {/* Pipeline tabs */}
+      <PipelineTabs active={activeTab} onChange={handleTabChange} />
+
+      {/* Position table */}
       {loading ? (
-        <SkeletonTable rows={6} />
-      ) : activeTab === "delivery" ? (
-        <DeliveryMonthTable
-          entries={hedgeBook?.entries ?? []}
-          sites={sites ?? []}
-          commodities={commodities ?? []}
-          orgId={orgId}
-          onAllocated={refetch}
-          onCancelAllocation={handleCancelAllocation}
-        />
+        <SkeletonTable rows={8} />
       ) : (
-        <BudgetMonthTable
-          entries={hedgeBook?.entries ?? []}
-          orgId={orgId}
-          commodityId={commodityId ?? undefined}
-          onCancelAllocation={handleCancelAllocation}
+        <PositionTable
+          positions={positions}
+          tab={activeTab}
+          onAction={handleAction}
+        />
+      )}
+
+      {/* ─── Modals ──────────────────────────────────────────────────── */}
+      {(modalAction === "allocate_budget" || modalAction === "allocate_site") && (
+        <AllocateModal
+          position={modalPosition}
+          sites={sites ?? []}
+          onSubmit={async (params) => {
+            await allocatePosition(modalPosition!.id, { userId: user!.id, ...params });
+          }}
+          onClose={closeModal}
+        />
+      )}
+
+      {modalAction === "efp" && (
+        <EFPModal
+          position={modalPosition}
+          onSubmit={async (params) => {
+            await executeEFP(modalPosition!.id, { userId: user!.id, ...params });
+          }}
+          onClose={closeModal}
+        />
+      )}
+
+      {modalAction === "offset" && (
+        <OffsetModalV2
+          position={modalPosition}
+          onSubmit={async (params) => {
+            await executeOffset(modalPosition!.id, { userId: user!.id, ...params });
+          }}
+          onClose={closeModal}
+        />
+      )}
+
+      {modalAction === "exercise" && (
+        <ExerciseModal
+          position={modalPosition}
+          onSubmit={async (params) => {
+            await exerciseOption(modalPosition!.id, { userId: user!.id, ...params });
+          }}
+          onClose={closeModal}
+        />
+      )}
+
+      {modalAction === "expire" && modalPosition && (
+        <ExerciseModal
+          position={modalPosition}
+          onSubmit={async (params) => {
+            await expireOption(modalPosition!.id, {
+              userId: user!.id,
+              expiryDate: params.exerciseDate,
+            });
+          }}
+          onClose={closeModal}
+        />
+      )}
+
+      {modalAction === "split" && (
+        <SplitModal
+          position={modalPosition}
+          sites={sites ?? []}
+          onSubmit={async (params) => {
+            await splitPosition(modalPosition!.id, { userId: user!.id, ...params });
+          }}
+          onClose={closeModal}
         />
       )}
     </div>
