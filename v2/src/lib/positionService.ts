@@ -110,6 +110,12 @@ export async function allocateToSite(params: AllocateToSiteParams): Promise<Allo
     userId: params.userId,
   });
 
+  // Sync allocated_volume on the trade
+  if (params.tradeId) {
+    const { updateAllocatedVolume } = await import("./tradeService");
+    await updateAllocatedVolume(params.tradeId);
+  }
+
   return allocation;
 }
 
@@ -287,6 +293,12 @@ export async function executeOffset(params: ExecuteOffsetParams): Promise<Alloca
     userId: params.userId,
   });
 
+  // Sync allocated_volume on the trade
+  if (allocation.trade_id) {
+    const { updateAllocatedVolume } = await import("./tradeService");
+    await updateAllocatedVolume(allocation.trade_id);
+  }
+
   return updated;
 }
 
@@ -456,6 +468,12 @@ export async function executeRoll(params: ExecuteRollParams): Promise<Rollover> 
       orgId: params.orgId,
       userId: params.userId,
     });
+
+    // Sync allocated_volume on the source trade (rolled allocation no longer counts)
+    if (source.trade_id) {
+      const { updateAllocatedVolume } = await import("./tradeService");
+      await updateAllocatedVolume(source.trade_id);
+    }
 
     return rollover;
   });
@@ -730,8 +748,8 @@ export async function createPhysicalPosition(params: CreatePhysicalParams): Prom
        (org_id, site_id, commodity_id, direction, volume, price,
         pricing_type, basis_price, basis_month, delivery_month,
         counterparty, supplier_id, contract_ref, currency, status,
-        formula_id, formula_inputs, formula_result)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'open',$15,$16,$17)
+        formula_id, formula_inputs, formula_result, contract_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'open',$15,$16,$17,$18)
      RETURNING *`,
     [
       params.orgId,
@@ -751,6 +769,7 @@ export async function createPhysicalPosition(params: CreatePhysicalParams): Prom
       params.formulaId ?? null,
       params.formulaInputs ? JSON.stringify(params.formulaInputs) : null,
       params.formulaResult ? JSON.stringify(params.formulaResult) : null,
+      params.contractId ?? null,
     ]
   );
 
@@ -880,6 +899,12 @@ export async function cancelAllocation(params: CancelAllocationParams): Promise<
     orgId: before.org_id ?? undefined,
     userId: params.userId,
   });
+
+  // Sync allocated_volume on the trade
+  if (before.trade_id) {
+    const { updateAllocatedVolume } = await import("./tradeService");
+    await updateAllocatedVolume(before.trade_id);
+  }
 
   return after;
 }

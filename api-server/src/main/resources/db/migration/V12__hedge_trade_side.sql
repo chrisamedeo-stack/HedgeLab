@@ -1,1 +1,0 @@
-ALTER TABLE corn_hedge_trades ADD COLUMN side VARCHAR(5) DEFAULT 'LONG';

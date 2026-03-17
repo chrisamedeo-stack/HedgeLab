@@ -262,10 +262,40 @@ export async function createContract(params: CreateContractParams): Promise<Phys
       direction: params.direction,
       totalVolume: params.totalVolume,
       counterpartyId: params.counterpartyId,
+      siteId: params.siteId,
+      price: params.price,
+      deliveryStart: params.deliveryStart,
     },
     orgId: params.orgId,
     userId: params.userId,
   });
+
+  // Bridge to position manager — create a pm_physical_position
+  try {
+    const { createPhysicalPosition } = await import("./positionService");
+    if (row!.site_id && row!.commodity_id) {
+      await createPhysicalPosition({
+        orgId: params.orgId,
+        userId: params.userId,
+        siteId: row!.site_id,
+        commodityId: row!.commodity_id,
+        direction: params.direction,
+        volume: params.totalVolume,
+        price: params.price,
+        pricingType: params.pricingType,
+        basisPrice: params.basisPrice,
+        basisMonth: params.basisMonth,
+        deliveryMonth: params.deliveryStart
+          ? new Date(params.deliveryStart).toISOString().slice(0, 7)
+          : undefined,
+        currency: params.currency,
+        contractId: row!.id,
+      });
+    }
+  } catch (err) {
+    console.error("[Contracts] Failed to create pm_physical_position:", err);
+    // Non-fatal — contract was already created
+  }
 
   return row!;
 }

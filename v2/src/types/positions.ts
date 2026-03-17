@@ -208,6 +208,7 @@ export interface CreatePhysicalParams {
   formulaId?: string;
   formulaInputs?: Record<string, number>;
   formulaResult?: Record<string, unknown>;
+  contractId?: string;
 }
 
 export interface CancelAllocationParams {

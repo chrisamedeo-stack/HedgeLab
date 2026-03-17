@@ -28,10 +28,7 @@ export function CascadingNav({
   onSetCommodity,
   onReset,
 }: Props) {
-  // Build dropdown options from org tree
-  const topUnits = orgTree;
-
-  // Find selected unit's children
+  // Find node by ID anywhere in tree
   const findNode = (nodes: OrgTreeNode[], id: string): OrgTreeNode | undefined => {
     for (const n of nodes) {
       if (n.id === id) return n;
@@ -41,13 +38,21 @@ export function CascadingNav({
     return undefined;
   };
 
+  // Skip Corporate root (depth=0) — show its children as top-level options
+  // If all roots are at depth 0, flatten to their combined children
+  const allRootsAreCorporate = orgTree.length > 0 && orgTree.every((n) => n.level_depth === 0);
+  const topUnits = allRootsAreCorporate
+    ? orgTree.flatMap((n) => n.children ?? [])
+    : orgTree;
+  const topDepth = topUnits[0]?.level_depth ?? 1;
+
   const selectedUnit = nav.orgUnitId ? findNode(orgTree, nav.orgUnitId) : undefined;
   const childUnits = selectedUnit?.children ?? [];
   const childSites = selectedUnit?.sites ?? [];
 
-  // Hierarchy level labels
-  const topLabel = hierarchyLevels.find((l) => l.level_depth === 1)?.label ?? "Region";
-  const secondLabel = hierarchyLevels.find((l) => l.level_depth === 2)?.label ?? "Area";
+  // Hierarchy level labels — match actual depths shown
+  const topLabel = hierarchyLevels.find((l) => l.level_depth === topDepth)?.label ?? "Region";
+  const secondLabel = hierarchyLevels.find((l) => l.level_depth === topDepth + 1)?.label ?? "Area";
 
   return (
     <div className="flex items-center gap-2 bg-surface border border-b-default rounded-lg px-4 py-2.5 flex-wrap">

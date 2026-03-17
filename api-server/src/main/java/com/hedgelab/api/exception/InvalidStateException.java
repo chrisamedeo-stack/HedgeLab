@@ -1,9 +1,0 @@
-package com.hedgelab.api.exception;
-
-import org.springframework.http.HttpStatus;
-
-public class InvalidStateException extends HedgeLabException {
-    public InvalidStateException(String message) {
-        super(message, HttpStatus.CONFLICT);
-    }
-}
