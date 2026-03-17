@@ -25,7 +25,20 @@ export async function cleanTestData() {
   await query(`DELETE FROM rsk_mtm_snapshots WHERE org_id = $1`, [TEST_ORG_ID]);
   await query(`DELETE FROM rsk_limit_checks WHERE org_id = $1`, [TEST_ORG_ID]);
   await query(`DELETE FROM rsk_position_limits WHERE org_id = $1`, [TEST_ORG_ID]);
+
+  // Settings-specific cleanup
+  await query(`DELETE FROM site_suppliers WHERE site_id IN
+    (SELECT id FROM sites WHERE org_id = $1)`, [TEST_ORG_ID]);
+  await query(`DELETE FROM commodity_assignments WHERE org_id = $1`, [TEST_ORG_ID]);
+  await query(`DELETE FROM commodity_units WHERE commodity_id LIKE 'TEST_%'`);
+  await query(`DELETE FROM commodities WHERE id LIKE 'TEST_%'`);
+  await query(`DELETE FROM sites WHERE org_id = $1 AND id != $2`, [TEST_ORG_ID, TEST_SITE_ID]);
+
   await query(`DELETE FROM ct_counterparties WHERE org_id = $1`, [TEST_ORG_ID]);
+  await query(`DELETE FROM users WHERE org_id = $1 AND id != $2`, [TEST_ORG_ID, TEST_USER_ID]);
+  await query(`DELETE FROM org_settings WHERE org_id = $1`, [TEST_ORG_ID]);
+  await query(`DELETE FROM org_units WHERE org_id = $1`, [TEST_ORG_ID]);
+  await query(`DELETE FROM org_hierarchy_levels WHERE org_id = $1`, [TEST_ORG_ID]);
 }
 
 export async function seedTestOrg() {
@@ -42,7 +55,7 @@ export async function seedTestOrg() {
     ON CONFLICT (id) DO NOTHING`, [TEST_SITE_ID, TEST_ORG_ID]);
 
   // Ensure required plugins are enabled
-  for (const plugin of ['trade_capture', 'position_manager', 'budget', 'contracts', 'risk']) {
+  for (const plugin of ['trade_capture', 'position_manager', 'budget', 'contracts', 'risk', 'market_data']) {
     await query(`
       INSERT INTO org_plugins (org_id, plugin_id, is_enabled)
       VALUES ($1, $2, true)
