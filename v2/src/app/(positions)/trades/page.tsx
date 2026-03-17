@@ -5,12 +5,14 @@ import { useTrades } from "@/hooks/useTrades";
 import { useCommodities, useSites } from "@/hooks/usePositions";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { TradeBlotter } from "@/components/trades/TradeBlotter";
+import { GroupedTradeBlotter } from "@/components/trades/GroupedTradeBlotter";
 import { TradeForm } from "@/components/trades/TradeForm";
 import type { Commodity } from "@/hooks/usePositions";
 import type { TradeFilters, TradeStatus, TradeType } from "@/types/trades";
 
 export default function TradesPage() {
   const { orgId } = useOrgContext();
+  const [viewMode, setViewMode] = useState<"grouped" | "flat">("grouped");
   const [showForm, setShowForm] = useState(false);
   const [formCommodity, setFormCommodity] = useState<Commodity | null>(null);
   const [filters, setFilters] = useState<Partial<TradeFilters>>({});
@@ -58,15 +60,41 @@ export default function TradesPage() {
             {trades.length} trade{trades.length !== 1 ? "s" : ""} &middot; book and manage financial trades
           </p>
         </div>
-        <button
-          onClick={handleBookTrade}
-          className="flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Book Trade
-        </button>
+        <div className="flex items-center gap-3">
+          {/* View toggle */}
+          <div className="flex rounded-lg border border-b-default overflow-hidden">
+            <button
+              onClick={() => setViewMode("grouped")}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                viewMode === "grouped"
+                  ? "bg-action text-white"
+                  : "bg-surface text-muted hover:text-secondary hover:bg-hover"
+              }`}
+            >
+              Grouped
+            </button>
+            <button
+              onClick={() => setViewMode("flat")}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                viewMode === "flat"
+                  ? "bg-action text-white"
+                  : "bg-surface text-muted hover:text-secondary hover:bg-hover"
+              }`}
+            >
+              Flat
+            </button>
+          </div>
+
+          <button
+            onClick={handleBookTrade}
+            className="flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Book Trade
+          </button>
+        </div>
       </div>
 
       {/* Filter bar */}
@@ -135,13 +163,23 @@ export default function TradesPage() {
       )}
 
       {/* Trade blotter */}
-      <TradeBlotter
-        trades={trades}
-        commodities={(commodities ?? []).map((c) => ({ id: c.id, name: c.name }))}
-        sites={(sites ?? []).map((s) => ({ id: s.id, name: s.name, code: s.code }))}
-        orgId={orgId}
-        onRefresh={refetch}
-      />
+      {viewMode === "grouped" ? (
+        <GroupedTradeBlotter
+          trades={trades}
+          commodities={(commodities ?? []).map((c) => ({ id: c.id, name: c.name }))}
+          sites={(sites ?? []).map((s) => ({ id: s.id, name: s.name, code: s.code }))}
+          orgId={orgId}
+          onRefresh={refetch}
+        />
+      ) : (
+        <TradeBlotter
+          trades={trades}
+          commodities={(commodities ?? []).map((c) => ({ id: c.id, name: c.name }))}
+          sites={(sites ?? []).map((s) => ({ id: s.id, name: s.name, code: s.code }))}
+          orgId={orgId}
+          onRefresh={refetch}
+        />
+      )}
 
       {/* Commodity picker (when no commodity selected) */}
       {showForm && !formCommodity && (

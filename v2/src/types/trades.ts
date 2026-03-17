@@ -117,6 +117,29 @@ export interface SwapSettlement {
   created_at: string;
 }
 
+// ─── Grouped Views ──────────────────────────────────────────────────────────
+
+export interface TradeGroupSummary {
+  groupId: string; // `${commodityId}|${direction}|${contractMonth}`
+  commodityId: string;
+  commodityName: string;
+  direction: Direction;
+  contractMonth: string;
+  trades: FinancialTrade[];
+  tradeCount: number;
+  totalVolume: number;
+  vwap: number;
+  allocatedVolume: number;
+  unallocatedVolume: number;
+  aggregateStatus: TradeStatus;
+}
+
+export interface CommodityGroup {
+  commodityId: string;
+  commodityName: string;
+  groups: TradeGroupSummary[];
+}
+
 // ─── Aggregated Views ───────────────────────────────────────────────────────
 
 export interface TradeWithAllocations {
