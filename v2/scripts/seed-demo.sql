@@ -1,7 +1,8 @@
 -- ============================================================================
 -- HedgeLab v2 — Comprehensive Demo Seed Data
 -- ============================================================================
--- Scenario: "Acme Grain Corp" — a US/Canada commercial corn consumer
+-- Scenario: "Acme Grain Corp" — a US/Canada commercial grain consumer
+-- Commodities: Corn + Soybeans across 4 sites, 6 counterparties
 -- Run: psql $DATABASE_URL -f v2/scripts/seed-demo.sql
 -- Idempotent: uses ON CONFLICT / WHERE NOT EXISTS guards
 -- ============================================================================
@@ -81,8 +82,40 @@ INSERT INTO ct_counterparties (id, org_id, name, short_name, counterparty_type, 
   ('00000000-0000-0000-0000-000000000502', '00000000-0000-0000-0000-000000000001',
    'Bunge Limited', 'BUNGE', 'commercial', 3000000, 'A-', 45),
   ('00000000-0000-0000-0000-000000000503', '00000000-0000-0000-0000-000000000001',
-   'CME Clearing', 'CME', 'clearing_house', NULL, 'AAA', 1)
+   'CME Clearing', 'CME', 'clearing_house', NULL, 'AAA', 1),
+  ('00000000-0000-0000-0000-000000000504', '00000000-0000-0000-0000-000000000001',
+   'Louis Dreyfus Company', 'LDC', 'commercial', 3500000, 'A', 30),
+  ('00000000-0000-0000-0000-000000000505', '00000000-0000-0000-0000-000000000001',
+   'Viterra Inc.', 'VIT', 'commercial', 2500000, 'BBB+', 45)
 ON CONFLICT (id) DO NOTHING;
+
+-- ─── 4b. Commodity Assignments ────────────────────────────────────────────────
+-- Assign CORN + SOYBEAN to both org units; all sites inherit
+
+INSERT INTO commodity_assignments (org_id, entity_type, entity_id, commodity_id) VALUES
+  -- Canada region → CORN + SOYBEAN
+  ('00000000-0000-0000-0000-000000000001', 'org_unit', '00000000-0000-0000-0000-000000000400', 'CORN'),
+  ('00000000-0000-0000-0000-000000000001', 'org_unit', '00000000-0000-0000-0000-000000000400', 'SOYBEAN'),
+  -- US region → CORN + SOYBEAN
+  ('00000000-0000-0000-0000-000000000001', 'org_unit', '00000000-0000-0000-0000-000000000401', 'CORN'),
+  ('00000000-0000-0000-0000-000000000001', 'org_unit', '00000000-0000-0000-0000-000000000401', 'SOYBEAN')
+ON CONFLICT (org_id, entity_type, entity_id, commodity_id) DO NOTHING;
+
+-- ─── 4c. Contract Calendar ────────────────────────────────────────────────────
+
+INSERT INTO commodity_contract_calendar (commodity_id, contract_month, first_notice_date, last_trade_date, expiration_date) VALUES
+  ('CORN', '2026-03', '2026-02-28', '2026-03-13', '2026-03-14'),
+  ('CORN', '2026-05', '2026-04-30', '2026-05-14', '2026-05-15'),
+  ('CORN', '2026-07', '2026-06-30', '2026-07-14', '2026-07-15'),
+  ('CORN', '2026-09', '2026-08-31', '2026-09-14', '2026-09-15'),
+  ('CORN', '2026-12', '2026-11-30', '2026-12-14', '2026-12-15'),
+  ('SOYBEAN', '2026-03', '2026-02-28', '2026-03-13', '2026-03-14'),
+  ('SOYBEAN', '2026-05', '2026-04-30', '2026-05-14', '2026-05-15'),
+  ('SOYBEAN', '2026-07', '2026-06-30', '2026-07-14', '2026-07-15'),
+  ('SOYBEAN', '2026-08', '2026-07-31', '2026-08-14', '2026-08-15'),
+  ('SOYBEAN', '2026-09', '2026-08-31', '2026-09-14', '2026-09-15'),
+  ('SOYBEAN', '2026-11', '2026-10-31', '2026-11-13', '2026-11-14')
+ON CONFLICT (commodity_id, contract_month) DO NOTHING;
 
 -- ─── 5. Financial Trades (8 corn futures — long hedges) ─────────────────────
 
@@ -129,6 +162,52 @@ VALUES
    '00000000-0000-0000-0000-000000000011', 'FUT-008')
 ON CONFLICT (id) DO NOTHING;
 
+-- ─── 5b. Soybean Futures (4 trades — long hedges) ─────────────────────────────
+
+INSERT INTO tc_financial_trades
+  (id, org_id, commodity_id, trade_type, direction, status, trade_date, contract_month,
+   broker, num_contracts, contract_size, trade_price, currency, entered_by, external_ref)
+VALUES
+  -- May 2026 (ZSK26) — 2 trades
+  ('00000000-0000-0000-0000-000000000620', '00000000-0000-0000-0000-000000000001',
+   'SOYBEAN', 'futures', 'long', 'open', '2025-11-10', '2026-05',
+   'RJ O''Brien', 8, 5000, 10.2500, 'USD',
+   '00000000-0000-0000-0000-000000000011', 'FUT-S01'),
+  ('00000000-0000-0000-0000-000000000621', '00000000-0000-0000-0000-000000000001',
+   'SOYBEAN', 'futures', 'long', 'open', '2025-12-05', '2026-05',
+   'RJ O''Brien', 6, 5000, 10.3500, 'USD',
+   '00000000-0000-0000-0000-000000000011', 'FUT-S02'),
+  -- Jul 2026 (ZSN26)
+  ('00000000-0000-0000-0000-000000000622', '00000000-0000-0000-0000-000000000001',
+   'SOYBEAN', 'futures', 'long', 'open', '2026-01-15', '2026-07',
+   'RJ O''Brien', 10, 5000, 10.5000, 'USD',
+   '00000000-0000-0000-0000-000000000011', 'FUT-S03'),
+  -- Nov 2026 (ZSX26)
+  ('00000000-0000-0000-0000-000000000623', '00000000-0000-0000-0000-000000000001',
+   'SOYBEAN', 'futures', 'long', 'open', '2026-02-10', '2026-11',
+   'RJ O''Brien', 5, 5000, 10.7500, 'USD',
+   '00000000-0000-0000-0000-000000000011', 'FUT-S04')
+ON CONFLICT (id) DO NOTHING;
+
+-- ─── 5c. Options (2 corn calls — protective) ─────────────────────────────────
+
+INSERT INTO tc_financial_trades
+  (id, org_id, commodity_id, trade_type, direction, status, trade_date, contract_month,
+   broker, num_contracts, contract_size, trade_price, currency, entered_by, external_ref,
+   option_type, strike_price, premium, expiration_date)
+VALUES
+  ('00000000-0000-0000-0000-000000000640', '00000000-0000-0000-0000-000000000001',
+   'CORN', 'option', 'long', 'open', '2026-01-20', '2026-07',
+   'RJ O''Brien', 5, 5000, 4.5000, 'USD',
+   '00000000-0000-0000-0000-000000000011', 'OPT-C01',
+   'call', 4.80, 0.12, '2026-06-26'),
+  ('00000000-0000-0000-0000-000000000641', '00000000-0000-0000-0000-000000000001',
+   'SOYBEAN', 'option', 'long', 'open', '2026-02-15', '2026-07',
+   'RJ O''Brien', 4, 5000, 10.5000, 'USD',
+   '00000000-0000-0000-0000-000000000011', 'OPT-S01',
+   'put', 10.00, 0.25, '2026-06-26')
+ON CONFLICT (id) DO NOTHING;
+
 -- Update allocated_volume for trades that will have allocations
 UPDATE tc_financial_trades SET allocated_volume = 50000  WHERE id = '00000000-0000-0000-0000-000000000600';
 UPDATE tc_financial_trades SET allocated_volume = 40000  WHERE id = '00000000-0000-0000-0000-000000000601';
@@ -138,6 +217,11 @@ UPDATE tc_financial_trades SET allocated_volume = 50000  WHERE id = '00000000-00
 UPDATE tc_financial_trades SET allocated_volume = 40000  WHERE id = '00000000-0000-0000-0000-000000000605';
 UPDATE tc_financial_trades SET allocated_volume = 30000  WHERE id = '00000000-0000-0000-0000-000000000606';
 UPDATE tc_financial_trades SET allocated_volume = 20000  WHERE id = '00000000-0000-0000-0000-000000000607';
+-- Soybean allocated volumes
+UPDATE tc_financial_trades SET allocated_volume = 40000  WHERE id = '00000000-0000-0000-0000-000000000620';
+UPDATE tc_financial_trades SET allocated_volume = 30000  WHERE id = '00000000-0000-0000-0000-000000000621';
+UPDATE tc_financial_trades SET allocated_volume = 50000  WHERE id = '00000000-0000-0000-0000-000000000622';
+UPDATE tc_financial_trades SET allocated_volume = 25000  WHERE id = '00000000-0000-0000-0000-000000000623';
 
 -- ─── 6. Allocations (12 across 4 sites) ────────────────────────────────────
 
@@ -200,6 +284,49 @@ VALUES
    '00000000-0000-0000-0000-000000000011')
 ON CONFLICT (id) DO NOTHING;
 
+-- ─── 6b. Soybean Allocations (8 across 4 sites) ──────────────────────────────
+
+INSERT INTO pm_allocations
+  (id, org_id, trade_id, site_id, commodity_id, allocated_volume, budget_month,
+   allocation_date, status, trade_price, trade_date, contract_month, direction, currency, allocated_by)
+VALUES
+  -- ZSK26 → BLDR (20K), CHGO (20K), BNFF (15K), MTRL (15K)
+  ('00000000-0000-0000-0000-000000000720', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000620', '00000000-0000-0000-0000-000000000210',
+   'SOYBEAN', 20000, '2026-05', '2025-11-11', 'open', 10.2500, '2025-11-10', '2026-05', 'long', 'USD',
+   '00000000-0000-0000-0000-000000000011'),
+  ('00000000-0000-0000-0000-000000000721', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000620', '00000000-0000-0000-0000-000000000211',
+   'SOYBEAN', 20000, '2026-05', '2025-11-11', 'open', 10.2500, '2025-11-10', '2026-05', 'long', 'USD',
+   '00000000-0000-0000-0000-000000000011'),
+  ('00000000-0000-0000-0000-000000000722', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000621', '00000000-0000-0000-0000-000000000212',
+   'SOYBEAN', 15000, '2026-05', '2025-12-06', 'open', 10.3500, '2025-12-05', '2026-05', 'long', 'USD',
+   '00000000-0000-0000-0000-000000000011'),
+  ('00000000-0000-0000-0000-000000000723', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000621', '00000000-0000-0000-0000-000000000213',
+   'SOYBEAN', 15000, '2026-05', '2025-12-06', 'open', 10.3500, '2025-12-05', '2026-05', 'long', 'USD',
+   '00000000-0000-0000-0000-000000000011'),
+  -- ZSN26 → BLDR (25K), CHGO (25K)
+  ('00000000-0000-0000-0000-000000000724', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000622', '00000000-0000-0000-0000-000000000210',
+   'SOYBEAN', 25000, '2026-07', '2026-01-16', 'open', 10.5000, '2026-01-15', '2026-07', 'long', 'USD',
+   '00000000-0000-0000-0000-000000000011'),
+  ('00000000-0000-0000-0000-000000000725', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000622', '00000000-0000-0000-0000-000000000211',
+   'SOYBEAN', 25000, '2026-07', '2026-01-16', 'open', 10.5000, '2026-01-15', '2026-07', 'long', 'USD',
+   '00000000-0000-0000-0000-000000000011'),
+  -- ZSX26 → BNFF (15K), MTRL (10K)
+  ('00000000-0000-0000-0000-000000000726', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000623', '00000000-0000-0000-0000-000000000212',
+   'SOYBEAN', 15000, '2026-11', '2026-02-11', 'open', 10.7500, '2026-02-10', '2026-11', 'long', 'USD',
+   '00000000-0000-0000-0000-000000000011'),
+  ('00000000-0000-0000-0000-000000000727', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000623', '00000000-0000-0000-0000-000000000213',
+   'SOYBEAN', 10000, '2026-11', '2026-02-11', 'open', 10.7500, '2026-02-10', '2026-11', 'long', 'USD',
+   '00000000-0000-0000-0000-000000000011')
+ON CONFLICT (id) DO NOTHING;
+
 -- ─── 7. Physical Contracts (6 purchase + 2 sale) ───────────────────────────
 
 INSERT INTO ct_physical_contracts
@@ -252,6 +379,40 @@ VALUES
    '00000000-0000-0000-0000-000000000013')
 ON CONFLICT (id) DO NOTHING;
 
+-- ─── 7b. Soybean Contracts (4 purchase — mixed pricing types) ─────────────────
+
+INSERT INTO ct_physical_contracts
+  (id, org_id, counterparty_id, commodity_id, site_id, contract_ref, contract_type,
+   status, pricing_type, direction, total_volume, delivered_volume, price, basis_price,
+   basis_month, currency, delivery_start, delivery_end, delivery_location,
+   payment_terms_days, entered_by)
+VALUES
+  -- Fixed price soybean purchase
+  ('00000000-0000-0000-0000-000000000820', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000504', 'SOYBEAN', '00000000-0000-0000-0000-000000000210',
+   'PS-2026-001', 'purchase', 'active', 'fixed', 'buy', 40000, 8000, 10.45, NULL, NULL,
+   'USD', '2026-04-01', '2026-06-30', 'Boulder, CO', 30,
+   '00000000-0000-0000-0000-000000000013'),
+  -- HTA (hedge-to-arrive): board locked at futures price, basis to be set later
+  ('00000000-0000-0000-0000-000000000821', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000500', 'SOYBEAN', '00000000-0000-0000-0000-000000000211',
+   'PS-2026-002', 'purchase', 'active', 'hta', 'buy', 50000, 0, 10.55, NULL, '2026-07',
+   'USD', '2026-05-01', '2026-07-31', 'Chicago, IL', 30,
+   '00000000-0000-0000-0000-000000000013'),
+  -- Basis contract: basis locked, futures to be set
+  ('00000000-0000-0000-0000-000000000822', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000505', 'SOYBEAN', '00000000-0000-0000-0000-000000000212',
+   'PS-2026-003', 'purchase', 'active', 'basis', 'buy', 35000, 0, NULL, -0.25, '2026-07',
+   'USD', '2026-06-01', '2026-08-31', 'Banff, AB', 45,
+   '00000000-0000-0000-0000-000000000013'),
+  -- Index contract: priced off DTN/USDA index + premium
+  ('00000000-0000-0000-0000-000000000823', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000501', 'SOYBEAN', '00000000-0000-0000-0000-000000000213',
+   'PS-2026-004', 'purchase', 'active', 'index', 'buy', 25000, 0, NULL, 0.10, NULL,
+   'USD', '2026-07-01', '2026-09-30', 'Montreal, QC', 30,
+   '00000000-0000-0000-0000-000000000013')
+ON CONFLICT (id) DO NOTHING;
+
 -- ─── 8. Physical Positions (8 linked to sites) ─────────────────────────────
 
 INSERT INTO pm_physical_positions
@@ -291,6 +452,30 @@ VALUES
    '00000000-0000-0000-0000-000000000213', 'CORN',
    '00000000-0000-0000-0000-000000000807', 'sell', 10000, NULL,
    'basis', 0.05, '2026-07', '2026-07', 'Cargill Inc.', 'USD', 'open')
+ON CONFLICT (id) DO NOTHING;
+
+-- ─── 8b. Soybean Physical Positions ───────────────────────────────────────────
+
+INSERT INTO pm_physical_positions
+  (id, org_id, site_id, commodity_id, contract_id, direction, volume, price,
+   pricing_type, basis_price, basis_month, delivery_month, counterparty, currency, status)
+VALUES
+  ('00000000-0000-0000-0000-000000000920', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000210', 'SOYBEAN',
+   '00000000-0000-0000-0000-000000000820', 'buy', 40000, 10.45,
+   'fixed', NULL, NULL, '2026-05', 'Louis Dreyfus Company', 'USD', 'open'),
+  ('00000000-0000-0000-0000-000000000921', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000211', 'SOYBEAN',
+   '00000000-0000-0000-0000-000000000821', 'buy', 50000, 10.55,
+   'hta', NULL, '2026-07', '2026-07', 'Cargill Inc.', 'USD', 'open'),
+  ('00000000-0000-0000-0000-000000000922', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000212', 'SOYBEAN',
+   '00000000-0000-0000-0000-000000000822', 'buy', 35000, NULL,
+   'basis', -0.25, '2026-07', '2026-07', 'Viterra Inc.', 'USD', 'open'),
+  ('00000000-0000-0000-0000-000000000923', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000213', 'SOYBEAN',
+   '00000000-0000-0000-0000-000000000823', 'buy', 25000, NULL,
+   'index', 0.10, NULL, '2026-09', 'Archer Daniels Midland', 'USD', 'open')
 ON CONFLICT (id) DO NOTHING;
 
 -- ─── 9. Budget Periods + Line Items (4 sites × CORN × 2026) ────────────────
@@ -391,6 +576,56 @@ FROM (VALUES
 ) AS m(month, vol, bp, hv, hp, cv, cp, cc)
 WHERE NOT EXISTS (SELECT 1 FROM bgt_line_items WHERE period_id = '00000000-0000-0000-0000-000000000a03' AND budget_month = m.month);
 
+-- ─── 9b. Soybean Budget Periods (BLDR + CHGO × SOYBEAN × 2026) ────────────────
+
+-- BLDR soybean budget
+INSERT INTO bgt_periods (id, org_id, site_id, commodity_id, budget_year, status, currency)
+VALUES ('00000000-0000-0000-0000-000000000a10', '00000000-0000-0000-0000-000000000001',
+        '00000000-0000-0000-0000-000000000210', 'SOYBEAN', 2026, 'approved', 'USD')
+ON CONFLICT (site_id, commodity_id, budget_year) DO NOTHING;
+
+INSERT INTO bgt_line_items (period_id, budget_month, budgeted_volume, budget_price, hedged_volume, hedged_avg_price, committed_volume, committed_avg_price, committed_cost)
+SELECT '00000000-0000-0000-0000-000000000a10', m.month, m.vol, m.bp, m.hv, m.hp, m.cv, m.cp, m.cc
+FROM (VALUES
+  ('2026-01', 15000, 10.30, 5000, 10.25, 4000, 10.45, 41800),
+  ('2026-02', 15000, 10.30, 5000, 10.25, 3000, 10.45, 31350),
+  ('2026-03', 18000, 10.35, 8000, 10.25, 5000, 10.45, 52250),
+  ('2026-04', 18000, 10.35, 8000, 10.35, 4000, 10.45, 41800),
+  ('2026-05', 20000, 10.40, 12000, 10.25, 6000, 10.45, 62700),
+  ('2026-06', 22000, 10.45, 10000, 10.35, 5000, 10.50, 52500),
+  ('2026-07', 25000, 10.50, 15000, 10.50, 4000, 10.55, 42200),
+  ('2026-08', 22000, 10.50, 8000, 10.50, 0, NULL, 0),
+  ('2026-09', 18000, 10.45, 5000, 10.75, 0, NULL, 0),
+  ('2026-10', 15000, 10.45, 0, NULL, 0, NULL, 0),
+  ('2026-11', 15000, 10.45, 5000, 10.75, 0, NULL, 0),
+  ('2026-12', 12000, 10.45, 0, NULL, 0, NULL, 0)
+) AS m(month, vol, bp, hv, hp, cv, cp, cc)
+WHERE NOT EXISTS (SELECT 1 FROM bgt_line_items WHERE period_id = '00000000-0000-0000-0000-000000000a10' AND budget_month = m.month);
+
+-- CHGO soybean budget
+INSERT INTO bgt_periods (id, org_id, site_id, commodity_id, budget_year, status, currency)
+VALUES ('00000000-0000-0000-0000-000000000a11', '00000000-0000-0000-0000-000000000001',
+        '00000000-0000-0000-0000-000000000211', 'SOYBEAN', 2026, 'submitted', 'USD')
+ON CONFLICT (site_id, commodity_id, budget_year) DO NOTHING;
+
+INSERT INTO bgt_line_items (period_id, budget_month, budgeted_volume, budget_price, hedged_volume, hedged_avg_price, committed_volume, committed_avg_price, committed_cost)
+SELECT '00000000-0000-0000-0000-000000000a11', m.month, m.vol, m.bp, m.hv, m.hp, m.cv, m.cp, m.cc
+FROM (VALUES
+  ('2026-01', 20000, 10.30, 8000, 10.25, 5000, 10.50, 52500),
+  ('2026-02', 20000, 10.30, 8000, 10.25, 5000, 10.50, 52500),
+  ('2026-03', 25000, 10.35, 10000, 10.25, 8000, 10.50, 84000),
+  ('2026-04', 25000, 10.35, 10000, 10.35, 6000, 10.55, 63300),
+  ('2026-05', 30000, 10.40, 15000, 10.25, 8000, 10.55, 84400),
+  ('2026-06', 30000, 10.45, 12000, 10.35, 6000, 10.55, 63300),
+  ('2026-07', 35000, 10.50, 15000, 10.50, 5000, 10.55, 52750),
+  ('2026-08', 30000, 10.50, 10000, 10.50, 0, NULL, 0),
+  ('2026-09', 25000, 10.45, 5000, 10.75, 0, NULL, 0),
+  ('2026-10', 20000, 10.45, 0, NULL, 0, NULL, 0),
+  ('2026-11', 20000, 10.45, 5000, 10.75, 0, NULL, 0),
+  ('2026-12', 18000, 10.45, 0, NULL, 0, NULL, 0)
+) AS m(month, vol, bp, hv, hp, cv, cp, cc)
+WHERE NOT EXISTS (SELECT 1 FROM bgt_line_items WHERE period_id = '00000000-0000-0000-0000-000000000a11' AND budget_month = m.month);
+
 -- ─── 10. Market Prices (~20 days of corn settlement) ────────────────────────
 
 -- ZCH26 (Mar 2026)
@@ -483,6 +718,68 @@ INSERT INTO md_forward_curves (org_id, commodity_id, curve_date, contract_month,
   ('00000000-0000-0000-0000-000000000001', 'CORN', '2026-02-14', '2026-12', 4.6200, 'seed')
 ON CONFLICT (org_id, commodity_id, curve_date, contract_month) DO NOTHING;
 
+-- ─── 10b. Soybean Market Prices (ZSK26 + ZSN26, 20 days each) ─────────────────
+
+INSERT INTO md_prices (org_id, commodity_id, contract_month, price_date, price_type, price, source) VALUES
+  -- ZSK26 (May 2026)
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-02-18', 'settlement', 10.4800, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-02-19', 'settlement', 10.5200, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-02-20', 'settlement', 10.4950, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-02-23', 'settlement', 10.5500, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-02-24', 'settlement', 10.5300, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-02-25', 'settlement', 10.5750, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-02-26', 'settlement', 10.5600, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-02-27', 'settlement', 10.5950, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-03-02', 'settlement', 10.6200, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-03-03', 'settlement', 10.5900, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-03-04', 'settlement', 10.6350, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-03-05', 'settlement', 10.6600, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-03-06', 'settlement', 10.6400, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-03-09', 'settlement', 10.6750, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-03-10', 'settlement', 10.6500, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-03-11', 'settlement', 10.6900, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-03-12', 'settlement', 10.6800, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-03-13', 'settlement', 10.7050, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-03-15', 'settlement', 10.7200, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-05', '2026-03-16', 'settlement', 10.7000, 'seed'),
+  -- ZSN26 (Jul 2026)
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-02-18', 'settlement', 10.5500, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-02-19', 'settlement', 10.5900, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-02-20', 'settlement', 10.5650, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-02-23', 'settlement', 10.6200, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-02-24', 'settlement', 10.5950, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-02-25', 'settlement', 10.6400, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-02-26', 'settlement', 10.6250, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-02-27', 'settlement', 10.6600, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-03-02', 'settlement', 10.6900, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-03-03', 'settlement', 10.6600, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-03-04', 'settlement', 10.7050, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-03-05', 'settlement', 10.7300, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-03-06', 'settlement', 10.7100, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-03-09', 'settlement', 10.7450, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-03-10', 'settlement', 10.7200, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-03-11', 'settlement', 10.7600, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-03-12', 'settlement', 10.7500, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-03-13', 'settlement', 10.7750, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-03-15', 'settlement', 10.7900, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-07', '2026-03-16', 'settlement', 10.7700, 'seed')
+ON CONFLICT (org_id, commodity_id, contract_month, price_date, price_type) DO NOTHING;
+
+-- Soybean forward curves
+INSERT INTO md_forward_curves (org_id, commodity_id, curve_date, contract_month, price, source) VALUES
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-03-16', '2026-05', 10.7000, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-03-16', '2026-07', 10.7700, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-03-16', '2026-08', 10.7200, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-03-16', '2026-09', 10.6500, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-03-16', '2026-11', 10.5800, 'seed'),
+  -- 30-day-ago soybean curve
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-02-14', '2026-05', 10.4000, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-02-14', '2026-07', 10.4800, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-02-14', '2026-08', 10.4200, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-02-14', '2026-09', 10.3500, 'seed'),
+  ('00000000-0000-0000-0000-000000000001', 'SOYBEAN', '2026-02-14', '2026-11', 10.2800, 'seed')
+ON CONFLICT (org_id, commodity_id, curve_date, contract_month) DO NOTHING;
+
 -- ─── 11. Position Limits ────────────────────────────────────────────────────
 
 INSERT INTO rsk_position_limits (id, org_id, commodity_id, limit_type, limit_value, alert_threshold, direction, is_active, notes, created_by) VALUES
@@ -494,6 +791,12 @@ INSERT INTO rsk_position_limits (id, org_id, commodity_id, limit_type, limit_val
    '00000000-0000-0000-0000-000000000012'),
   ('00000000-0000-0000-0000-000000000b02', '00000000-0000-0000-0000-000000000001',
    'CORN', 'gross', 400000, 80.00, NULL, true, 'Gross position limit (long+short)',
+   '00000000-0000-0000-0000-000000000012'),
+  ('00000000-0000-0000-0000-000000000b10', '00000000-0000-0000-0000-000000000001',
+   'SOYBEAN', 'net', 200000, 80.00, NULL, true, 'Net soybean position limit',
+   '00000000-0000-0000-0000-000000000012'),
+  ('00000000-0000-0000-0000-000000000b11', '00000000-0000-0000-0000-000000000001',
+   'SOYBEAN', 'long', 150000, 80.00, 'long', true, 'Maximum long soybean futures',
    '00000000-0000-0000-0000-000000000012')
 ON CONFLICT (id) DO NOTHING;
 
@@ -535,7 +838,12 @@ INSERT INTO lg_inventory (site_id, commodity_id, as_of_date, on_hand_volume, com
   ('00000000-0000-0000-0000-000000000210', 'CORN', '2026-03-16', 35000, 10000, 'bushels', 4.38),
   ('00000000-0000-0000-0000-000000000211', 'CORN', '2026-03-16', 45000, 15000, 'bushels', 4.35),
   ('00000000-0000-0000-0000-000000000212', 'CORN', '2026-03-16', 18000, 5000, 'bushels', 4.48),
-  ('00000000-0000-0000-0000-000000000213', 'CORN', '2026-03-16', 22000, 8000, 'bushels', 4.42)
+  ('00000000-0000-0000-0000-000000000213', 'CORN', '2026-03-16', 22000, 8000, 'bushels', 4.42),
+  -- Soybean inventory
+  ('00000000-0000-0000-0000-000000000210', 'SOYBEAN', '2026-03-16', 12000, 4000, 'bushels', 10.42),
+  ('00000000-0000-0000-0000-000000000211', 'SOYBEAN', '2026-03-16', 18000, 6000, 'bushels', 10.38),
+  ('00000000-0000-0000-0000-000000000212', 'SOYBEAN', '2026-03-16', 8000, 2000, 'bushels', 10.50),
+  ('00000000-0000-0000-0000-000000000213', 'SOYBEAN', '2026-03-16', 10000, 3000, 'bushels', 10.45)
 ON CONFLICT (site_id, commodity_id, as_of_date) DO NOTHING;
 
 -- ─── 14. EFP / Locked Positions ─────────────────────────────────────────────
@@ -596,7 +904,13 @@ INSERT INTO rsk_mtm_snapshots (org_id, snapshot_date, commodity_id, futures_pnl,
   ('00000000-0000-0000-0000-000000000001', '2026-03-13', 'CORN', 48750, -10500, 320000, 18250, 30500, 'USD', 4.5400),
   ('00000000-0000-0000-0000-000000000001', '2026-03-14', 'CORN', 51200, -11200, 320000, 18250, 32950, 'USD', 4.5500),
   ('00000000-0000-0000-0000-000000000001', '2026-03-15', 'CORN', 53800, -10800, 320000, 18250, 35550, 'USD', 4.5500),
-  ('00000000-0000-0000-0000-000000000001', '2026-03-16', 'CORN', 49600, -11500, 320000, 18250, 31350, 'USD', 4.5375)
+  ('00000000-0000-0000-0000-000000000001', '2026-03-16', 'CORN', 49600, -11500, 320000, 18250, 31350, 'USD', 4.5375),
+  -- Soybean MTM
+  ('00000000-0000-0000-0000-000000000001', '2026-03-12', 'SOYBEAN', 18500, -5200, 145000, 8500, 10000, 'USD', 10.6800),
+  ('00000000-0000-0000-0000-000000000001', '2026-03-13', 'SOYBEAN', 21200, -4800, 145000, 8500, 12700, 'USD', 10.7050),
+  ('00000000-0000-0000-0000-000000000001', '2026-03-14', 'SOYBEAN', 22800, -5000, 145000, 8500, 14300, 'USD', 10.7200),
+  ('00000000-0000-0000-0000-000000000001', '2026-03-15', 'SOYBEAN', 24500, -4600, 145000, 8500, 16000, 'USD', 10.7200),
+  ('00000000-0000-0000-0000-000000000001', '2026-03-16', 'SOYBEAN', 23100, -4900, 145000, 8500, 14600, 'USD', 10.7000)
 ON CONFLICT DO NOTHING;
 
 -- ─── 16. Site Suppliers ──────────────────────────────────────────────────────
@@ -611,11 +925,167 @@ INSERT INTO site_suppliers (site_id, counterparty_id) VALUES
   -- Banff Feed Yard ← Cargill
   ('00000000-0000-0000-0000-000000000212', '00000000-0000-0000-0000-000000000500'),
   -- Montreal Elevator ← Bunge
-  ('00000000-0000-0000-0000-000000000213', '00000000-0000-0000-0000-000000000502')
+  ('00000000-0000-0000-0000-000000000213', '00000000-0000-0000-0000-000000000502'),
+  -- Add new counterparties: LDC + Viterra
+  ('00000000-0000-0000-0000-000000000210', '00000000-0000-0000-0000-000000000504'),
+  ('00000000-0000-0000-0000-000000000211', '00000000-0000-0000-0000-000000000504'),
+  ('00000000-0000-0000-0000-000000000212', '00000000-0000-0000-0000-000000000505'),
+  ('00000000-0000-0000-0000-000000000213', '00000000-0000-0000-0000-000000000505')
 ON CONFLICT (site_id, counterparty_id) DO NOTHING;
+
+-- ─── 17. Executed Rollover ─────────────────────────────────────────────────────
+-- Roll one MTRL corn allocation from Mar→May (demonstrates the roll workflow)
+
+INSERT INTO pm_rollovers
+  (id, org_id, commodity_id, rollover_type, status, roll_date,
+   close_month, close_volume, close_price, close_realized_pnl,
+   open_month, open_volume, open_price, spread_price, spread_cost,
+   source_allocation_id, direction, executed_by, notes)
+VALUES
+  ('00000000-0000-0000-0000-000000000e00', '00000000-0000-0000-0000-000000000001',
+   'CORN', 'contract_month_roll', 'executed', '2026-03-05',
+   '2026-03', 10000, 4.5100, (4.5100 - 4.3000) * 10000,
+   '2026-05', 10000, 4.5650, 0.0550, 550.00,
+   '00000000-0000-0000-0000-000000000703', 'long',
+   '00000000-0000-0000-0000-000000000011', 'Roll MTRL Mar→May ahead of first notice')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO pm_rollover_legs (id, rollover_id, leg_type, commodity_id, contract_month, volume, price, realized_pnl) VALUES
+  ('00000000-0000-0000-0000-000000000e10', '00000000-0000-0000-0000-000000000e00',
+   'close', 'CORN', '2026-03', 10000, 4.5100, (4.5100 - 4.3000) * 10000),
+  ('00000000-0000-0000-0000-000000000e11', '00000000-0000-0000-0000-000000000e00',
+   'open', 'CORN', '2026-05', 10000, 4.5650, NULL)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO pm_rollover_costs (id, rollover_id, spread_cost, commission, fees, total_cost, cost_allocation, site_id, currency) VALUES
+  ('00000000-0000-0000-0000-000000000e20', '00000000-0000-0000-0000-000000000e00',
+   550.00, 25.00, 10.00, 585.00, 'site', '00000000-0000-0000-0000-000000000213', 'USD')
+ON CONFLICT (id) DO NOTHING;
+
+-- Mark the source allocation as rolled and create the new one
+UPDATE pm_allocations SET status = 'rolled', roll_id = '00000000-0000-0000-0000-000000000e00'
+WHERE id = '00000000-0000-0000-0000-000000000703';
+
+INSERT INTO pm_allocations
+  (id, org_id, trade_id, site_id, commodity_id, allocated_volume, budget_month,
+   allocation_date, status, trade_price, trade_date, contract_month, direction, currency,
+   allocated_by, rolled_from_allocation_id, roll_id)
+VALUES
+  ('00000000-0000-0000-0000-000000000730', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000601', '00000000-0000-0000-0000-000000000213',
+   'CORN', 10000, '2026-03', '2026-03-05', 'open', 4.5650, '2026-03-05', '2026-05', 'long', 'USD',
+   '00000000-0000-0000-0000-000000000011',
+   '00000000-0000-0000-0000-000000000703', '00000000-0000-0000-0000-000000000e00')
+ON CONFLICT (id) DO NOTHING;
+
+-- ─── 18. Forecast Scenarios ───────────────────────────────────────────────────
+
+INSERT INTO fct_scenarios
+  (id, org_id, name, description, scenario_type, base_date, base_commodity,
+   assumptions, status, created_by)
+VALUES
+  -- Price move scenario: +$0.25/bu corn
+  ('00000000-0000-0000-0000-000000000f00', '00000000-0000-0000-0000-000000000001',
+   'Corn Rally +$0.25', 'What happens if corn futures rise $0.25/bu across the curve',
+   'price_move', '2026-03-16', 'CORN',
+   '{"delta": 0.25, "direction": "up"}'::jsonb,
+   'completed', '00000000-0000-0000-0000-000000000012'),
+  -- Stress test: -15% volume
+  ('00000000-0000-0000-0000-000000000f01', '00000000-0000-0000-0000-000000000001',
+   'Demand Drop -15%', 'Stress test: 15% reduction in budgeted consumption volume',
+   'volume_change', '2026-03-16', 'CORN',
+   '{"volumeChangePct": -15}'::jsonb,
+   'completed', '00000000-0000-0000-0000-000000000012'),
+  -- What-if: add 50K bushels soybean hedge
+  ('00000000-0000-0000-0000-000000000f02', '00000000-0000-0000-0000-000000000001',
+   'Add 50K Soybean Hedge', 'What if we add 50K bu soybean hedge at current market',
+   'what_if', '2026-03-16', 'SOYBEAN',
+   '{"additionalVolume": 50000, "hedgePrice": 10.70}'::jsonb,
+   'completed', '00000000-0000-0000-0000-000000000011')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO fct_scenario_results
+  (scenario_id, commodity_id, label,
+   current_coverage_pct, current_all_in_price, current_mtm_pnl, current_open_volume,
+   projected_coverage_pct, projected_all_in_price, projected_mtm_pnl, projected_open_volume,
+   coverage_change, price_change, pnl_change, volume_change)
+VALUES
+  -- Corn Rally results
+  ('00000000-0000-0000-0000-000000000f00', 'CORN', 'All Sites',
+   62.5, 4.42, 49600, 180000,
+   62.5, 4.42, 129600, 180000,
+   0, 0.25, 80000, 0),
+  -- Demand Drop results
+  ('00000000-0000-0000-0000-000000000f01', 'CORN', 'All Sites',
+   62.5, 4.42, 49600, 180000,
+   73.5, 4.42, 49600, 108000,
+   11.0, 0, 0, -72000),
+  -- Soybean hedge results
+  ('00000000-0000-0000-0000-000000000f02', 'SOYBEAN', 'All Sites',
+   58.0, 10.42, 23100, 95000,
+   72.4, 10.48, 23100, 45000,
+   14.4, 0.06, 0, -50000)
+ON CONFLICT DO NOTHING;
+
+-- ─── 19. Settlement Invoices ──────────────────────────────────────────────────
+
+INSERT INTO stl_invoices
+  (id, org_id, counterparty_id, counterparty_name, invoice_type, status,
+   invoice_number, invoice_date, due_date, subtotal, tax, freight, adjustments, total,
+   currency, line_items, payment_date, payment_ref)
+VALUES
+  -- Paid: Cargill delivery to Boulder
+  ('00000000-0000-0000-0000-000000001100', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000500', 'Cargill Inc.', 'purchase', 'paid',
+   'INV-2026-001', '2026-03-06', '2026-04-05',
+   65250.00, 0, 2250.00, 0, 67500.00, 'USD',
+   '[{"description":"15,000 bu corn @ $4.35","quantity":15000,"unit_price":4.35,"amount":65250}]'::jsonb,
+   '2026-03-28', 'ACH-88401'),
+  -- Issued: ADM delivery to Chicago
+  ('00000000-0000-0000-0000-000000001101', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000501', 'Archer Daniels Midland', 'purchase', 'issued',
+   'INV-2026-002', '2026-03-09', '2026-04-08',
+   87000.00, 0, 1500.00, -500.00, 88000.00, 'USD',
+   '[{"description":"20,000 bu corn basis @ ZCK26 -$0.15","quantity":20000,"unit_price":4.35,"amount":87000}]'::jsonb,
+   NULL, NULL),
+  -- Draft: Bunge delivery to Banff
+  ('00000000-0000-0000-0000-000000001102', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000502', 'Bunge Limited', 'purchase', 'draft',
+   'INV-2026-003', '2026-03-19', '2026-05-03',
+   54000.00, 0, 1800.00, 0, 55800.00, 'USD',
+   '[{"description":"12,000 bu corn @ $4.50","quantity":12000,"unit_price":4.50,"amount":54000}]'::jsonb,
+   NULL, NULL),
+  -- Sale invoice (issued): sale to ADM
+  ('00000000-0000-0000-0000-000000001103', '00000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-000000000501', 'Archer Daniels Midland', 'sale', 'issued',
+   'INV-2026-S01', '2026-03-16', '2026-04-15',
+   22750.00, 0, 800.00, 0, 23550.00, 'USD',
+   '[{"description":"5,000 bu corn @ $4.55","quantity":5000,"unit_price":4.55,"amount":22750}]'::jsonb,
+   NULL, NULL)
+ON CONFLICT (id) DO NOTHING;
+
+-- ─── 20. P&L Attribution (5 days) ─────────────────────────────────────────────
+
+INSERT INTO rsk_pnl_attribution
+  (org_id, attribution_date, commodity_id,
+   prior_total_pnl, current_total_pnl,
+   price_change_pnl, new_trades_pnl, closed_positions_pnl,
+   roll_pnl, basis_pnl, residual_pnl, currency)
+VALUES
+  ('00000000-0000-0000-0000-000000000001', '2026-03-12', 'CORN',
+   28500, 30500, 3200, 0, 0, -585, -615, 0, 'USD'),
+  ('00000000-0000-0000-0000-000000000001', '2026-03-13', 'CORN',
+   30500, 38250, 8500, 0, 0, 0, -750, 0, 'USD'),
+  ('00000000-0000-0000-0000-000000000001', '2026-03-14', 'CORN',
+   38250, 40000, 2200, 0, 0, 0, -450, 0, 'USD'),
+  ('00000000-0000-0000-0000-000000000001', '2026-03-15', 'CORN',
+   40000, 43000, 3500, 0, 0, 0, -500, 0, 'USD'),
+  ('00000000-0000-0000-0000-000000000001', '2026-03-16', 'CORN',
+   43000, 38100, -4200, 0, 0, 0, -700, 0, 'USD')
+ON CONFLICT (org_id, attribution_date, commodity_id) DO NOTHING;
 
 -- ─── Done ───────────────────────────────────────────────────────────────────
 
-DO $$ BEGIN RAISE NOTICE 'Demo seed complete! Org: Acme Grain Corp, 4 sites, 8 trades, 12 allocations, 8 contracts, 4 budgets, 60 market prices.'; END $$;
+DO $$ BEGIN RAISE NOTICE 'Demo seed complete! Acme Grain Corp: 4 sites, 2 commodities (CORN+SOYBEAN), 14 futures + 2 options, 20 allocations, 12 contracts (fixed/basis/hta/index), 6 budgets, 100 market prices, 3 scenarios, 4 invoices, 1 rollover.'; END $$;
 
 COMMIT;

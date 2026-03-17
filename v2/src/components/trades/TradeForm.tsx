@@ -45,7 +45,7 @@ interface TradeFormProps {
 // ─── Style constants ─────────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full bg-[#1A2740] border border-[#1E3A5F] rounded-[6px] px-3 py-[10px] text-[13px] text-[#E8ECF1] focus:outline-none focus:ring-1 focus:ring-[#378ADD] focus:border-[#378ADD] placeholder:text-[#556170]";
+  "w-full bg-[#020812] border border-[#1E3A5F] rounded-[6px] px-3 py-[10px] text-[13px] text-[#E8ECF1] focus:outline-none focus:ring-1 focus:ring-[#378ADD] focus:border-[#378ADD] placeholder:text-[#556170]";
 const selectCls = inputCls + " appearance-none";
 const sectionLabel =
   "text-[11px] uppercase tracking-[0.04em] text-[#556170] mb-2 font-medium";
@@ -603,7 +603,7 @@ export function TradeForm({
       const n = futuresRows.filter(
         (r) => r.month && r.contracts && r.price
       ).length;
-      return n === 1 ? "Book trade" : `Book ${n} trades`;
+      return n === 1 ? "Book Trade" : `Book ${n} Trades`;
     }
     if (activeTab === "options") {
       const legs = optionLegs.filter((l) => l.strike && l.premium).length;
@@ -618,7 +618,7 @@ export function TradeForm({
       const n = activeSpreadPairs.length;
       return `Book spread (${n * 2} legs)`;
     }
-    return "Book trade";
+    return "Book Trade";
   }, [
     activeTab,
     submitting,
@@ -645,7 +645,7 @@ export function TradeForm({
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#1E3A5F] shrink-0">
           <div className="flex items-center gap-3">
             <h2 className="text-[15px] font-semibold text-[#E8ECF1]">
-              Book trade
+              Book Trade
             </h2>
             <span className="font-mono text-sm text-[#378ADD] bg-[rgba(55,138,221,0.1)] px-2.5 py-1 rounded">
               {code}
@@ -679,7 +679,7 @@ export function TradeForm({
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 py-2 text-sm rounded transition-colors ${
                   activeTab === tab
-                    ? "bg-[#111D32] font-medium text-[#E8ECF1] shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
+                    ? "bg-[#378ADD] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
                     : "text-[#556170] hover:text-[#8B95A5]"
                 }`}
               >
