@@ -140,8 +140,7 @@ function UserSection({ collapsed }: { collapsed: boolean }) {
 // Plugin IDs that map to specific nav items
 const PLUGIN_NAV: Record<string, { href: string; label: string; section: "trading" | "planning" }[]> = {
   "position_manager": [
-    { href: "/position-manager", label: "Hedge Book", section: "trading" },
-    { href: "/position-manager?tab=budget", label: "Allocations", section: "trading" },
+    { href: "/position-manager", label: "Position Manager", section: "trading" },
   ],
   "trade_capture":    [{ href: "/trades",      label: "Trades",            section: "trading" }],
   "contracts":        [{ href: "/contracts",   label: "Contracts",         section: "trading" }],
@@ -197,7 +196,7 @@ function Sidebar() {
 
   // Fallback: if plugins haven't loaded yet, show the core items
   const showTrading = tradingItems.length > 0 ? tradingItems : [
-    { href: "/position-manager", label: "Hedge Book" },
+    { href: "/position-manager", label: "Position Manager" },
     { href: "/trades", label: "Trades" },
     { href: "/contracts", label: "Contracts" },
   ];
