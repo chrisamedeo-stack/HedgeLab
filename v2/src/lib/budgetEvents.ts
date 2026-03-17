@@ -181,65 +181,9 @@ export function registerBudgetEventListeners(): void {
     }
   });
 
-  // When a physical contract is created, increment committed_volume
-  on(EventTypes.PHYSICAL_CONTRACT_CREATED, "budget", async (event: KernelEvent) => {
-    try {
-      const {
-        commodityId,
-        totalVolume,
-        price,
-        siteId,
-        deliveryStart,
-      } = event.payload as {
-        commodityId?: string;
-        totalVolume?: number;
-        price?: number;
-        siteId?: string;
-        deliveryStart?: string;
-      };
-
-      if (!siteId || !commodityId || !totalVolume) return;
-
-      // Derive budget month from delivery_start (YYYY-MM)
-      if (!deliveryStart) {
-        console.warn("[Budget] PHYSICAL_CONTRACT_CREATED: no deliveryStart, skipping budget update");
-        return;
-      }
-      const budgetMonth = deliveryStart.slice(0, 7); // "YYYY-MM"
-
-      const lineItems = await queryAll<{
-        id: string;
-        committed_volume: string;
-        committed_avg_price: string | null;
-        committed_cost: string;
-      }>(
-        `SELECT li.id, li.committed_volume, li.committed_avg_price, li.committed_cost
-         FROM bgt_line_items li
-         JOIN bgt_periods p ON p.id = li.period_id
-         WHERE p.site_id = $1 AND p.commodity_id = $2 AND li.budget_month = $3
-           AND p.status IN ('draft', 'submitted', 'approved')`,
-        [siteId, commodityId, budgetMonth]
-      );
-
-      for (const li of lineItems) {
-        const oldVol = Number(li.committed_volume);
-        const oldCost = Number(li.committed_cost);
-        const newVol = oldVol + totalVolume;
-        const newCost = oldCost + totalVolume * (price ?? 0);
-        const newAvgPrice = newVol > 0 ? newCost / newVol : null;
-
-        await query(
-          `UPDATE bgt_line_items
-           SET committed_volume = $1, committed_avg_price = $2, committed_cost = $3, updated_at = NOW()
-           WHERE id = $4`,
-          [newVol, newAvgPrice, newCost, li.id]
-        );
-      }
-
-    } catch (err) {
-      console.error("[Budget] Error handling PHYSICAL_CONTRACT_CREATED:", err);
-    }
-  });
+  // Note: PHYSICAL_CONTRACT_CREATED is NOT handled here because createContract()
+  // already bridges to createPhysicalPosition() which emits PHYSICAL_POSITION_CREATED.
+  // Handling both would double-count committed_volume.
 
   // When a position is rolled, move hedged_volume between months
   on(EventTypes.POSITION_ROLLED, "budget", async (event: KernelEvent) => {
