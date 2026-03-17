@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { runMigrations } from "@/lib/migrate";
 
+export async function GET() {
+  return POST();
+}
+
 export async function POST() {
   try {
     const applied = await runMigrations();
