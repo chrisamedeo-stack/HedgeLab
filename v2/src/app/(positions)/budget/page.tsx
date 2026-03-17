@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useBudgetPeriods, useCoverage } from "@/hooks/useBudget";
-import { useCommodities, useSites, type Commodity } from "@/hooks/usePositions";
+import { useCommodities, useSites } from "@/hooks/usePositions";
 import { useCommodityContext } from "@/contexts/CommodityContext";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +35,7 @@ export default function BudgetPage() {
   // Inline new budget form state
   const [showNewBudget, setShowNewBudget] = useState(false);
   const [newSite, setNewSite] = useState("");
+  const [newCommodity, setNewCommodity] = useState(commodityId ?? "");
   const [newYear, setNewYear] = useState(new Date().getFullYear());
   const [creating, setCreating] = useState(false);
 
@@ -50,20 +51,16 @@ export default function BudgetPage() {
   const currentYear = new Date().getFullYear();
   const yearOptions = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
 
-  const selectedCommodity = useMemo((): Commodity | null => {
-    return commodities?.find((c) => c.id === commodityId) ?? null;
-  }, [commodities, commodityId]);
-
   // Create period + open fiscal year grid inline
   const handleCreatePeriod = async () => {
-    if (!newSite || !commodityId) return;
+    if (!newSite || !newCommodity) return;
     setCreating(true);
     try {
       const period = await createPeriod({
         orgId,
         userId: user!.id,
         siteId: newSite,
-        commodityId,
+        commodityId: newCommodity,
         budgetYear: newYear,
       });
       // After creating, the grid will be shown inline for this period
@@ -116,12 +113,16 @@ export default function BudgetPage() {
             </label>
             <label className="block space-y-1">
               <span className="text-xs text-muted">Commodity</span>
-              <input
-                type="text"
-                value={selectedCommodity?.name ?? "Select from sidebar"}
-                disabled
-                className="w-full border border-b-input bg-input-bg rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none opacity-50"
-              />
+              <select
+                value={newCommodity}
+                onChange={(e) => setNewCommodity(e.target.value)}
+                className="w-full border border-b-input bg-input-bg rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-focus"
+              >
+                <option value="">Select commodity...</option>
+                {commodities?.filter((c) => c.is_active !== false).map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
             </label>
             <label className="block space-y-1">
               <span className="text-xs text-muted">Budget Year</span>
@@ -145,7 +146,7 @@ export default function BudgetPage() {
             </button>
             <button
               onClick={handleCreatePeriod}
-              disabled={creating || !newSite || !commodityId}
+              disabled={creating || !newSite || !newCommodity}
               className="px-4 py-2 text-sm font-medium text-white bg-action rounded-lg hover:bg-action-hover transition-colors disabled:opacity-50"
             >
               {creating ? "Creating..." : "Create & Open Grid"}
