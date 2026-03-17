@@ -259,7 +259,7 @@ export function CommoditiesTab() {
                 commodities.map((c) => (
                   <tr key={c.id} onClick={() => setSelectedId(c.id)}
                     className="hover:bg-row-hover transition-colors cursor-pointer">
-                    <td className="px-3 py-3 font-mono text-xs text-action">{c.id}</td>
+                    <td className="px-3 py-3 font-mono text-xs text-action">{c.ticker_root || c.id}</td>
                     <td className="px-3 py-3 text-secondary">{c.display_name ?? c.name}</td>
                     <td className="px-3 py-3 text-muted capitalize">{CATEGORIES.find((cat) => cat.value === c.category)?.label ?? c.category}</td>
                     <td className="px-3 py-3 text-muted">{c.trade_volume_unit ?? c.unit}</td>
