@@ -6,11 +6,13 @@ import { useCommodities, useSites } from "@/hooks/usePositions";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { TradeBlotter } from "@/components/trades/TradeBlotter";
 import { TradeForm } from "@/components/trades/TradeForm";
+import type { Commodity } from "@/hooks/usePositions";
 import type { TradeFilters, TradeStatus, TradeType } from "@/types/trades";
 
 export default function TradesPage() {
   const { orgId } = useOrgContext();
   const [showForm, setShowForm] = useState(false);
+  const [formCommodity, setFormCommodity] = useState<Commodity | null>(null);
   const [filters, setFilters] = useState<Partial<TradeFilters>>({});
   const { data: trades, loading, error, refetch } = useTrades(orgId, filters);
   const { data: commodities } = useCommodities();
@@ -21,6 +23,29 @@ export default function TradesPage() {
       ...prev,
       [key]: value || undefined,
     }));
+  };
+
+  const handleBookTrade = () => {
+    // Use filtered commodity, or first commodity, or show picker
+    const filtered = (commodities ?? []).find(
+      (c) => c.id === filters.commodityId
+    );
+    if (filtered) {
+      setFormCommodity(filtered);
+      setShowForm(true);
+    } else if (commodities?.length === 1) {
+      setFormCommodity(commodities[0]);
+      setShowForm(true);
+    } else {
+      // Show commodity picker
+      setFormCommodity(null);
+      setShowForm(true);
+    }
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setFormCommodity(null);
   };
 
   return (
@@ -34,7 +59,7 @@ export default function TradesPage() {
           </p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={handleBookTrade}
           className="flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -118,14 +143,44 @@ export default function TradesPage() {
         onRefresh={refetch}
       />
 
+      {/* Commodity picker (when no commodity selected) */}
+      {showForm && !formCommodity && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-80 rounded-xl border border-b-default bg-[#111D32] p-5 shadow-2xl">
+            <h3 className="text-sm font-semibold text-primary mb-3">Select commodity</h3>
+            <div className="space-y-1">
+              {(commodities ?? []).map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setFormCommodity(c)}
+                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-secondary hover:bg-hover transition-colors flex items-center gap-2"
+                >
+                  <span className="font-mono text-xs text-action bg-action/10 px-1.5 py-0.5 rounded">
+                    {c.ticker_root || c.id}
+                  </span>
+                  {c.name}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={closeForm}
+              className="mt-3 text-xs text-faint hover:text-secondary"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Book trade modal */}
-      {showForm && (
+      {showForm && formCommodity && (
         <TradeForm
           orgId={orgId}
+          commodity={formCommodity}
           commodities={commodities ?? []}
-          onClose={() => setShowForm(false)}
+          onClose={closeForm}
           onSuccess={() => {
-            setShowForm(false);
+            closeForm();
             refetch();
           }}
         />

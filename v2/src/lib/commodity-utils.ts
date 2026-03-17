@@ -119,6 +119,45 @@ export function monthLabel(ym: string): string {
 }
 
 /**
+ * Format "2026-07" → "Jul 2026"
+ */
+export function formatDeliveryMonth(yearMonth: string): string {
+  const [y, m] = yearMonth.split("-").map(Number);
+  return `${SHORT_MONTHS[m - 1]} ${y}`;
+}
+
+/**
+ * Get contract month options for dropdowns and pills.
+ * Returns [{ value: "ZCN26", label: "Jul-26" }, ...] from commodity config.
+ */
+export function getContractMonthOptions(
+  commodity: CommodityConfig | null,
+  yearsAhead = 3
+): { value: string; label: string }[] {
+  if (!commodity) return [];
+  const prefix = commodity.config?.futures_prefix ?? "";
+  const contractCodes = (commodity.contract_months || "").split("");
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const yy = (y: number) => String(y).slice(-2);
+  const options: { value: string; label: string }[] = [];
+
+  for (let y = currentYear; y < currentYear + yearsAhead; y++) {
+    for (const code of contractCodes) {
+      const monthNum = MONTH_CODE_MAP[code];
+      if (monthNum == null) continue;
+      if (y === currentYear && monthNum < currentMonth) continue;
+      options.push({
+        value: `${prefix}${code}${yy(y)}`,
+        label: `${SHORT_MONTHS[monthNum - 1]}-${yy(y)}`,
+      });
+    }
+  }
+  return options;
+}
+
+/**
  * Generate all futures month codes for a commodity for the next N years.
  * Filters out months that have already passed.
  */

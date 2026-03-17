@@ -1,271 +1,590 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Modal } from "@/components/ui/Modal";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useTradeStore } from "@/store/tradeStore";
 import { useAuth } from "@/contexts/AuthContext";
-import { useOrgContext } from "@/contexts/OrgContext";
-import { generateFuturesMonths, formatContractMonth } from "@/lib/commodity-utils";
+import { getContractMonthOptions } from "@/lib/commodity-utils";
+import { detectStrategy } from "@/lib/optionStrategyDetector";
 import { API_BASE } from "@/lib/api";
 import type { Commodity } from "@/hooks/usePositions";
-import type { TradeFormRow, CreateTradeParams, TradeType, OptionType, SwapType, PaymentFrequency, SettlementType } from "@/types/trades";
+import type { CreateTradeParams } from "@/types/trades";
 import type { Direction } from "@/types/positions";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type InstrumentType = "futures" | "options" | "swap" | "spread";
+
+interface FuturesRow {
+  key: string;
+  month: string;
+  contracts: string;
+  price: string;
+}
+
+interface OptionLegRow {
+  key: string;
+  type: "call" | "put";
+  side: "buy" | "sell";
+  strike: string;
+  premium: string;
+}
+
+interface Counterparty {
+  id: string;
+  name: string;
+}
 
 interface TradeFormProps {
   orgId: string;
+  commodity: Commodity;
   commodities: Commodity[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
-function emptyRow(): TradeFormRow {
-  return {
-    key: crypto.randomUUID(),
-    commodityId: "",
-    direction: "long",
-    contractMonth: "",
-    numContracts: "",
-    contractSize: "",
-    volume: "",
-    tradePrice: "",
-    notes: "",
-  };
+// ─── Style constants ─────────────────────────────────────────────────────────
+
+const inputCls =
+  "w-full bg-[#1A2740] border border-[#1E3A5F] rounded-[6px] px-3 py-[10px] text-[13px] text-[#E8ECF1] focus:outline-none focus:ring-1 focus:ring-[#378ADD] focus:border-[#378ADD] placeholder:text-[#556170]";
+const selectCls = inputCls + " appearance-none";
+const sectionLabel =
+  "text-[11px] uppercase tracking-[0.04em] text-[#556170] mb-2 font-medium";
+const thCls =
+  "text-[10px] uppercase text-[#556170] bg-[rgba(26,39,64,0.5)] px-3 py-2 font-medium text-left";
+const tdCls = "px-3 py-2 text-[13px]";
+const rowBorder = "border-b border-[rgba(30,58,95,0.5)]";
+const helperLink =
+  "text-[12px] cursor-pointer hover:underline transition-colors";
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function fmtNum(v: number, dec = 2): string {
+  return v.toLocaleString(undefined, {
+    minimumFractionDigits: dec,
+    maximumFractionDigits: dec,
+  });
 }
 
-const inputClass = "w-full rounded-md border border-b-input bg-input-bg px-3 py-2 text-sm text-primary focus:border-focus focus:outline-none";
-const selectClass = "w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none";
-
-interface Counterparty {
-  id: string;
-  name: string;
-  credit_limit: number | null;
-  credit_used: number;
-  credit_status: string;
+function XIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.5}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6 18L18 6M6 6l12 12"
+      />
+    </svg>
+  );
 }
 
-export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormProps) {
+// ─── Month Pills ─────────────────────────────────────────────────────────────
+
+function MonthPills({
+  months,
+  selected,
+  onToggle,
+  onAll,
+  onClear,
+}: {
+  months: { value: string; label: string }[];
+  selected: string[];
+  onToggle: (v: string) => void;
+  onAll: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {months.map((m) => {
+        const active = selected.includes(m.value);
+        return (
+          <button
+            key={m.value}
+            type="button"
+            onClick={() => onToggle(m.value)}
+            className={`rounded-[6px] px-3.5 py-1.5 text-[13px] transition-colors ${
+              active
+                ? "bg-[#378ADD] text-[#E8ECF1] font-medium"
+                : "bg-transparent text-[#556170] border border-[#1E3A5F] hover:text-[#8B95A5]"
+            }`}
+          >
+            {m.label}
+          </button>
+        );
+      })}
+      <span className="text-[#1E3A5F] mx-1">|</span>
+      <button
+        type="button"
+        onClick={onAll}
+        className="text-[12px] text-[#378ADD] hover:underline"
+      >
+        All
+      </button>
+      <button
+        type="button"
+        onClick={onClear}
+        className="text-[12px] text-[#8B95A5] hover:underline ml-1"
+      >
+        Clear
+      </button>
+    </div>
+  );
+}
+
+// ─── Summary Bar ─────────────────────────────────────────────────────────────
+
+function SummaryBar({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="bg-[#0B1426] border border-[#1E3A5F] rounded-lg px-4 py-3 text-[12px] text-[#8B95A5]">
+      {children}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRADE FORM
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function TradeForm({
+  orgId,
+  commodity,
+  commodities,
+  onClose,
+  onSuccess,
+}: TradeFormProps) {
   const { createTrades, createTrade } = useTradeStore();
   const { user } = useAuth();
+  const overlayRef = useRef<HTMLDivElement>(null);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Trade type selector
-  const [tradeType, setTradeType] = useState<TradeType>("futures");
+  // ─── Instrument tab ────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<InstrumentType>("futures");
 
-  // Shared fields
-  const [broker, setBroker] = useState("");
-  const [tradeDate, setTradeDate] = useState(new Date().toISOString().slice(0, 10));
-
-  // ─── Futures: multi-row grid ───────────────────────────────────────────
-  const [rows, setRows] = useState<TradeFormRow[]>([emptyRow()]);
-
-  // ─── Options fields ────────────────────────────────────────────────────
-  const [optCommodityId, setOptCommodityId] = useState("");
-  const [optDirection, setOptDirection] = useState<Direction>("long");
-  const [optionType, setOptionType] = useState<OptionType>("call");
-  const [optContractMonth, setOptContractMonth] = useState("");
-  const [optStrikePrice, setOptStrikePrice] = useState("");
-  const [optPremium, setOptPremium] = useState("");
-  const [optExpirationDate, setOptExpirationDate] = useState("");
-  const [optVolume, setOptVolume] = useState("");
-  const [optContractSize, setOptContractSize] = useState("");
-  const [optStyle, setOptStyle] = useState<"american" | "european">("american");
-  const [optNotes, setOptNotes] = useState("");
-
-  // ─── Swap fields ───────────────────────────────────────────────────────
-  const [swCommodityId, setSwCommodityId] = useState("");
-  const [swDirection, setSwDirection] = useState<Direction>("long");
-  const [swCounterpartyId, setSwCounterpartyId] = useState("");
-  const [swCounterpartyName, setSwCounterpartyName] = useState("");
+  // ─── Shared fields ─────────────────────────────────────────────────────────
+  const [tradeDate, setTradeDate] = useState(
+    new Date().toISOString().slice(0, 10)
+  );
+  const [direction, setDirection] = useState<Direction>("long");
+  const [optionStyle, setOptionStyle] = useState<"american" | "european">(
+    "american"
+  );
+  const [counterpartyId, setCounterpartyId] = useState("");
   const [counterparties, setCounterparties] = useState<Counterparty[]>([]);
-  const [swSwapType, setSwSwapType] = useState<SwapType>("fixed_for_floating");
-  const [swFixedPrice, setSwFixedPrice] = useState("");
-  const [swFloatingRef, setSwFloatingRef] = useState("");
-  const [swContractMonth, setSwContractMonth] = useState("");
-  const [swNotionalVolume, setSwNotionalVolume] = useState("");
-  const [swVolumeUnit, setSwVolumeUnit] = useState("bushels");
-  const [swStartDate, setSwStartDate] = useState("");
-  const [swEndDate, setSwEndDate] = useState("");
-  const [swPayFreq, setSwPayFreq] = useState<PaymentFrequency>("monthly");
-  const [swSettleType, setSwSettleType] = useState<SettlementType>("cash");
-  const [swIsdaRef, setSwIsdaRef] = useState("");
-  const [swNotes, setSwNotes] = useState("");
 
-  // Fetch counterparties for swap form
+  // ─── Commodity config ──────────────────────────────────────────────────────
+  const contractSize = commodity.contract_size || 1;
+  const tickSize = commodity.tick_size || 0.0001;
+  const priceDecimals =
+    commodity.price_decimal_places || commodity.decimal_places || 4;
+  const code = commodity.ticker_root || commodity.id;
+  const volUnit = commodity.trade_volume_unit || commodity.volume_unit || "bu";
+
+  const monthOptions = useMemo(
+    () => getContractMonthOptions(commodity, 3),
+    [commodity]
+  );
+
+  // ─── Futures state ─────────────────────────────────────────────────────────
+  const [futuresRows, setFuturesRows] = useState<FuturesRow[]>([
+    {
+      key: crypto.randomUUID(),
+      month: monthOptions[0]?.value || "",
+      contracts: "1",
+      price: "",
+    },
+  ]);
+
+  // ─── Options state ─────────────────────────────────────────────────────────
+  const [optionLegs, setOptionLegs] = useState<OptionLegRow[]>([
+    {
+      key: crypto.randomUUID(),
+      type: "put",
+      side: "buy",
+      strike: "",
+      premium: "",
+    },
+  ]);
+  const [optSelectedMonths, setOptSelectedMonths] = useState<string[]>([]);
+  const [optMonthContracts, setOptMonthContracts] = useState<
+    Record<string, string>
+  >({});
+
+  // ─── Swap state ────────────────────────────────────────────────────────────
+  const [swapSubType, setSwapSubType] = useState<
+    "fixed_for_floating" | "basis"
+  >("fixed_for_floating");
+  const [swapFixedPrice, setSwapFixedPrice] = useState("");
+  const [swapFloatingRef, setSwapFloatingRef] = useState("");
+  const [swapRefA, setSwapRefA] = useState("");
+  const [swapRefB, setSwapRefB] = useState("");
+  const [swapSpread, setSwapSpread] = useState("");
+  const [swapFrequency, setSwapFrequency] = useState("monthly");
+  const [swapSettlement, setSwapSettlement] = useState("cash");
+  const [swapIsda, setSwapIsda] = useState("");
+  const [swSelectedMonths, setSwSelectedMonths] = useState<string[]>([]);
+  const [swMonthVolumes, setSwMonthVolumes] = useState<
+    Record<string, string>
+  >({});
+
+  // ─── Spread state ──────────────────────────────────────────────────────────
+  const [spreadSubType, setSpreadSubType] = useState<
+    "calendar" | "inter_commodity"
+  >("calendar");
+  const [nearMonth, setNearMonth] = useState(monthOptions[0]?.value || "");
+  const [farMonth, setFarMonth] = useState(monthOptions[1]?.value || "");
+  const [nearPrice, setNearPrice] = useState("");
+  const [farPrice, setFarPrice] = useState("");
+  const [farCommodityId, setFarCommodityId] = useState(commodity.id);
+  const [activeSpreadPairs, setActiveSpreadPairs] = useState<string[]>([]);
+  const [spreadPairContracts, setSpreadPairContracts] = useState<
+    Record<string, string>
+  >({});
+
+  // ─── Escape key ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (tradeType === "swap" && counterparties.length === 0) {
-      fetch(`${API_BASE}/api/contracts/counterparties?orgId=${orgId}`)
-        .then((r) => (r.ok ? r.json() : []))
-        .then(setCounterparties)
-        .catch(() => {});
-    }
-  }, [tradeType, orgId, counterparties.length]);
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
 
-  // Build per-commodity futures month options
-  const futuresMonthCache: Record<string, string[]> = {};
-  const getFuturesMonths = (commodityId: string): string[] => {
-    if (!commodityId) return [];
-    if (futuresMonthCache[commodityId]) return futuresMonthCache[commodityId];
-    const c = commodities.find((c) => c.id === commodityId) ?? null;
-    const months = generateFuturesMonths(c, 3);
-    futuresMonthCache[commodityId] = months;
-    return months;
+  // ─── Fetch counterparties ──────────────────────────────────────────────────
+  useEffect(() => {
+    fetch(`${API_BASE}/api/contracts/counterparties?orgId=${orgId}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: Counterparty[]) => setCounterparties(data))
+      .catch(() => {});
+  }, [orgId]);
+
+  // ═══ COMPUTED VALUES ═══════════════════════════════════════════════════════
+
+  // Futures summary
+  const futuresSummary = useMemo(() => {
+    const valid = futuresRows.filter((r) => r.month && r.contracts && r.price);
+    const totalContracts = valid.reduce(
+      (s, r) => s + (Number(r.contracts) || 0),
+      0
+    );
+    const totalVolume = totalContracts * contractSize;
+    const totalNotional = valid.reduce(
+      (s, r) => s + (Number(r.contracts) || 0) * contractSize * (Number(r.price) || 0),
+      0
+    );
+    const vwap =
+      totalVolume > 0
+        ? valid.reduce(
+            (s, r) =>
+              s +
+              (Number(r.contracts) || 0) *
+                contractSize *
+                (Number(r.price) || 0),
+            0
+          ) / totalVolume
+        : 0;
+    return {
+      months: valid.length,
+      contracts: totalContracts,
+      volume: totalVolume,
+      notional: totalNotional,
+      vwap,
+    };
+  }, [futuresRows, contractSize]);
+
+  // Option strategy detection
+  const detectedStrategy = useMemo(() => {
+    const legs = optionLegs
+      .filter((l) => l.strike && l.premium)
+      .map((l) => ({
+        type: l.type,
+        side: l.side,
+        strike: Number(l.strike),
+        premium: Number(l.premium),
+      }));
+    return detectStrategy(legs);
+  }, [optionLegs]);
+
+  // Option net premium per unit
+  const optNetPremium = useMemo(() => {
+    return optionLegs.reduce((s, l) => {
+      const p = Number(l.premium) || 0;
+      return s + (l.side === "sell" ? p : -p);
+    }, 0);
+  }, [optionLegs]);
+
+  // Spread pairs
+  const spreadPairs = useMemo(() => {
+    if (!nearMonth || !farMonth) return [];
+    const nearIdx = monthOptions.findIndex((m) => m.value === nearMonth);
+    const farIdx = monthOptions.findIndex((m) => m.value === farMonth);
+    if (nearIdx < 0 || farIdx < 0 || farIdx <= nearIdx) return [];
+    const offset = farIdx - nearIdx;
+    const pairs: { key: string; nearValue: string; farValue: string; label: string }[] = [];
+    for (let i = nearIdx; i + offset < monthOptions.length; i++) {
+      const n = monthOptions[i];
+      const f = monthOptions[i + offset];
+      pairs.push({
+        key: `${n.value}/${f.value}`,
+        nearValue: n.value,
+        farValue: f.value,
+        label: `${n.label}/${f.label}`,
+      });
+    }
+    return pairs;
+  }, [nearMonth, farMonth, monthOptions]);
+
+  // ═══ FUTURES HANDLERS ═════════════════════════════════════════════════════
+
+  const addFuturesRow = () => {
+    const last = futuresRows[futuresRows.length - 1];
+    const lastIdx = monthOptions.findIndex((m) => m.value === last?.month);
+    const nextMonth = monthOptions[lastIdx + 1]?.value || monthOptions[0]?.value || "";
+    setFuturesRows((prev) => [
+      ...prev,
+      { key: crypto.randomUUID(), month: nextMonth, contracts: "1", price: "" },
+    ]);
   };
 
-  // ─── Futures grid helpers ──────────────────────────────────────────────
-  const updateRow = (key: string, field: keyof TradeFormRow, value: string) => {
-    setRows((prev) =>
-      prev.map((r) => {
-        if (r.key !== key) return r;
-        const updated = { ...r, [field]: value };
-        if (field === "commodityId") {
-          const c = commodities.find((c) => c.id === value);
-          if (c?.contract_size) {
-            updated.contractSize = String(c.contract_size);
-            updated.volume = String(c.contract_size);
-            updated.numContracts = "1";
-          }
-        }
-        if (field === "volume") {
-          const size = Number(updated.contractSize) || 1;
-          const vol = Number(value) || 0;
-          updated.numContracts = String(Math.round(vol / size));
-        }
-        return updated;
-      })
+  const fillEqual = () => {
+    const first = futuresRows[0];
+    if (!first) return;
+    setFuturesRows((prev) =>
+      prev.map((r) => ({ ...r, contracts: first.contracts }))
     );
   };
 
-  const addRow = () => setRows((prev) => {
-    const lastRow = prev[prev.length - 1];
-    const newRow = emptyRow();
-    if (lastRow?.commodityId) {
-      newRow.commodityId = lastRow.commodityId;
-      newRow.contractSize = lastRow.contractSize;
-      newRow.volume = lastRow.volume;
-      newRow.numContracts = lastRow.numContracts;
-      newRow.direction = lastRow.direction;
-      const months = getFuturesMonths(lastRow.commodityId);
-      const idx = months.indexOf(lastRow.contractMonth);
-      newRow.contractMonth = months[idx + 1] ?? months[0] ?? "";
-    }
-    return [...prev, newRow];
-  });
-  const removeRow = (key: string) => {
-    if (rows.length <= 1) return;
-    setRows((prev) => prev.filter((r) => r.key !== key));
+  const copyPriceDown = () => {
+    const first = futuresRows[0];
+    if (!first) return;
+    setFuturesRows((prev) =>
+      prev.map((r) => ({ ...r, price: first.price }))
+    );
   };
 
-  const calcVolume = (r: TradeFormRow) => Number(r.volume) || 0;
-  const calcNotional = (r: TradeFormRow) => calcVolume(r) * (Number(r.tradePrice) || 0);
+  // ═══ OPTIONS HANDLERS ═════════════════════════════════════════════════════
 
-  // ─── Swap settlement preview ───────────────────────────────────────────
-  const swapPreview = useCallback(() => {
-    if (!swStartDate || !swEndDate) return null;
-    const start = new Date(swStartDate);
-    const end = new Date(swEndDate);
-    if (end <= start) return null;
-    const totalMonths = (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth();
-    if (totalMonths <= 0) return null;
-    const periods = swPayFreq === "at_expiry" ? 1 : swPayFreq === "quarterly" ? Math.ceil(totalMonths / 3) : totalMonths;
-    const startStr = start.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-    const endStr = end.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-    const label = swPayFreq === "at_expiry" ? "single" : swPayFreq;
-    return `This swap will have ${periods} ${label} settlement period${periods !== 1 ? "s" : ""} from ${startStr} to ${endStr}`;
-  }, [swStartDate, swEndDate, swPayFreq]);
+  const addOptionLeg = () => {
+    setOptionLegs((prev) => [
+      ...prev,
+      {
+        key: crypto.randomUUID(),
+        type: "call",
+        side: "sell",
+        strike: "",
+        premium: "",
+      },
+    ]);
+  };
 
-  // ─── Submit ────────────────────────────────────────────────────────────
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const toggleOptMonth = (v: string) => {
+    setOptSelectedMonths((prev) =>
+      prev.includes(v) ? prev.filter((m) => m !== v) : [...prev, v]
+    );
+  };
+
+  const optFillEqual = () => {
+    const first = Object.values(optMonthContracts)[0];
+    if (!first) return;
+    const updated: Record<string, string> = {};
+    for (const m of optSelectedMonths) updated[m] = first;
+    setOptMonthContracts(updated);
+  };
+
+  // ═══ SWAP HANDLERS ════════════════════════════════════════════════════════
+
+  const toggleSwMonth = (v: string) => {
+    setSwSelectedMonths((prev) =>
+      prev.includes(v) ? prev.filter((m) => m !== v) : [...prev, v]
+    );
+  };
+
+  const swFillEqual = () => {
+    const first = Object.values(swMonthVolumes)[0];
+    if (!first) return;
+    const updated: Record<string, string> = {};
+    for (const m of swSelectedMonths) updated[m] = first;
+    setSwMonthVolumes(updated);
+  };
+
+  // ═══ SPREAD HANDLERS ══════════════════════════════════════════════════════
+
+  const toggleSpreadPair = (key: string) => {
+    setActiveSpreadPairs((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  // ═══ SUBMIT ═══════════════════════════════════════════════════════════════
+
+  const handleSubmit = async () => {
     setSubmitting(true);
     setError(null);
 
     try {
-      if (tradeType === "futures") {
-        const validRows = rows.filter(
-          (r) => r.commodityId && r.contractMonth && r.volume && r.tradePrice
+      const cpName =
+        counterparties.find((c) => c.id === counterpartyId)?.name || undefined;
+
+      if (activeTab === "futures") {
+        const valid = futuresRows.filter(
+          (r) => r.month && r.contracts && r.price
         );
-        if (validRows.length === 0) {
+        if (valid.length === 0) {
           setError("At least one complete row is required");
           setSubmitting(false);
           return;
         }
-        const params: CreateTradeParams[] = validRows.map((r) => ({
+        const params: CreateTradeParams[] = valid.map((r) => ({
           orgId,
           userId: user!.id,
-          commodityId: r.commodityId,
-          tradeType: "futures" as TradeType,
-          direction: r.direction as Direction,
+          commodityId: commodity.id,
+          tradeType: "futures" as const,
+          direction,
           tradeDate,
-          contractMonth: r.contractMonth,
-          broker: broker || undefined,
-          numContracts: Number(r.numContracts) || 1,
-          contractSize: Number(r.contractSize) || 1,
-          tradePrice: Number(r.tradePrice),
-          notes: r.notes || undefined,
+          contractMonth: r.month,
+          numContracts: Number(r.contracts) || 1,
+          contractSize,
+          tradePrice: Number(r.price),
+          counterpartyId: counterpartyId || undefined,
+          counterpartyName: cpName,
         }));
         await createTrades(params);
-      } else if (tradeType === "options") {
-        if (!optCommodityId || !optContractMonth || !optStrikePrice || !optPremium || !optExpirationDate || !optVolume) {
-          setError("All option fields are required");
+      } else if (activeTab === "options") {
+        const validLegs = optionLegs.filter((l) => l.strike && l.premium);
+        if (validLegs.length === 0 || optSelectedMonths.length === 0) {
+          setError("Add at least one leg and select at least one month");
           setSubmitting(false);
           return;
         }
-        const cs = Number(optContractSize) || 1;
-        const vol = Number(optVolume);
-        await createTrade({
-          orgId,
-          userId: user!.id,
-          commodityId: optCommodityId,
-          tradeType: "options",
-          direction: optDirection,
-          tradeDate,
-          contractMonth: optContractMonth,
-          broker: broker || undefined,
-          numContracts: Math.round(vol / cs) || 1,
-          contractSize: cs,
-          tradePrice: Number(optStrikePrice),
-          optionType,
-          optionStyle: optStyle,
-          strikePrice: Number(optStrikePrice),
-          premium: Number(optPremium),
-          expirationDate: optExpirationDate,
-          underlyingContract: optContractMonth,
-          exchange: "CME",
-          notes: optNotes || undefined,
-        });
-      } else if (tradeType === "swap") {
-        if (!swCommodityId || !swFixedPrice || !swNotionalVolume || !swStartDate || !swEndDate) {
-          setError("Commodity, fixed price, notional volume, start and end dates are required");
+        const strategyGroupId = crypto.randomUUID();
+        const params: CreateTradeParams[] = [];
+        for (const month of optSelectedMonths) {
+          const contracts = Number(optMonthContracts[month]) || 1;
+          for (const leg of validLegs) {
+            params.push({
+              orgId,
+              userId: user!.id,
+              commodityId: commodity.id,
+              tradeType: "options",
+              direction: leg.side === "buy" ? "long" : "short",
+              tradeDate,
+              contractMonth: month,
+              numContracts: contracts,
+              contractSize,
+              tradePrice: Number(leg.strike),
+              optionType: leg.type,
+              optionStyle: optionStyle,
+              strikePrice: Number(leg.strike),
+              premium: Number(leg.premium),
+              expirationDate: tradeDate,
+              counterpartyId: counterpartyId || undefined,
+              counterpartyName: cpName,
+              externalRef: strategyGroupId,
+            });
+          }
+        }
+        await createTrades(params);
+      } else if (activeTab === "swap") {
+        const totalVolume = swSelectedMonths.reduce(
+          (s, m) => s + (Number(swMonthVolumes[m]) || 0),
+          0
+        );
+        if (totalVolume <= 0) {
+          setError("Total volume must be greater than zero");
           setSubmitting(false);
           return;
         }
-        const floatRef = swFloatingRef || `${swCommodityId}:${swContractMonth}`;
+        const startMonth = [...swSelectedMonths].sort()[0];
+        const endMonth = [...swSelectedMonths].sort().pop()!;
         await createTrade({
           orgId,
           userId: user!.id,
-          commodityId: swCommodityId,
+          commodityId: commodity.id,
           tradeType: "swap",
-          direction: swDirection,
+          direction,
           tradeDate,
-          contractMonth: swContractMonth || "SWAP",
+          contractMonth: startMonth || "SWAP",
           numContracts: 1,
-          contractSize: Number(swNotionalVolume),
-          tradePrice: Number(swFixedPrice),
-          counterpartyId: swCounterpartyId || undefined,
-          counterpartyName: swCounterpartyName || counterparties.find((c) => c.id === swCounterpartyId)?.name || undefined,
-          swapType: swSwapType,
-          fixedPrice: Number(swFixedPrice),
-          floatingReference: floatRef,
-          notionalVolume: Number(swNotionalVolume),
-          volumeUnit: swVolumeUnit,
-          startDate: swStartDate,
-          endDate: swEndDate,
-          paymentFrequency: swPayFreq,
-          settlementType: swSettleType,
-          isdaRef: swIsdaRef || undefined,
-          notes: swNotes || undefined,
+          contractSize: totalVolume,
+          tradePrice: Number(swapFixedPrice) || 0,
+          counterpartyId: counterpartyId || undefined,
+          counterpartyName: cpName,
+          swapType: swapSubType,
+          fixedPrice: Number(swapFixedPrice) || 0,
+          floatingReference:
+            swapSubType === "basis"
+              ? `${swapRefA}/${swapRefB}`
+              : swapFloatingRef || commodity.id,
+          notionalVolume: totalVolume,
+          volumeUnit: volUnit,
+          startDate: startMonth,
+          endDate: endMonth,
+          paymentFrequency:
+            swapFrequency === "monthly"
+              ? "monthly"
+              : swapFrequency === "quarterly"
+                ? "quarterly"
+                : "at_expiry",
+          settlementType: swapSettlement as "cash" | "physical",
+          isdaRef: swapIsda || undefined,
         });
+      } else if (activeTab === "spread") {
+        const activePairs = spreadPairs.filter((p) =>
+          activeSpreadPairs.includes(p.key)
+        );
+        if (activePairs.length === 0) {
+          setError("Select at least one spread pair");
+          setSubmitting(false);
+          return;
+        }
+        const spreadGroupId = crypto.randomUUID();
+        const params: CreateTradeParams[] = [];
+        for (const pair of activePairs) {
+          const contracts = Number(spreadPairContracts[pair.key]) || 1;
+          // Near leg
+          params.push({
+            orgId,
+            userId: user!.id,
+            commodityId: commodity.id,
+            tradeType: "futures",
+            direction: direction === "long" ? "long" : "short",
+            tradeDate,
+            contractMonth: pair.nearValue,
+            numContracts: contracts,
+            contractSize,
+            tradePrice: Number(nearPrice) || 0,
+            counterpartyId: counterpartyId || undefined,
+            counterpartyName: cpName,
+            externalRef: spreadGroupId,
+          });
+          // Far leg
+          params.push({
+            orgId,
+            userId: user!.id,
+            commodityId:
+              spreadSubType === "inter_commodity"
+                ? farCommodityId
+                : commodity.id,
+            tradeType: "futures",
+            direction: direction === "long" ? "short" : "long",
+            tradeDate,
+            contractMonth: pair.farValue,
+            numContracts: contracts,
+            contractSize,
+            tradePrice: Number(farPrice) || 0,
+            counterpartyId: counterpartyId || undefined,
+            counterpartyName: cpName,
+            externalRef: spreadGroupId,
+          });
+        }
+        await createTrades(params);
       }
 
       onSuccess();
@@ -276,369 +595,1439 @@ export function TradeForm({ orgId, commodities, onClose, onSuccess }: TradeFormP
     }
   };
 
-  // Selected counterparty credit info
-  const selectedCp = counterparties.find((c) => c.id === swCounterpartyId);
+  // ═══ SUBMIT LABEL ═════════════════════════════════════════════════════════
+
+  const submitLabel = useMemo(() => {
+    if (submitting) return "Booking...";
+    if (activeTab === "futures") {
+      const n = futuresRows.filter(
+        (r) => r.month && r.contracts && r.price
+      ).length;
+      return n === 1 ? "Book trade" : `Book ${n} trades`;
+    }
+    if (activeTab === "options") {
+      const legs = optionLegs.filter((l) => l.strike && l.premium).length;
+      const total = legs * optSelectedMonths.length;
+      if (detectedStrategy.name) {
+        return `Book ${detectedStrategy.name} (${total} legs)`;
+      }
+      return `Book ${total} option${total !== 1 ? "s" : ""}`;
+    }
+    if (activeTab === "swap") return "Book swap";
+    if (activeTab === "spread") {
+      const n = activeSpreadPairs.length;
+      return `Book spread (${n * 2} legs)`;
+    }
+    return "Book trade";
+  }, [
+    activeTab,
+    submitting,
+    futuresRows,
+    optionLegs,
+    optSelectedMonths,
+    detectedStrategy,
+    activeSpreadPairs,
+  ]);
+
+  // ═══ RENDER ═══════════════════════════════════════════════════════════════
 
   return (
-    <Modal open onClose={onClose} title="Book Trade" width="max-w-4xl">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="rounded-md bg-destructive-10 border border-destructive-15 px-3 py-2 text-sm text-loss">
-            {error}
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={(e) => e.target === overlayRef.current && onClose()}
+    >
+      <div
+        className="w-full max-w-4xl rounded-xl border border-[#1E3A5F] bg-[#111D32] shadow-2xl max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ─── Header ──────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1E3A5F] shrink-0">
+          <div className="flex items-center gap-3">
+            <h2 className="text-[15px] font-semibold text-[#E8ECF1]">
+              Book trade
+            </h2>
+            <span className="font-mono text-sm text-[#378ADD] bg-[rgba(55,138,221,0.1)] px-2.5 py-1 rounded">
+              {code}
+            </span>
           </div>
-        )}
-
-        {/* Trade Type Selector */}
-        <div className="flex gap-1 rounded-lg border border-b-default bg-input-bg p-1">
-          {(["futures", "options", "swap"] as TradeType[]).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTradeType(t)}
-              className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                tradeType === t
-                  ? t === "futures"
-                    ? "bg-futures text-white"
-                    : t === "options"
-                    ? "bg-action text-white"
-                    : "bg-swap text-white"
-                  : "text-muted hover:text-secondary"
-              }`}
-            >
-              {t === "futures" ? "Futures" : t === "options" ? "Options" : "Swap"}
-            </button>
-          ))}
+          <button
+            onClick={onClose}
+            className="text-[#556170] hover:text-[#8B95A5] transition-colors p-1"
+          >
+            <XIcon size={20} />
+          </button>
         </div>
 
-        {/* Shared fields */}
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-muted">Trade Date *</span>
-            <input
-              type="date"
-              required
-              value={tradeDate}
-              onChange={(e) => setTradeDate(e.target.value)}
-              className={inputClass}
-            />
-          </label>
-          {tradeType !== "swap" && (
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-muted">Broker</span>
-              <input
-                type="text"
-                value={broker}
-                onChange={(e) => setBroker(e.target.value)}
-                className={inputClass}
-                placeholder="e.g. ADM, Marex"
-              />
-            </label>
+        {/* ─── Body (scrollable) ───────────────────────────────────────── */}
+        <div className="px-6 py-5 overflow-y-auto flex-1 space-y-5">
+          {/* Error */}
+          {error && (
+            <div className="rounded-md bg-[rgba(216,90,48,0.08)] border border-[rgba(216,90,48,0.2)] px-3 py-2 text-[13px] text-[#D85A30]">
+              {error}
+            </div>
           )}
-        </div>
 
-        {/* ═══ FUTURES GRID ═══ */}
-        {tradeType === "futures" && (
-          <>
-            <div className="space-y-1">
-              <div className="grid grid-cols-[1fr_80px_130px_110px_100px_1fr_32px] gap-1.5 text-xs font-medium text-muted px-1">
-                <span>Commodity</span>
-                <span>Dir</span>
-                <span>Futures Month</span>
-                <span>Volume</span>
-                <span>Price</span>
-                <span>Notes</span>
-                <span></span>
-              </div>
-
-              {rows.map((row) => {
-                const contractSize = Number(row.contractSize) || 1;
-                const contracts = Number(row.numContracts) || 0;
-                const rowMonths = getFuturesMonths(row.commodityId);
-                const rowCommodity = commodities.find((c) => c.id === row.commodityId);
-                const priceUnit = rowCommodity?.trade_price_unit ?? rowCommodity?.price_unit ?? "";
-                const priceDecimals = rowCommodity?.price_decimal_places ?? rowCommodity?.decimal_places ?? 4;
-                const priceStep = Math.pow(10, -priceDecimals).toString();
-                return (
-                  <div key={row.key} className="grid grid-cols-[1fr_80px_130px_110px_100px_1fr_32px] gap-1.5 items-center">
-                    <select value={row.commodityId} onChange={(e) => updateRow(row.key, "commodityId", e.target.value)} className={selectClass}>
-                      <option value="">Commodity...</option>
-                      {commodities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                    <select value={row.direction} onChange={(e) => updateRow(row.key, "direction", e.target.value)} className={selectClass}>
-                      <option value="long">Long</option>
-                      <option value="short">Short</option>
-                    </select>
-                    <select value={row.contractMonth} onChange={(e) => updateRow(row.key, "contractMonth", e.target.value)} className={selectClass}>
-                      <option value="">{row.commodityId ? "Month..." : "Select commodity"}</option>
-                      {rowMonths.map((m) => <option key={m} value={m}>{formatContractMonth(m)}</option>)}
-                    </select>
-                    <div className="relative">
-                      <input type="number" min={contractSize} step={contractSize} value={row.volume} onChange={(e) => updateRow(row.key, "volume", e.target.value)} className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none tabular-nums" placeholder={String(contractSize)} />
-                      {contracts > 0 && <span className="absolute right-7 top-1/2 -translate-y-1/2 text-[10px] text-faint pointer-events-none">{contracts}ct</span>}
-                    </div>
-                    <div className="relative">
-                      <input type="number" step={priceStep} value={row.tradePrice} onChange={(e) => updateRow(row.key, "tradePrice", e.target.value)} className="w-full rounded border border-b-input bg-input-bg px-2 py-1.5 text-sm text-primary focus:border-focus focus:outline-none tabular-nums pr-8" placeholder="4.50" />
-                      {priceUnit && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-faint pointer-events-none">{priceUnit}</span>}
-                    </div>
-                    <input type="text" value={row.notes} onChange={(e) => updateRow(row.key, "notes", e.target.value)} className={selectClass} placeholder="Optional notes" />
-                    <button type="button" onClick={() => removeRow(row.key)} className="flex h-7 w-7 items-center justify-center rounded text-faint hover:bg-hover hover:text-loss disabled:opacity-30" disabled={rows.length <= 1}>
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            {rows.some((r) => Number(r.volume) > 0) && (
-              <div className="rounded-md bg-surface border border-b-default px-3 py-2 text-xs text-muted">
-                <div className="flex gap-6">
-                  <span>Rows: <span className="text-secondary font-medium">{rows.filter((r) => r.commodityId && r.volume).length}</span></span>
-                  <span>Total Volume: <span className="text-secondary font-medium tabular-nums">{rows.reduce((s, r) => s + calcVolume(r), 0).toLocaleString()}</span></span>
-                  <span>Notional: <span className="text-secondary font-medium tabular-nums">${rows.reduce((s, r) => s + calcNotional(r), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* ═══ OPTIONS FORM ═══ */}
-        {tradeType === "options" && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Commodity *</span>
-                <select required value={optCommodityId} onChange={(e) => {
-                  setOptCommodityId(e.target.value);
-                  const c = commodities.find((c) => c.id === e.target.value);
-                  if (c?.contract_size) setOptContractSize(String(c.contract_size));
-                }} className={inputClass}>
-                  <option value="">Select...</option>
-                  {commodities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Direction</span>
-                <select value={optDirection} onChange={(e) => setOptDirection(e.target.value as Direction)} className={inputClass}>
-                  <option value="long">Long</option>
-                  <option value="short">Short</option>
-                </select>
-              </label>
-              <div>
-                <span className="mb-1 block text-xs font-medium text-muted">Type *</span>
-                <div className="flex gap-1">
-                  {(["call", "put"] as OptionType[]).map((t) => (
-                    <button key={t} type="button" onClick={() => setOptionType(t)} className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${optionType === t ? (t === "call" ? "bg-profit text-white" : "bg-loss text-white") : "border border-b-input bg-input-bg text-muted hover:text-secondary"}`}>
-                      {t === "call" ? "Call" : "Put"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Underlying Month *</span>
-                <select required value={optContractMonth} onChange={(e) => setOptContractMonth(e.target.value)} className={inputClass}>
-                  <option value="">{optCommodityId ? "Month..." : "Select commodity"}</option>
-                  {getFuturesMonths(optCommodityId).map((m) => <option key={m} value={m}>{formatContractMonth(m)}</option>)}
-                </select>
-              </label>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Strike Price *</span>
-                <input required type="number" step={(() => { const c = commodities.find((c) => c.id === optCommodityId); return Math.pow(10, -(c?.price_decimal_places ?? c?.decimal_places ?? 4)).toString(); })()} value={optStrikePrice} onChange={(e) => setOptStrikePrice(e.target.value)} className={inputClass} placeholder="4.80" />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Premium ({(() => { const c = commodities.find((c) => c.id === optCommodityId); return c?.trade_price_unit ?? "$/unit"; })()} ) *</span>
-                <input required type="number" step={(() => { const c = commodities.find((c) => c.id === optCommodityId); return Math.pow(10, -(c?.price_decimal_places ?? c?.decimal_places ?? 4)).toString(); })()} value={optPremium} onChange={(e) => setOptPremium(e.target.value)} className={inputClass} placeholder="0.15" />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Expiration Date *</span>
-                <input required type="date" value={optExpirationDate} onChange={(e) => setOptExpirationDate(e.target.value)} className={inputClass} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Volume *</span>
-                <input required type="number" step="any" value={optVolume} onChange={(e) => setOptVolume(e.target.value)} className={inputClass} placeholder="5000" />
-              </label>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <span className="mb-1 block text-xs font-medium text-muted">Style</span>
-                <div className="flex gap-1">
-                  {(["american", "european"] as const).map((s) => (
-                    <button key={s} type="button" onClick={() => setOptStyle(s)} className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${optStyle === s ? "bg-action text-white" : "border border-b-input bg-input-bg text-muted"}`}>
-                      {s.charAt(0).toUpperCase() + s.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Notes</span>
-                <input type="text" value={optNotes} onChange={(e) => setOptNotes(e.target.value)} className={inputClass} placeholder="Optional" />
-              </label>
-            </div>
-            {optVolume && optPremium && (
-              <div className="rounded-md bg-surface border border-b-default px-3 py-2 text-xs text-muted">
-                Premium Total: <span className="text-secondary font-medium tabular-nums">${(Number(optVolume) * Number(optPremium)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </div>
-            )}
+          {/* ─── Instrument tabs ───────────────────────────────────────── */}
+          <div className="bg-[#1A2740] border border-[#1E3A5F] rounded-md p-[3px] flex">
+            {(
+              ["futures", "options", "swap", "spread"] as InstrumentType[]
+            ).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-2 text-sm rounded transition-colors ${
+                  activeTab === tab
+                    ? "bg-[#111D32] font-medium text-[#E8ECF1] shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
+                    : "text-[#556170] hover:text-[#8B95A5]"
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
           </div>
-        )}
 
-        {/* ═══ SWAP FORM ═══ */}
-        {tradeType === "swap" && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Commodity *</span>
-                <select required value={swCommodityId} onChange={(e) => setSwCommodityId(e.target.value)} className={inputClass}>
-                  <option value="">Select...</option>
-                  {commodities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Direction</span>
-                <select value={swDirection} onChange={(e) => setSwDirection(e.target.value as Direction)} className={inputClass}>
-                  <option value="long">Long (pay fixed)</option>
-                  <option value="short">Short (receive fixed)</option>
-                </select>
-              </label>
-              <label className="block col-span-2">
-                <span className="mb-1 block text-xs font-medium text-muted">Counterparty</span>
-                <select value={swCounterpartyId} onChange={(e) => {
-                  setSwCounterpartyId(e.target.value);
-                  const cp = counterparties.find((c) => c.id === e.target.value);
-                  if (cp) setSwCounterpartyName(cp.name);
-                }} className={inputClass}>
-                  <option value="">Select counterparty...</option>
-                  {counterparties.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </label>
+          {/* ─── Shared fields ─────────────────────────────────────────── */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className={sectionLabel}>Trade date</label>
+              <input
+                type="date"
+                value={tradeDate}
+                onChange={(e) => setTradeDate(e.target.value)}
+                className={inputCls}
+              />
             </div>
+            <div>
+              <label className={sectionLabel}>
+                {activeTab === "options" ? "Style" : "Direction"}
+              </label>
+              {activeTab === "options" ? (
+                <select
+                  value={optionStyle}
+                  onChange={(e) =>
+                    setOptionStyle(
+                      e.target.value as "american" | "european"
+                    )
+                  }
+                  className={selectCls}
+                >
+                  <option value="american">American</option>
+                  <option value="european">European</option>
+                </select>
+              ) : (
+                <select
+                  value={direction}
+                  onChange={(e) =>
+                    setDirection(e.target.value as Direction)
+                  }
+                  className={selectCls}
+                >
+                  <option value="long">
+                    {activeTab === "swap" ? "Long (pay fixed)" : "Long"}
+                  </option>
+                  <option value="short">
+                    {activeTab === "swap"
+                      ? "Short (receive fixed)"
+                      : "Short"}
+                  </option>
+                </select>
+              )}
+            </div>
+            <div>
+              <label className={sectionLabel}>Counterparty</label>
+              <select
+                value={counterpartyId}
+                onChange={(e) => setCounterpartyId(e.target.value)}
+                className={selectCls}
+              >
+                <option value="">Select...</option>
+                {counterparties.map((cp) => (
+                  <option key={cp.id} value={cp.id}>
+                    {cp.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-            {/* Credit summary */}
-            {selectedCp && (
-              <div className="rounded-md bg-surface border border-b-default px-3 py-2 text-xs">
-                <span className="text-muted">Credit: </span>
-                <span className={`font-medium ${selectedCp.credit_status === "good" ? "text-profit" : selectedCp.credit_status === "warning" ? "text-warning" : "text-loss"}`}>
-                  {selectedCp.credit_status.toUpperCase()}
-                </span>
-                {selectedCp.credit_limit && (
-                  <span className="text-muted ml-2">
-                    Used: ${Number(selectedCp.credit_used).toLocaleString()} / ${Number(selectedCp.credit_limit).toLocaleString()}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* FUTURES TAB                                                    */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {activeTab === "futures" && (
+            <div className="space-y-4">
+              {/* Strip grid */}
+              <div className="border border-[#1E3A5F] rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr>
+                      <th className={thCls}>Month</th>
+                      <th className={thCls}>Contracts</th>
+                      <th className={thCls}>Volume</th>
+                      <th className={thCls}>Price</th>
+                      <th className={thCls}>Notional</th>
+                      <th className={thCls + " w-9"}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {futuresRows.map((row) => {
+                      const c = Number(row.contracts) || 0;
+                      const vol = c * contractSize;
+                      const notional = vol * (Number(row.price) || 0);
+                      return (
+                        <tr key={row.key} className={rowBorder}>
+                          <td className={tdCls}>
+                            <select
+                              value={row.month}
+                              onChange={(e) =>
+                                setFuturesRows((prev) =>
+                                  prev.map((r) =>
+                                    r.key === row.key
+                                      ? { ...r, month: e.target.value }
+                                      : r
+                                  )
+                                )
+                              }
+                              className={selectCls}
+                            >
+                              <option value="">Month...</option>
+                              {monthOptions.map((m) => (
+                                <option key={m.value} value={m.value}>
+                                  {m.label}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className={tdCls}>
+                            <input
+                              type="number"
+                              min={1}
+                              value={row.contracts}
+                              onChange={(e) =>
+                                setFuturesRows((prev) =>
+                                  prev.map((r) =>
+                                    r.key === row.key
+                                      ? { ...r, contracts: e.target.value }
+                                      : r
+                                  )
+                                )
+                              }
+                              className={inputCls + " font-mono"}
+                            />
+                          </td>
+                          <td
+                            className={
+                              tdCls + " font-mono text-[#8B95A5]"
+                            }
+                          >
+                            {vol > 0
+                              ? vol.toLocaleString() + " " + volUnit
+                              : "—"}
+                          </td>
+                          <td className={tdCls}>
+                            <input
+                              type="number"
+                              step={tickSize}
+                              value={row.price}
+                              onChange={(e) =>
+                                setFuturesRows((prev) =>
+                                  prev.map((r) =>
+                                    r.key === row.key
+                                      ? { ...r, price: e.target.value }
+                                      : r
+                                  )
+                                )
+                              }
+                              className={inputCls + " font-mono"}
+                              placeholder="0.00"
+                            />
+                          </td>
+                          <td
+                            className={
+                              tdCls + " font-mono text-[#556170]"
+                            }
+                          >
+                            {notional > 0
+                              ? "$" + fmtNum(notional)
+                              : "—"}
+                          </td>
+                          <td className={tdCls + " text-center"}>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                futuresRows.length > 1 &&
+                                setFuturesRows((prev) =>
+                                  prev.filter((r) => r.key !== row.key)
+                                )
+                              }
+                              className={`text-[#556170] hover:text-[#D85A30] transition-colors ${
+                                futuresRows.length <= 1
+                                  ? "opacity-0 pointer-events-none"
+                                  : ""
+                              }`}
+                            >
+                              <XIcon />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Helper actions */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={addFuturesRow}
+                  className={helperLink + " text-[#378ADD]"}
+                >
+                  + Add month
+                </button>
+                <span className="text-[#1E3A5F]">|</span>
+                <button
+                  type="button"
+                  onClick={fillEqual}
+                  className={helperLink + " text-[#8B95A5]"}
+                >
+                  Fill equal
+                </button>
+                <span className="text-[#1E3A5F]">|</span>
+                <button
+                  type="button"
+                  onClick={copyPriceDown}
+                  className={helperLink + " text-[#8B95A5]"}
+                >
+                  Copy price down
+                </button>
+              </div>
+
+              {/* Summary */}
+              {futuresSummary.contracts > 0 && (
+                <SummaryBar>
+                  {futuresSummary.months} month
+                  {futuresSummary.months !== 1 ? "s" : ""} &middot;{" "}
+                  {futuresSummary.contracts} contracts{"  "}
+                  <span className="font-mono text-[#E8ECF1]">
+                    {futuresSummary.volume.toLocaleString()} {volUnit}
                   </span>
+                  {"  "}VWAP{" "}
+                  <span className="font-mono text-[#E8ECF1]">
+                    {fmtNum(futuresSummary.vwap, priceDecimals)}
+                  </span>
+                </SummaryBar>
+              )}
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* OPTIONS TAB                                                    */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {activeTab === "options" && (
+            <div className="space-y-5">
+              {/* Strategy legs */}
+              <div>
+                <div className={sectionLabel}>Strategy legs</div>
+                <div className="border border-[#1E3A5F] rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr>
+                        <th className={thCls} style={{ width: "16%" }}>
+                          Type
+                        </th>
+                        <th className={thCls} style={{ width: "16%" }}>
+                          Side
+                        </th>
+                        <th className={thCls} style={{ width: "22%" }}>
+                          Strike
+                        </th>
+                        <th className={thCls} style={{ width: "22%" }}>
+                          Premium
+                        </th>
+                        <th className={thCls} style={{ width: "18%" }}>
+                          Net / unit
+                        </th>
+                        <th className={thCls + " w-9"}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {optionLegs.map((leg) => {
+                        const prem = Number(leg.premium) || 0;
+                        const netUnit =
+                          leg.side === "sell" ? prem : -prem;
+                        return (
+                          <tr key={leg.key} className={rowBorder}>
+                            <td className={tdCls}>
+                              <select
+                                value={leg.type}
+                                onChange={(e) =>
+                                  setOptionLegs((prev) =>
+                                    prev.map((l) =>
+                                      l.key === leg.key
+                                        ? {
+                                            ...l,
+                                            type: e.target.value as
+                                              | "call"
+                                              | "put",
+                                          }
+                                        : l
+                                    )
+                                  )
+                                }
+                                className={selectCls}
+                              >
+                                <option value="put">Put</option>
+                                <option value="call">Call</option>
+                              </select>
+                            </td>
+                            <td className={tdCls}>
+                              <select
+                                value={leg.side}
+                                onChange={(e) =>
+                                  setOptionLegs((prev) =>
+                                    prev.map((l) =>
+                                      l.key === leg.key
+                                        ? {
+                                            ...l,
+                                            side: e.target.value as
+                                              | "buy"
+                                              | "sell",
+                                          }
+                                        : l
+                                    )
+                                  )
+                                }
+                                className={selectCls}
+                              >
+                                <option value="buy">Buy</option>
+                                <option value="sell">Sell</option>
+                              </select>
+                            </td>
+                            <td className={tdCls}>
+                              <input
+                                type="number"
+                                step={tickSize}
+                                value={leg.strike}
+                                onChange={(e) =>
+                                  setOptionLegs((prev) =>
+                                    prev.map((l) =>
+                                      l.key === leg.key
+                                        ? { ...l, strike: e.target.value }
+                                        : l
+                                    )
+                                  )
+                                }
+                                className={inputCls + " font-mono"}
+                                placeholder="0.00"
+                              />
+                            </td>
+                            <td className={tdCls}>
+                              <input
+                                type="number"
+                                step={tickSize}
+                                value={leg.premium}
+                                onChange={(e) =>
+                                  setOptionLegs((prev) =>
+                                    prev.map((l) =>
+                                      l.key === leg.key
+                                        ? {
+                                            ...l,
+                                            premium: e.target.value,
+                                          }
+                                        : l
+                                    )
+                                  )
+                                }
+                                className={inputCls + " font-mono"}
+                                placeholder="0.00"
+                              />
+                            </td>
+                            <td
+                              className={
+                                tdCls +
+                                " font-mono " +
+                                (netUnit >= 0
+                                  ? "text-[#1D9E75]"
+                                  : "text-[#D85A30]")
+                              }
+                            >
+                              {prem > 0
+                                ? (netUnit >= 0 ? "+" : "−") +
+                                  "$" +
+                                  Math.abs(netUnit).toFixed(priceDecimals)
+                                : "—"}
+                            </td>
+                            <td className={tdCls + " text-center"}>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  optionLegs.length > 1 &&
+                                  setOptionLegs((prev) =>
+                                    prev.filter(
+                                      (l) => l.key !== leg.key
+                                    )
+                                  )
+                                }
+                                className={`text-[#556170] hover:text-[#D85A30] transition-colors ${
+                                  optionLegs.length <= 1
+                                    ? "opacity-0 pointer-events-none"
+                                    : ""
+                                }`}
+                              >
+                                <XIcon />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <button
+                  type="button"
+                  onClick={addOptionLeg}
+                  className={helperLink + " text-[#378ADD] mt-2 inline-block"}
+                >
+                  + Add leg
+                </button>
+              </div>
+
+              {/* Strategy detection banner */}
+              {detectedStrategy.name && (
+                <div className="bg-[rgba(55,138,221,0.06)] border border-[rgba(55,138,221,0.2)] rounded-md px-3.5 py-2.5 flex items-center gap-4">
+                  <span className="text-[13px] font-semibold text-[#378ADD]">
+                    {detectedStrategy.name}
+                  </span>
+                  <span className="text-[13px] text-[#8B95A5]">
+                    {Object.entries(detectedStrategy.metrics).map(
+                      ([k, v], i) => (
+                        <span key={k}>
+                          {i > 0 && " · "}
+                          {k}:{" "}
+                          <span className="font-mono text-[#E8ECF1]">
+                            {v}
+                          </span>
+                        </span>
+                      )
+                    )}
+                  </span>
+                </div>
+              )}
+
+              {/* Apply to months */}
+              <div>
+                <div className={sectionLabel}>Apply to months</div>
+                <MonthPills
+                  months={monthOptions}
+                  selected={optSelectedMonths}
+                  onToggle={toggleOptMonth}
+                  onAll={() =>
+                    setOptSelectedMonths(monthOptions.map((m) => m.value))
+                  }
+                  onClear={() => setOptSelectedMonths([])}
+                />
+              </div>
+
+              {/* Volume by month */}
+              {optSelectedMonths.length > 0 && (
+                <div>
+                  <div className={sectionLabel}>Volume</div>
+                  <div className="border border-[#1E3A5F] rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead>
+                        <tr>
+                          <th className={thCls}>Month</th>
+                          <th className={thCls}>Contracts</th>
+                          <th className={thCls}>Volume</th>
+                          <th className={thCls}>Net cost</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {optSelectedMonths
+                          .sort()
+                          .map((mv) => {
+                            const label =
+                              monthOptions.find((m) => m.value === mv)
+                                ?.label || mv;
+                            const c =
+                              Number(optMonthContracts[mv]) || 0;
+                            const vol = c * contractSize;
+                            const netCost = vol * optNetPremium;
+                            return (
+                              <tr key={mv} className={rowBorder}>
+                                <td
+                                  className={
+                                    tdCls +
+                                    " text-[13px] font-semibold text-[#E8ECF1]"
+                                  }
+                                >
+                                  {label}
+                                </td>
+                                <td className={tdCls}>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={
+                                      optMonthContracts[mv] || ""
+                                    }
+                                    onChange={(e) =>
+                                      setOptMonthContracts(
+                                        (prev) => ({
+                                          ...prev,
+                                          [mv]: e.target.value,
+                                        })
+                                      )
+                                    }
+                                    className={
+                                      inputCls + " font-mono"
+                                    }
+                                    placeholder="1"
+                                  />
+                                </td>
+                                <td
+                                  className={
+                                    tdCls +
+                                    " font-mono text-[#8B95A5]"
+                                  }
+                                >
+                                  {vol > 0
+                                    ? vol.toLocaleString() +
+                                      " " +
+                                      volUnit
+                                    : "—"}
+                                </td>
+                                <td
+                                  className={
+                                    tdCls +
+                                    " font-mono " +
+                                    (netCost >= 0
+                                      ? "text-[#1D9E75]"
+                                      : "text-[#D85A30]")
+                                  }
+                                >
+                                  {vol > 0
+                                    ? (netCost >= 0 ? "+" : "−") +
+                                      "$" +
+                                      fmtNum(Math.abs(netCost))
+                                    : "—"}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={optFillEqual}
+                    className={
+                      helperLink + " text-[#8B95A5] mt-2 inline-block"
+                    }
+                  >
+                    Fill equal
+                  </button>
+                </div>
+              )}
+
+              {/* Options summary */}
+              {optionLegs.some((l) => l.strike && l.premium) &&
+                optSelectedMonths.length > 0 && (
+                  <SummaryBar>
+                    {optionLegs.filter((l) => l.strike && l.premium).length}{" "}
+                    leg
+                    {optionLegs.filter((l) => l.strike && l.premium)
+                      .length !== 1
+                      ? "s"
+                      : ""}{" "}
+                    &middot; {optSelectedMonths.length} month
+                    {optSelectedMonths.length !== 1 ? "s" : ""}
+                    {"  "}
+                    <span className="font-mono text-[#E8ECF1]">
+                      {(
+                        optSelectedMonths.reduce(
+                          (s, m) =>
+                            s +
+                            (Number(optMonthContracts[m]) || 0) *
+                              contractSize,
+                          0
+                        )
+                      ).toLocaleString()}{" "}
+                      {volUnit}
+                    </span>
+                    {"  "}Net{" "}
+                    <span
+                      className={
+                        "font-mono " +
+                        (optNetPremium >= 0
+                          ? "text-[#1D9E75]"
+                          : "text-[#D85A30]")
+                      }
+                    >
+                      {optNetPremium >= 0 ? "+" : "−"}$
+                      {fmtNum(
+                        Math.abs(optNetPremium) *
+                          optSelectedMonths.reduce(
+                            (s, m) =>
+                              s +
+                              (Number(optMonthContracts[m]) || 0) *
+                                contractSize,
+                            0
+                          )
+                      )}
+                    </span>
+                  </SummaryBar>
+                )}
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* SWAP TAB                                                       */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {activeTab === "swap" && (
+            <div className="space-y-5">
+              {/* Terms */}
+              <div>
+                <div className={sectionLabel}>Terms</div>
+
+                {/* Sub-type selector */}
+                <div className="bg-[#1A2740] border border-[#1E3A5F] rounded-md p-[3px] flex max-w-[320px] mb-4">
+                  {(
+                    [
+                      ["fixed_for_floating", "Fixed for floating"],
+                      ["basis", "Basis swap"],
+                    ] as const
+                  ).map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setSwapSubType(val)}
+                      className={`flex-1 py-2 text-[13px] rounded transition-colors ${
+                        swapSubType === val
+                          ? "bg-[#111D32] font-medium text-[#E8ECF1] shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
+                          : "text-[#556170] hover:text-[#8B95A5]"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Fields */}
+                <div className="grid grid-cols-4 gap-3">
+                  {swapSubType === "fixed_for_floating" ? (
+                    <>
+                      <div>
+                        <label className={sectionLabel}>Fixed price</label>
+                        <input
+                          type="number"
+                          step={tickSize}
+                          value={swapFixedPrice}
+                          onChange={(e) =>
+                            setSwapFixedPrice(e.target.value)
+                          }
+                          className={inputCls + " font-mono"}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div>
+                        <label className={sectionLabel}>
+                          Floating ref
+                        </label>
+                        <select
+                          value={swapFloatingRef}
+                          onChange={(e) =>
+                            setSwapFloatingRef(e.target.value)
+                          }
+                          className={selectCls}
+                        >
+                          <option value="">Select...</option>
+                          {monthOptions.map((m) => (
+                            <option key={m.value} value={m.value}>
+                              {m.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={sectionLabel}>Frequency</label>
+                        <select
+                          value={swapFrequency}
+                          onChange={(e) =>
+                            setSwapFrequency(e.target.value)
+                          }
+                          className={selectCls}
+                        >
+                          <option value="monthly">Monthly</option>
+                          <option value="quarterly">Quarterly</option>
+                          <option value="semi_annual">
+                            Semi-annual
+                          </option>
+                          <option value="annual">Annual</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={sectionLabel}>Settlement</label>
+                        <select
+                          value={swapSettlement}
+                          onChange={(e) =>
+                            setSwapSettlement(e.target.value)
+                          }
+                          className={selectCls}
+                        >
+                          <option value="cash">Cash</option>
+                          <option value="physical">Physical</option>
+                        </select>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className={sectionLabel}>
+                          Reference A
+                        </label>
+                        <input
+                          type="text"
+                          value={swapRefA}
+                          onChange={(e) => setSwapRefA(e.target.value)}
+                          className={inputCls}
+                          placeholder="e.g. NYMEX WTI"
+                        />
+                      </div>
+                      <div>
+                        <label className={sectionLabel}>
+                          Reference B
+                        </label>
+                        <input
+                          type="text"
+                          value={swapRefB}
+                          onChange={(e) => setSwapRefB(e.target.value)}
+                          className={inputCls}
+                          placeholder="e.g. Brent"
+                        />
+                      </div>
+                      <div>
+                        <label className={sectionLabel}>Spread</label>
+                        <input
+                          type="number"
+                          step={tickSize}
+                          value={swapSpread}
+                          onChange={(e) =>
+                            setSwapSpread(e.target.value)
+                          }
+                          className={inputCls + " font-mono"}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div>
+                        <label className={sectionLabel}>Frequency</label>
+                        <select
+                          value={swapFrequency}
+                          onChange={(e) =>
+                            setSwapFrequency(e.target.value)
+                          }
+                          className={selectCls}
+                        >
+                          <option value="monthly">Monthly</option>
+                          <option value="quarterly">Quarterly</option>
+                          <option value="semi_annual">
+                            Semi-annual
+                          </option>
+                          <option value="annual">Annual</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* ISDA ref */}
+                <div className="mt-3 max-w-xs">
+                  <label className={sectionLabel}>
+                    ISDA ref (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={swapIsda}
+                    onChange={(e) => setSwapIsda(e.target.value)}
+                    className={inputCls}
+                    placeholder="ISDA reference"
+                  />
+                </div>
+
+                {/* Warning */}
+                <div className="mt-3 rounded bg-[rgba(186,117,23,0.08)] border border-[rgba(186,117,23,0.15)] px-3 py-2 text-[10px] text-[#BA7517]">
+                  Swaps settle on their own schedule — not allocatable to
+                  sites
+                </div>
+              </div>
+
+              {/* Volume by month */}
+              <div>
+                <div className={sectionLabel}>Volume by month</div>
+                <MonthPills
+                  months={monthOptions}
+                  selected={swSelectedMonths}
+                  onToggle={toggleSwMonth}
+                  onAll={() =>
+                    setSwSelectedMonths(
+                      monthOptions.map((m) => m.value)
+                    )
+                  }
+                  onClear={() => setSwSelectedMonths([])}
+                />
+
+                {swSelectedMonths.length > 0 && (
+                  <>
+                    <div className="border border-[#1E3A5F] rounded-lg overflow-hidden mt-3">
+                      <table className="w-full">
+                        <thead>
+                          <tr>
+                            <th className={thCls}>Month</th>
+                            <th className={thCls}>Volume</th>
+                            <th className={thCls}>Notional</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {swSelectedMonths
+                            .sort()
+                            .map((mv) => {
+                              const label =
+                                monthOptions.find(
+                                  (m) => m.value === mv
+                                )?.label || mv;
+                              const vol =
+                                Number(swMonthVolumes[mv]) || 0;
+                              const notional =
+                                vol *
+                                (Number(swapFixedPrice) || 0);
+                              return (
+                                <tr
+                                  key={mv}
+                                  className={rowBorder}
+                                >
+                                  <td
+                                    className={
+                                      tdCls +
+                                      " text-[13px] font-semibold text-[#E8ECF1]"
+                                    }
+                                  >
+                                    {label}
+                                  </td>
+                                  <td className={tdCls}>
+                                    <input
+                                      type="number"
+                                      value={
+                                        swMonthVolumes[mv] ||
+                                        ""
+                                      }
+                                      onChange={(e) =>
+                                        setSwMonthVolumes(
+                                          (prev) => ({
+                                            ...prev,
+                                            [mv]: e.target
+                                              .value,
+                                          })
+                                        )
+                                      }
+                                      className={
+                                        inputCls + " font-mono"
+                                      }
+                                      placeholder="0"
+                                    />
+                                  </td>
+                                  <td
+                                    className={
+                                      tdCls +
+                                      " font-mono text-[#556170]"
+                                    }
+                                  >
+                                    {notional > 0
+                                      ? "$" + fmtNum(notional)
+                                      : "—"}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="flex items-center gap-3 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextMonth = monthOptions.find(
+                            (m) =>
+                              !swSelectedMonths.includes(m.value)
+                          );
+                          if (nextMonth) {
+                            setSwSelectedMonths((prev) => [
+                              ...prev,
+                              nextMonth.value,
+                            ]);
+                          }
+                        }}
+                        className={
+                          helperLink + " text-[#378ADD]"
+                        }
+                      >
+                        + Add month
+                      </button>
+                      <span className="text-[#1E3A5F]">|</span>
+                      <button
+                        type="button"
+                        onClick={swFillEqual}
+                        className={
+                          helperLink + " text-[#8B95A5]"
+                        }
+                      >
+                        Fill equal
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
-            )}
 
-            <div className="grid grid-cols-2 gap-3">
+              {/* Swap summary */}
+              {swSelectedMonths.length > 0 && (
+                <SummaryBar>
+                  Fixed{" "}
+                  <span className="font-mono text-[#E8ECF1]">
+                    {swapFixedPrice || "—"}
+                  </span>
+                  {swapSubType === "fixed_for_floating"
+                    ? ` vs ${
+                        monthOptions.find(
+                          (m) => m.value === swapFloatingRef
+                        )?.label || "floating"
+                      }`
+                    : ` vs ${swapRefA || "—"}/${swapRefB || "—"}`}
+                  {"  "}
+                  <span className="font-mono text-[#E8ECF1]">
+                    {swSelectedMonths
+                      .reduce(
+                        (s, m) =>
+                          s + (Number(swMonthVolumes[m]) || 0),
+                        0
+                      )
+                      .toLocaleString()}{" "}
+                    {volUnit}
+                  </span>
+                  {"  "}
+                  {
+                    monthOptions.find(
+                      (m) =>
+                        m.value === [...swSelectedMonths].sort()[0]
+                    )?.label
+                  }{" "}
+                  to{" "}
+                  {
+                    monthOptions.find(
+                      (m) =>
+                        m.value ===
+                        [...swSelectedMonths].sort().pop()
+                    )?.label
+                  }
+                  {"  "}{swapFrequency}
+                </SummaryBar>
+              )}
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* SPREAD TAB                                                     */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {activeTab === "spread" && (
+            <div className="space-y-5">
+              {/* Spread legs */}
               <div>
-                <span className="mb-1 block text-xs font-medium text-muted">Swap Type</span>
-                <div className="flex gap-1">
-                  {(["fixed_for_floating", "basis"] as SwapType[]).map((t) => (
-                    <button key={t} type="button" onClick={() => setSwSwapType(t)} className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${swSwapType === t ? "bg-swap text-white" : "border border-b-input bg-input-bg text-muted"}`}>
-                      {t === "fixed_for_floating" ? "Fixed for Floating" : "Basis"}
+                <div className={sectionLabel}>Spread legs</div>
+
+                {/* Sub-type selector */}
+                <div className="bg-[#1A2740] border border-[#1E3A5F] rounded-md p-[3px] flex max-w-[320px] mb-4">
+                  {(
+                    [
+                      ["calendar", "Calendar"],
+                      ["inter_commodity", "Inter-commodity"],
+                    ] as const
+                  ).map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setSpreadSubType(val)}
+                      className={`flex-1 py-2 text-[13px] rounded transition-colors ${
+                        spreadSubType === val
+                          ? "bg-[#111D32] font-medium text-[#E8ECF1] shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
+                          : "text-[#556170] hover:text-[#8B95A5]"
+                      }`}
+                    >
+                      {label}
                     </button>
                   ))}
                 </div>
+
+                {/* Leg table */}
+                <div className="border border-[#1E3A5F] rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr>
+                        <th className={thCls}>Leg</th>
+                        {spreadSubType === "inter_commodity" && (
+                          <th className={thCls}>Commodity</th>
+                        )}
+                        <th className={thCls}>Month</th>
+                        <th className={thCls}>Side</th>
+                        <th className={thCls}>Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* Near leg */}
+                      <tr className={rowBorder}>
+                        <td
+                          className={
+                            tdCls +
+                            " text-[13px] font-semibold text-[#E8ECF1]"
+                          }
+                        >
+                          Near
+                        </td>
+                        {spreadSubType === "inter_commodity" && (
+                          <td
+                            className={
+                              tdCls + " text-[13px] text-[#8B95A5]"
+                            }
+                          >
+                            {commodity.name}
+                          </td>
+                        )}
+                        <td className={tdCls}>
+                          <select
+                            value={nearMonth}
+                            onChange={(e) =>
+                              setNearMonth(e.target.value)
+                            }
+                            className={selectCls}
+                          >
+                            {monthOptions.map((m) => (
+                              <option key={m.value} value={m.value}>
+                                {m.label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td
+                          className={
+                            tdCls +
+                            " text-[13px] font-medium text-[#1D9E75]"
+                          }
+                        >
+                          Buy
+                        </td>
+                        <td className={tdCls}>
+                          <input
+                            type="number"
+                            step={tickSize}
+                            value={nearPrice}
+                            onChange={(e) =>
+                              setNearPrice(e.target.value)
+                            }
+                            className={inputCls + " font-mono"}
+                            placeholder="0.00"
+                          />
+                        </td>
+                      </tr>
+                      {/* Far leg */}
+                      <tr className={rowBorder}>
+                        <td
+                          className={
+                            tdCls +
+                            " text-[13px] font-semibold text-[#E8ECF1]"
+                          }
+                        >
+                          Far
+                        </td>
+                        {spreadSubType === "inter_commodity" && (
+                          <td className={tdCls}>
+                            <select
+                              value={farCommodityId}
+                              onChange={(e) =>
+                                setFarCommodityId(e.target.value)
+                              }
+                              className={selectCls}
+                            >
+                              {commodities.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        )}
+                        <td className={tdCls}>
+                          <select
+                            value={farMonth}
+                            onChange={(e) =>
+                              setFarMonth(e.target.value)
+                            }
+                            className={selectCls}
+                          >
+                            {monthOptions.map((m) => (
+                              <option key={m.value} value={m.value}>
+                                {m.label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td
+                          className={
+                            tdCls +
+                            " text-[13px] font-medium text-[#D85A30]"
+                          }
+                        >
+                          Sell
+                        </td>
+                        <td className={tdCls}>
+                          <input
+                            type="number"
+                            step={tickSize}
+                            value={farPrice}
+                            onChange={(e) =>
+                              setFarPrice(e.target.value)
+                            }
+                            className={inputCls + " font-mono"}
+                            placeholder="0.00"
+                          />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Spread value */}
+                {nearPrice && farPrice && (
+                  <div className="mt-2 text-[13px] text-[#8B95A5]">
+                    Spread:{" "}
+                    <span className="font-mono text-[#E8ECF1]">
+                      {fmtNum(
+                        (Number(nearPrice) || 0) -
+                          (Number(farPrice) || 0),
+                        priceDecimals
+                      )}
+                    </span>
+                  </div>
+                )}
               </div>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Fixed Price *</span>
-                <input required type="number" step="0.0025" value={swFixedPrice} onChange={(e) => setSwFixedPrice(e.target.value)} className={inputClass} placeholder="4.50" />
-              </label>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Floating Reference</span>
-                <select value={swContractMonth} onChange={(e) => {
-                  setSwContractMonth(e.target.value);
-                  if (swCommodityId) setSwFloatingRef(`${swCommodityId}:${e.target.value}`);
-                }} className={inputClass}>
-                  <option value="">{swCommodityId ? "Month..." : "Select commodity"}</option>
-                  {getFuturesMonths(swCommodityId).map((m) => <option key={m} value={m}>{formatContractMonth(m)}</option>)}
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Notional Volume *</span>
-                <input required type="number" step="any" value={swNotionalVolume} onChange={(e) => setSwNotionalVolume(e.target.value)} className={inputClass} placeholder="50000" />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Volume Unit</span>
-                <select value={swVolumeUnit} onChange={(e) => setSwVolumeUnit(e.target.value)} className={inputClass}>
-                  <option value="bushels">Bushels</option>
-                  <option value="tonnes">Tonnes</option>
-                  <option value="barrels">Barrels</option>
-                </select>
-              </label>
+
+              {/* Volume */}
               <div>
-                <span className="mb-1 block text-xs font-medium text-muted">Payment Frequency</span>
-                <select value={swPayFreq} onChange={(e) => setSwPayFreq(e.target.value as PaymentFrequency)} className={inputClass}>
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="at_expiry">At Expiry</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Start Date *</span>
-                <input required type="date" value={swStartDate} onChange={(e) => setSwStartDate(e.target.value)} className={inputClass} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">End Date *</span>
-                <input required type="date" value={swEndDate} onChange={(e) => setSwEndDate(e.target.value)} className={inputClass} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Settlement</span>
-                <select value={swSettleType} onChange={(e) => setSwSettleType(e.target.value as SettlementType)} className={inputClass}>
-                  <option value="cash">Cash</option>
-                  <option value="physical">Physical</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">ISDA Ref</span>
-                <input type="text" value={swIsdaRef} onChange={(e) => setSwIsdaRef(e.target.value)} className={inputClass} placeholder="Optional" />
-              </label>
-            </div>
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-muted">Notes</span>
-              <input type="text" value={swNotes} onChange={(e) => setSwNotes(e.target.value)} className={inputClass} placeholder="Optional" />
-            </label>
+                <div className={sectionLabel}>Volume</div>
 
-            {swapPreview() && (
-              <div className="rounded-md bg-surface border border-b-default px-3 py-2 text-xs text-muted">
-                {swapPreview()}
-              </div>
-            )}
-          </div>
-        )}
+                {/* Spread pair pills */}
+                {spreadPairs.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                    {spreadPairs.map((pair) => {
+                      const active = activeSpreadPairs.includes(
+                        pair.key
+                      );
+                      return (
+                        <button
+                          key={pair.key}
+                          type="button"
+                          onClick={() => toggleSpreadPair(pair.key)}
+                          className={`rounded-[6px] px-3.5 py-1.5 text-[13px] transition-colors ${
+                            active
+                              ? "bg-[#378ADD] text-[#E8ECF1] font-medium"
+                              : "bg-transparent text-[#556170] border border-[#1E3A5F] hover:text-[#8B95A5]"
+                          }`}
+                        >
+                          {pair.label}
+                        </button>
+                      );
+                    })}
+                    <span className="text-[#1E3A5F] mx-1">|</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveSpreadPairs(
+                          spreadPairs.map((p) => p.key)
+                        )
+                      }
+                      className="text-[12px] text-[#378ADD] hover:underline"
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSpreadPairs([])}
+                      className="text-[12px] text-[#8B95A5] hover:underline ml-1"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
 
-        {/* Actions */}
-        <div className="flex items-center justify-between pt-2">
-          {tradeType === "futures" ? (
-            <button type="button" onClick={addRow} className="flex items-center gap-1 rounded-lg border border-b-input px-3 py-1.5 text-xs text-secondary transition-colors hover:bg-hover">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-              Add Row
-            </button>
-          ) : (
-            <div />
+                {/* Volume table */}
+                {activeSpreadPairs.length > 0 && (
+                  <div className="border border-[#1E3A5F] rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead>
+                        <tr>
+                          <th className={thCls}>Spread</th>
+                          <th className={thCls}>Contracts</th>
+                          <th className={thCls}>Volume</th>
+                          <th className={thCls}>Spread value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {spreadPairs
+                          .filter((p) =>
+                            activeSpreadPairs.includes(p.key)
+                          )
+                          .map((pair) => {
+                            const c =
+                              Number(
+                                spreadPairContracts[pair.key]
+                              ) || 0;
+                            const vol = c * contractSize;
+                            const spreadVal =
+                              vol *
+                              ((Number(nearPrice) || 0) -
+                                (Number(farPrice) || 0));
+                            return (
+                              <tr
+                                key={pair.key}
+                                className={rowBorder}
+                              >
+                                <td
+                                  className={
+                                    tdCls +
+                                    " text-[13px] font-semibold text-[#E8ECF1]"
+                                  }
+                                >
+                                  {pair.label}
+                                </td>
+                                <td className={tdCls}>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={
+                                      spreadPairContracts[
+                                        pair.key
+                                      ] || ""
+                                    }
+                                    onChange={(e) =>
+                                      setSpreadPairContracts(
+                                        (prev) => ({
+                                          ...prev,
+                                          [pair.key]:
+                                            e.target.value,
+                                        })
+                                      )
+                                    }
+                                    className={
+                                      inputCls + " font-mono"
+                                    }
+                                    placeholder="1"
+                                  />
+                                </td>
+                                <td
+                                  className={
+                                    tdCls +
+                                    " font-mono text-[#8B95A5]"
+                                  }
+                                >
+                                  {vol > 0
+                                    ? vol.toLocaleString() +
+                                      " " +
+                                      volUnit
+                                    : "—"}
+                                </td>
+                                <td
+                                  className={
+                                    tdCls +
+                                    " font-mono text-[#556170]"
+                                  }
+                                >
+                                  {vol > 0
+                                    ? "$" + fmtNum(spreadVal)
+                                    : "—"}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Spread summary */}
+              {activeSpreadPairs.length > 0 && (
+                <SummaryBar>
+                  {activeSpreadPairs.length} spread
+                  {activeSpreadPairs.length !== 1 ? "s" : ""}
+                  {"  "}
+                  <span className="font-mono text-[#E8ECF1]">
+                    {spreadPairs
+                      .filter((p) =>
+                        activeSpreadPairs.includes(p.key)
+                      )
+                      .reduce(
+                        (s, p) =>
+                          s +
+                          (Number(spreadPairContracts[p.key]) ||
+                            0) *
+                            contractSize,
+                        0
+                      )
+                      .toLocaleString()}{" "}
+                    {volUnit}
+                  </span>
+                  {"  "}Net{" "}
+                  <span className="font-mono text-[#E8ECF1]">
+                    $
+                    {fmtNum(
+                      spreadPairs
+                        .filter((p) =>
+                          activeSpreadPairs.includes(p.key)
+                        )
+                        .reduce(
+                          (s, p) =>
+                            s +
+                            (Number(spreadPairContracts[p.key]) ||
+                              0) *
+                              contractSize *
+                              ((Number(nearPrice) || 0) -
+                                (Number(farPrice) || 0)),
+                          0
+                        )
+                    )}
+                  </span>
+                </SummaryBar>
+              )}
+            </div>
           )}
-
-          <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="rounded-lg border border-b-input px-4 py-2 text-sm text-secondary transition-colors hover:bg-hover">
-              Cancel
-            </button>
-            <button type="submit" disabled={submitting} className="rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover disabled:opacity-50">
-              {submitting
-                ? "Booking..."
-                : tradeType === "futures"
-                ? `Book ${rows.filter((r) => r.commodityId && r.volume).length} Trade(s)`
-                : tradeType === "options"
-                ? "Book Option"
-                : "Book Swap"
-              }
-            </button>
-          </div>
         </div>
-      </form>
-    </Modal>
+
+        {/* ─── Actions ─────────────────────────────────────────────────── */}
+        <div className="px-6 py-4 border-t border-[#1E3A5F] flex justify-end gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[#8B95A5] bg-[#1A2740] border border-[#1E3A5F] rounded-[6px] px-5 py-[10px] text-sm hover:text-[#E8ECF1] transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="bg-[#378ADD] text-white rounded-[6px] px-6 py-[10px] text-sm font-medium hover:bg-[#2B7ACC] disabled:opacity-50 transition-colors"
+          >
+            {submitLabel}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
