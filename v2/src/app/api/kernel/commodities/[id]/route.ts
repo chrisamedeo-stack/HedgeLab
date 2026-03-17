@@ -118,23 +118,27 @@ export async function PUT(
 
     // If units array provided, replace all units (delete + re-insert)
     if (units !== undefined && Array.isArray(units)) {
-      await query(`DELETE FROM commodity_units WHERE commodity_id = $1`, [id]);
-      for (const u of units) {
-        await query(
-          `INSERT INTO commodity_units
-             (commodity_id, unit_name, abbreviation, to_trade_unit, from_trade_unit,
-              is_default_report, sort_order)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [
-            id,
-            u.unit_name,
-            u.abbreviation,
-            u.to_trade_unit,
-            u.from_trade_unit,
-            u.is_default_report ?? false,
-            u.sort_order ?? 0,
-          ]
-        );
+      try {
+        await query(`DELETE FROM commodity_units WHERE commodity_id = $1`, [id]);
+        for (const u of units) {
+          await query(
+            `INSERT INTO commodity_units
+               (commodity_id, unit_name, abbreviation, to_trade_unit, from_trade_unit,
+                is_default_report, sort_order)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [
+              id,
+              u.unit_name,
+              u.abbreviation,
+              u.to_trade_unit,
+              u.from_trade_unit,
+              u.is_default_report ?? false,
+              u.sort_order ?? 0,
+            ]
+          );
+        }
+      } catch {
+        // commodity_units table may not exist yet — skip
       }
     }
 

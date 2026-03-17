@@ -155,8 +155,8 @@ export function CommoditiesTab() {
     );
   }
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleCreate(e?: React.FormEvent) {
+    e?.preventDefault();
     setCreating(true);
     setError(null);
     try {
@@ -205,51 +205,46 @@ export function CommoditiesTab() {
                 <th key={h} className="text-left px-3 py-3 text-xs font-medium text-muted uppercase tracking-wider">{h}</th>)}
             </tr></thead>
             <tbody className="divide-y divide-b-default">
-              {/* Inline add row */}
+              {/* Inline add row — fields align under table headers */}
               {adding && (
                 <tr className="bg-action/5">
-                  <td colSpan={8} className="px-4 py-3">
-                    <form onSubmit={handleCreate} className="flex items-end gap-3 flex-wrap">
-                      <div>
-                        <label className="block text-[10px] font-medium text-muted mb-1">Code</label>
-                        <input value={addForm.id} onChange={(e) => setAddForm((f) => ({ ...f, id: e.target.value.toUpperCase() }))}
-                          className={cn(inputCls, "text-xs py-1.5 font-mono w-20")} placeholder="WHEAT" required autoFocus />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-medium text-muted mb-1">Name</label>
-                        <input value={addForm.name} onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
-                          className={cn(inputCls, "text-xs py-1.5 w-36")} placeholder="Wheat" required />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-medium text-muted mb-1">Category</label>
-                        <select value={addForm.category} onChange={(e) => setAddForm((f) => ({ ...f, category: e.target.value }))}
-                          className={cn(selectCls, "text-xs py-1.5 w-28")}>
-                          {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-medium text-muted mb-1">UOM</label>
-                        <select value={addForm.unit} onChange={(e) => setAddForm((f) => ({ ...f, unit: e.target.value }))}
-                          className={cn(selectCls, "text-xs py-1.5 w-28")}>
-                          {UOM_OPTIONS.map((u) => <option key={u.value} value={u.value}>{u.value}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-medium text-muted mb-1">Currency</label>
-                        <select value={addForm.currency} onChange={(e) => setAddForm((f) => ({ ...f, currency: e.target.value }))}
-                          className={cn(selectCls, "text-xs py-1.5 w-20")}>
-                          {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                      </div>
-                      <div className="flex items-center gap-2 pb-px">
-                        <button type="submit" disabled={creating || !addForm.id || !addForm.name}
-                          className="px-3 py-1.5 text-xs font-medium bg-[#378ADD] text-white rounded-md hover:bg-[#378ADD]/90 disabled:opacity-50 transition-colors">
-                          {creating ? "Creating..." : "Create"}
-                        </button>
-                        <button type="button" onClick={() => { setAdding(false); setAddForm({ id: "", name: "", category: "ag", unit: "Bushels", currency: "USD" }); }}
-                          className="text-xs text-faint hover:text-secondary">Cancel</button>
-                      </div>
-                    </form>
+                  <td className="px-3 py-2.5">
+                    <input value={addForm.id} onChange={(e) => setAddForm((f) => ({ ...f, id: e.target.value.toUpperCase() }))}
+                      className={cn(inputCls, "text-xs py-1.5 font-mono w-full")} placeholder="CORN" required autoFocus />
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <input value={addForm.name} onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
+                      className={cn(inputCls, "text-xs py-1.5 w-full")} placeholder="Corn" required />
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <select value={addForm.category} onChange={(e) => setAddForm((f) => ({ ...f, category: e.target.value }))}
+                      className={cn(selectCls, "text-xs py-1.5 w-full")}>
+                      {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <select value={addForm.unit} onChange={(e) => setAddForm((f) => ({ ...f, unit: e.target.value }))}
+                      className={cn(selectCls, "text-xs py-1.5 w-full")}>
+                      {UOM_OPTIONS.map((u) => <option key={u.value} value={u.value}>{u.value}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <select value={addForm.currency} onChange={(e) => setAddForm((f) => ({ ...f, currency: e.target.value }))}
+                      className={cn(selectCls, "text-xs py-1.5 w-full")}>
+                      {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-faint">—</td>
+                  <td className="px-3 py-2.5 text-xs text-faint">—</td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={handleCreate} disabled={creating || !addForm.id || !addForm.name}
+                        className="px-3 py-1.5 text-xs font-medium bg-[#378ADD] text-white rounded-md hover:bg-[#378ADD]/90 disabled:opacity-50 transition-colors">
+                        {creating ? "..." : "Create"}
+                      </button>
+                      <button type="button" onClick={() => { setAdding(false); setAddForm({ id: "", name: "", category: "ag", unit: "Bushels", currency: "USD" }); }}
+                        className="text-xs text-faint hover:text-secondary">Cancel</button>
+                    </div>
                   </td>
                 </tr>
               )}

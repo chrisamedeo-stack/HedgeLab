@@ -8,14 +8,19 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const units = await queryAll(
-      `SELECT id, commodity_id, unit_name, abbreviation,
-              to_trade_unit, from_trade_unit, is_default_report, sort_order
-       FROM commodity_units
-       WHERE commodity_id = $1
-       ORDER BY sort_order`,
-      [id]
-    );
+    let units: unknown[] = [];
+    try {
+      units = await queryAll(
+        `SELECT id, commodity_id, unit_name, abbreviation,
+                to_trade_unit, from_trade_unit, is_default_report, sort_order
+         FROM commodity_units
+         WHERE commodity_id = $1
+         ORDER BY sort_order`,
+        [id]
+      );
+    } catch {
+      // commodity_units table may not exist yet
+    }
     return NextResponse.json(units);
   } catch (err) {
     console.error("[commodity-units] GET Error:", err);
