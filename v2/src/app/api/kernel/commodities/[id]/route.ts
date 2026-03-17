@@ -19,102 +19,93 @@ export async function PUT(
       return NextResponse.json({ error: "Commodity not found" }, { status: 404 });
     }
 
-    const {
-      name,
-      category,
-      unit,
-      currency,
-      exchange,
-      contract_size,
-      tick_size,
-      tick_value,
-      contract_months,
-      decimal_places,
-      price_unit,
-      volume_unit,
-      config,
-      is_active,
-      display_name,
-      commodity_class,
-      ticker_root,
-      trade_price_unit,
-      trade_volume_unit,
-      price_decimal_places,
-      point_value,
-      basis_unit,
-      basis_reference,
-      volume_entry_mode,
-      basis_sign_convention,
-      futures_budget_mapping,
-      units,
-    } = body;
+    const { units, config, futures_budget_mapping, ...fields } = body;
 
     // Merge config JSONB: existing config + incoming config (for month_mappings etc.)
     const mergedConfig =
       config !== undefined
         ? { ...(before.config ?? {}), ...config }
-        : before.config;
+        : undefined;
 
-    const result = await queryOne(
-      `UPDATE commodities SET
-         name = COALESCE($2, name),
-         category = COALESCE($3, category),
-         unit = COALESCE($4, unit),
-         currency = COALESCE($5, currency),
-         exchange = COALESCE($6, exchange),
-         contract_size = COALESCE($7, contract_size),
-         tick_size = COALESCE($8, tick_size),
-         tick_value = COALESCE($9, tick_value),
-         contract_months = COALESCE($10, contract_months),
-         decimal_places = COALESCE($11, decimal_places),
-         price_unit = COALESCE($12, price_unit),
-         volume_unit = COALESCE($13, volume_unit),
-         config = $14,
-         is_active = COALESCE($15, is_active),
-         display_name = COALESCE($16, display_name),
-         commodity_class = COALESCE($17, commodity_class),
-         ticker_root = COALESCE($18, ticker_root),
-         trade_price_unit = COALESCE($19, trade_price_unit),
-         trade_volume_unit = COALESCE($20, trade_volume_unit),
-         price_decimal_places = COALESCE($21, price_decimal_places),
-         point_value = COALESCE($22, point_value),
-         basis_unit = COALESCE($23, basis_unit),
-         basis_reference = COALESCE($24, basis_reference),
-         volume_entry_mode = COALESCE($25, volume_entry_mode),
-         basis_sign_convention = COALESCE($26, basis_sign_convention),
-         futures_budget_mapping = COALESCE($27, futures_budget_mapping)
-       WHERE id = $1
-       RETURNING *`,
-      [
-        id,
-        name ?? null,
-        category ?? null,
-        unit ?? null,
-        currency ?? null,
-        exchange ?? null,
-        contract_size ?? null,
-        tick_size ?? null,
-        tick_value ?? null,
-        contract_months ?? null,
-        decimal_places ?? null,
-        price_unit ?? null,
-        volume_unit ?? null,
-        mergedConfig ? JSON.stringify(mergedConfig) : null,
-        is_active ?? null,
-        display_name ?? null,
-        commodity_class ?? null,
-        ticker_root ?? null,
-        trade_price_unit ?? null,
-        trade_volume_unit ?? null,
-        price_decimal_places ?? null,
-        point_value ?? null,
-        basis_unit ?? null,
-        basis_reference ?? null,
-        volume_entry_mode ?? null,
-        basis_sign_convention ?? null,
-        futures_budget_mapping ? JSON.stringify(futures_budget_mapping) : null,
-      ]
-    );
+    // Build dynamic UPDATE — only set fields that are provided
+    // This avoids referencing columns that may not exist yet (e.g. display_name)
+    const setClauses: string[] = [];
+    const values: unknown[] = [id];
+    let paramIdx = 2;
+
+    // Core columns (always exist)
+    const coreColumns = [
+      "name", "category", "unit", "currency", "exchange",
+      "contract_size", "tick_size", "tick_value", "contract_months",
+      "decimal_places", "price_unit", "volume_unit", "is_active",
+    ];
+
+    // Extended columns (added by later migrations — may not exist)
+    const extColumns = [
+      "display_name", "commodity_class", "ticker_root",
+      "trade_price_unit", "trade_volume_unit", "price_decimal_places",
+      "point_value", "basis_unit", "basis_reference",
+      "volume_entry_mode", "basis_sign_convention",
+    ];
+
+    for (const col of [...coreColumns, ...extColumns]) {
+      if (fields[col] !== undefined) {
+        setClauses.push(`${col} = $${paramIdx}`);
+        values.push(fields[col]);
+        paramIdx++;
+      }
+    }
+
+    // Handle config merge specially
+    if (mergedConfig !== undefined) {
+      setClauses.push(`config = $${paramIdx}`);
+      values.push(JSON.stringify(mergedConfig));
+      paramIdx++;
+    }
+
+    // Handle futures_budget_mapping specially (JSONB)
+    if (futures_budget_mapping !== undefined) {
+      setClauses.push(`futures_budget_mapping = $${paramIdx}`);
+      values.push(JSON.stringify(futures_budget_mapping));
+      paramIdx++;
+    }
+
+    let result: Record<string, unknown> = before as Record<string, unknown>;
+    if (setClauses.length > 0) {
+      try {
+        const r = await queryOne(
+          `UPDATE commodities SET ${setClauses.join(", ")} WHERE id = $1 RETURNING *`,
+          values
+        );
+        if (r) result = r as Record<string, unknown>;
+      } catch (updateErr) {
+        // If a column doesn't exist, retry with only core columns
+        const coreSetClauses: string[] = [];
+        const coreValues: unknown[] = [id];
+        let coreIdx = 2;
+        for (const col of coreColumns) {
+          if (fields[col] !== undefined) {
+            coreSetClauses.push(`${col} = $${coreIdx}`);
+            coreValues.push(fields[col]);
+            coreIdx++;
+          }
+        }
+        if (mergedConfig !== undefined) {
+          coreSetClauses.push(`config = $${coreIdx}`);
+          coreValues.push(JSON.stringify(mergedConfig));
+          coreIdx++;
+        }
+        if (coreSetClauses.length > 0) {
+          const r = await queryOne(
+            `UPDATE commodities SET ${coreSetClauses.join(", ")} WHERE id = $1 RETURNING *`,
+            coreValues
+          );
+          if (r) result = r as Record<string, unknown>;
+        } else {
+          throw updateErr;
+        }
+      }
+    }
 
     // If units array provided, replace all units (delete + re-insert)
     if (units !== undefined && Array.isArray(units)) {
@@ -148,7 +139,7 @@ export async function PUT(
       entityId: id,
       action: "update",
       before: before as Record<string, unknown>,
-      after: result as Record<string, unknown>,
+      after: result,
     });
 
     return NextResponse.json(result);
