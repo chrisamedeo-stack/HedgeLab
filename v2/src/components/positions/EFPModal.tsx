@@ -38,7 +38,7 @@ export function EFPModal({ position, onSubmit, onClose }: EFPModalProps) {
 
   useEffect(() => {
     if (!position) return;
-    fetch(`${API_BASE}/api/v1/position-manager/physical-contracts?orgId=${position.org_id}&pricingStatus=unpriced`)
+    fetch(`${API_BASE}/api/v1/position-manager/physical-contracts?orgId=${position.org_id}&siteId=${position.site_id}&pricingStatus=unpriced`)
       .then((r) => r.json())
       .then(setPhysicals)
       .catch(() => {});
@@ -84,6 +84,7 @@ export function EFPModal({ position, onSubmit, onClose }: EFPModalProps) {
           {" · "}{position.contract_month}
           {" · Entry: "}{Number(position.trade_price).toFixed(2)}
           {" · Vol: "}{Number(position.total_volume).toLocaleString()}
+          {position.site_name && <>{" · Site: "}{position.site_name}</>}
         </div>
 
         <div>

@@ -5,7 +5,8 @@ import { useOrgContext } from "@/contexts/OrgContext";
 import { useCommodityContext } from "@/contexts/CommodityContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHedgeBookStore } from "@/store/hedgeBookStore";
-import { useSites } from "@/hooks/usePositions";
+import { useSites, useCommodities } from "@/hooks/usePositions";
+import { TradeForm } from "@/components/trades/TradeForm";
 import { HedgeBookTabs } from "@/components/positions/HedgeBookTabs";
 import { PositionSummaryCards } from "@/components/positions/PositionSummaryCards";
 import { PipelineTabs } from "@/components/positions/PipelineTabs";
@@ -16,6 +17,7 @@ import { OffsetModalV2 } from "@/components/positions/OffsetModalV2";
 import { ExerciseModal } from "@/components/positions/ExerciseModal";
 import { SplitModal } from "@/components/positions/SplitModal";
 import { SkeletonTable } from "@/components/ui/Skeleton";
+import type { Commodity } from "@/hooks/usePositions";
 import type { Position, PipelineTab } from "@/types/positions";
 
 export default function PositionManagerPage() {
@@ -23,6 +25,7 @@ export default function PositionManagerPage() {
   const { commodityId } = useCommodityContext();
   const { user } = useAuth();
   const { data: sites } = useSites(orgId);
+  const { data: commodities } = useCommodities();
 
   const {
     books, activeBookId, positions, summary, activeTab, loading,
@@ -33,6 +36,8 @@ export default function PositionManagerPage() {
   // Modal state
   const [modalAction, setModalAction] = useState<string | null>(null);
   const [modalPosition, setModalPosition] = useState<Position | null>(null);
+  const [showTradeForm, setShowTradeForm] = useState(false);
+  const [tradeCommodity, setTradeCommodity] = useState<Commodity | null>(null);
 
   // Load books on mount
   useEffect(() => {
@@ -72,16 +77,40 @@ export default function PositionManagerPage() {
     [setActiveTab]
   );
 
+  const handleBookTrade = useCallback(() => {
+    const bookCommodity = activeBook?.commodity_id
+      ? (commodities ?? []).find((c) => c.id === activeBook.commodity_id)
+      : null;
+    setTradeCommodity(bookCommodity ?? (commodities ?? [])[0] ?? null);
+    setShowTradeForm(true);
+  }, [activeBook, commodities]);
+
+  const closeTradeForm = useCallback(() => {
+    setShowTradeForm(false);
+    setTradeCommodity(null);
+  }, []);
+
   return (
     <div className="space-y-6 page-fade">
       {/* Header */}
-      <div>
-        <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">
-          Position Manager
-        </h1>
-        <p className="mt-0.5 text-xs text-faint">
-          Unified position pipeline — allocate, EFP, offset, exercise, and expire
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">
+            Position Manager
+          </h1>
+          <p className="mt-0.5 text-xs text-faint">
+            Unified position pipeline — allocate, EFP, offset, exercise, and expire
+          </p>
+        </div>
+        <button
+          onClick={handleBookTrade}
+          className="flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Book Trade
+        </button>
       </div>
 
       {/* Book tabs */}
@@ -171,6 +200,23 @@ export default function PositionManagerPage() {
             await splitPosition(modalPosition!.id, { userId: user!.id, ...params });
           }}
           onClose={closeModal}
+        />
+      )}
+
+      {/* Book Trade modal */}
+      {showTradeForm && tradeCommodity && (
+        <TradeForm
+          orgId={orgId}
+          commodity={tradeCommodity}
+          commodities={commodities ?? []}
+          onClose={closeTradeForm}
+          onSuccess={() => {
+            closeTradeForm();
+            if (activeBookId) {
+              fetchPositions(activeBookId, activeTab);
+              fetchSummary(activeBookId);
+            }
+          }}
         />
       )}
     </div>

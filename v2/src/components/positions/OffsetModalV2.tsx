@@ -53,6 +53,7 @@ export function OffsetModalV2({ position, onSubmit, onClose }: OffsetModalV2Prop
           {" · "}{position.contract_month}
           {" · Entry: "}{Number(position.trade_price).toFixed(2)}
           {" · Vol: "}{Number(position.total_volume).toLocaleString()}
+          {position.site_name && <>{" · Site: "}{position.site_name}</>}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
