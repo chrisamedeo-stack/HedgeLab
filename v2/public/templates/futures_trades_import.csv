@@ -1,0 +1,4 @@
+commodity_id,direction,trade_date,contract_month,num_contracts,contract_size,trade_price,broker,account_number,commission,fees,notes,external_ref
+CORN,long,2025-03-15,K25,10,5000,4.52,ABC Futures,ACCT-001,2.50,1.25,Spring hedge,EXT-001
+CORN,short,2025-03-16,N25,5,5000,4.68,ABC Futures,ACCT-001,2.50,1.25,July sale hedge,EXT-002
+SOYBEAN,long,2025-03-15,K25,8,5000,11.85,XYZ Trading,ACCT-002,3.00,1.50,,EXT-003

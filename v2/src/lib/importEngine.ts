@@ -1,6 +1,8 @@
 import { query, queryOne, queryAll, transaction } from "./db";
 import { auditLog } from "./audit";
 import { emit, EventTypes } from "./eventBus";
+import { createTrade } from "./tradeService";
+import type { CreateTradeParams } from "@/types/trades";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -207,6 +209,33 @@ export async function stageRows(
   return { valid, warnings, errors };
 }
 
+/** Map snake_case import row data to camelCase CreateTradeParams */
+function mapToCreateTradeParams(
+  mappedData: Record<string, unknown>,
+  orgId: string,
+  userId: string,
+  importJobId: string
+): CreateTradeParams {
+  return {
+    orgId,
+    userId,
+    importJobId,
+    commodityId: mappedData.commodity_id as string,
+    direction: mappedData.direction as "long" | "short",
+    tradeDate: mappedData.trade_date as string,
+    contractMonth: mappedData.contract_month as string,
+    numContracts: Number(mappedData.num_contracts),
+    contractSize: Number(mappedData.contract_size),
+    tradePrice: Number(mappedData.trade_price),
+    broker: mappedData.broker as string | undefined,
+    accountNumber: mappedData.account_number as string | undefined,
+    commission: mappedData.commission != null ? Number(mappedData.commission) : undefined,
+    fees: mappedData.fees != null ? Number(mappedData.fees) : undefined,
+    notes: mappedData.notes as string | undefined,
+    externalRef: mappedData.external_ref as string | undefined,
+  };
+}
+
 /** Commit approved rows to their target table */
 export async function commitImport(
   jobId: string,
@@ -232,35 +261,77 @@ export async function commitImport(
   );
 
   let committed = 0;
-  const skipped = 0;
+  let skipped = 0;
 
-  await transaction(async (client) => {
+  // ─── Trade-specific path: route through createTrade() ─────────────────────
+  if (job.target_table === "tc_financial_trades") {
+    const rowResults: { rowId: string; success: boolean; error?: string; data?: Record<string, unknown> }[] = [];
+
     for (const row of rows) {
-      const data = { ...target.defaults, ...row.mapped_data, org_id: orgId, import_job_id: jobId };
-      const fields = Object.keys(data);
-      const values = Object.values(data);
-      const placeholders = values.map((_, i) => `$${i + 1}`).join(", ");
-
-      await client.query(
-        `INSERT INTO ${target.table} (${fields.join(", ")}) VALUES (${placeholders})`,
-        values
-      );
-
-      // Mark row as committed
-      await client.query(
-        `UPDATE import_staged_rows SET status = 'committed', final_data = $2 WHERE id = $1`,
-        [row.id, JSON.stringify(data)]
-      );
-
-      committed++;
+      try {
+        const params = mapToCreateTradeParams(row.mapped_data, orgId, userId, jobId);
+        const trade = await createTrade(params);
+        rowResults.push({ rowId: row.id, success: true, data: trade as unknown as Record<string, unknown> });
+        committed++;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        rowResults.push({ rowId: row.id, success: false, error: message });
+        skipped++;
+      }
     }
 
-    // Update job status
-    await client.query(
-      `UPDATE import_jobs SET status = 'committed', reviewed_by = $2, reviewed_at = NOW(), updated_at = NOW() WHERE id = $1`,
-      [jobId, userId]
-    );
-  });
+    // Update staged row statuses and job in a single transaction
+    await transaction(async (client) => {
+      for (const result of rowResults) {
+        if (result.success) {
+          await client.query(
+            `UPDATE import_staged_rows SET status = 'committed', final_data = $2 WHERE id = $1`,
+            [result.rowId, JSON.stringify(result.data)]
+          );
+        } else {
+          await client.query(
+            `UPDATE import_staged_rows SET status = 'error', errors = $2 WHERE id = $1`,
+            [result.rowId, JSON.stringify([result.error])]
+          );
+        }
+      }
+
+      await client.query(
+        `UPDATE import_jobs SET status = 'committed', error_rows = error_rows + $2,
+           reviewed_by = $3, reviewed_at = NOW(), updated_at = NOW() WHERE id = $1`,
+        [jobId, skipped, userId]
+      );
+    });
+  } else {
+    // ─── Generic path: raw INSERT for non-trade tables ────────────────────────
+    await transaction(async (client) => {
+      for (const row of rows) {
+        const data = { ...target.defaults, ...row.mapped_data, org_id: orgId, import_job_id: jobId };
+        const fields = Object.keys(data);
+        const values = Object.values(data);
+        const placeholders = values.map((_, i) => `$${i + 1}`).join(", ");
+
+        await client.query(
+          `INSERT INTO ${target.table} (${fields.join(", ")}) VALUES (${placeholders})`,
+          values
+        );
+
+        // Mark row as committed
+        await client.query(
+          `UPDATE import_staged_rows SET status = 'committed', final_data = $2 WHERE id = $1`,
+          [row.id, JSON.stringify(data)]
+        );
+
+        committed++;
+      }
+
+      // Update job status
+      await client.query(
+        `UPDATE import_jobs SET status = 'committed', reviewed_by = $2, reviewed_at = NOW(), updated_at = NOW() WHERE id = $1`,
+        [jobId, userId]
+      );
+    });
+  }
 
   await auditLog({
     orgId,
@@ -277,7 +348,7 @@ export async function commitImport(
     source: "import",
     entityType: "import_job",
     entityId: jobId,
-    payload: { targetTable: job.target_table, committed },
+    payload: { targetTable: job.target_table, committed, skipped },
     orgId,
     userId,
   });

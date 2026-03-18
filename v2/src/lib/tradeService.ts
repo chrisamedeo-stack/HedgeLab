@@ -507,7 +507,9 @@ export async function listTrades(filters: TradeFilters): Promise<FinancialTrade[
   }
 
   sql += ` ORDER BY
-    CAST(RIGHT(t.contract_month, 2) AS INTEGER) ASC,
+    CASE WHEN RIGHT(t.contract_month, 2) ~ '^[0-9]+$'
+         THEN CAST(RIGHT(t.contract_month, 2) AS INTEGER)
+         ELSE 99 END ASC,
     CASE SUBSTRING(t.contract_month FROM LENGTH(t.contract_month) - 2 FOR 1)
       WHEN 'F' THEN 1 WHEN 'G' THEN 2 WHEN 'H' THEN 3 WHEN 'J' THEN 4
       WHEN 'K' THEN 5 WHEN 'M' THEN 6 WHEN 'N' THEN 7 WHEN 'Q' THEN 8
