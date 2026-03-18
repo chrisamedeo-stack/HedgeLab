@@ -58,7 +58,7 @@ export const useHedgeBookStore = create<HedgeBookState>((set, get) => ({
   activeBookId: null,
   positions: [],
   summary: null,
-  activeTab: "delivery",
+  activeTab: "unallocated",
   loading: false,
   error: null,
 

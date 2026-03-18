@@ -100,7 +100,7 @@ export interface PositionEvent {
 
 // ─── Pipeline Tab Types ─────────────────────────────────────────────────────
 
-export type PipelineTab = "delivery" | "budget" | "site" | "efp" | "offset" | "all";
+export type PipelineTab = "unallocated" | "budget" | "site" | "closed" | "all";
 
 // ─── Core Entities (V1 — preserved for backward compat) ─────────────────────
 

@@ -36,12 +36,11 @@ export async function getHedgeBook(bookId: string): Promise<HedgeBook | null> {
 // ─── Book Positions by Pipeline Tab ─────────────────────────────────────────
 
 const TAB_FILTERS: Record<PipelineTab, string> = {
-  delivery: `ft.position_status IN ('unallocated','budget_allocated','site_allocated') AND ft.is_split_parent = false`,
-  budget:   `ft.position_status IN ('budget_allocated','site_allocated') AND ft.budget_month IS NOT NULL AND ft.is_split_parent = false`,
-  site:     `ft.position_status = 'site_allocated' AND ft.is_split_parent = false`,
-  efp:      `ft.position_status = 'efp' AND ft.is_split_parent = false`,
-  offset:   `ft.position_status IN ('offset','expired') AND ft.is_split_parent = false`,
-  all:      `ft.is_split_parent = false`,
+  unallocated: `ft.position_status IN ('unallocated','budget_allocated','site_allocated') AND ft.is_split_parent = false`,
+  budget:      `ft.position_status IN ('budget_allocated','site_allocated') AND ft.budget_month IS NOT NULL AND ft.is_split_parent = false`,
+  site:        `ft.position_status = 'site_allocated' AND ft.is_split_parent = false`,
+  closed:      `ft.position_status IN ('efp','offset','exercised','expired') AND ft.is_split_parent = false`,
+  all:         `ft.is_split_parent = false`,
 };
 
 export async function getBookPositions(

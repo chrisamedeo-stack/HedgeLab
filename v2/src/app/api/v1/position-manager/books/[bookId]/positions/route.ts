@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getBookPositions } from "@/lib/hedgeBookService";
 import type { PipelineTab } from "@/types/positions";
 
-const VALID_TABS: PipelineTab[] = ["delivery", "budget", "site", "efp", "offset", "all"];
+const VALID_TABS: PipelineTab[] = ["unallocated", "budget", "site", "closed", "all"];
 
 export async function GET(
   request: Request,

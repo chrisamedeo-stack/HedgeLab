@@ -56,15 +56,10 @@ export function PositionTable({ positions, tab, onAction, context }: PositionTab
     if (tab === "site" || tab === "all") {
       base.push({ key: "site_name", header: "Site", render: (r) => r.site_name ?? "—" });
     }
-    if (tab === "efp") {
+    if (tab === "closed") {
       base.push(
         { key: "efp_market_price", header: "Mkt Price", align: "right" as const, render: (r) => fmt(r.efp_market_price) },
         { key: "efp_basis", header: "Basis", align: "right" as const, render: (r) => fmt(r.efp_basis) },
-        { key: "futures_realized_pnl", header: "Realized P&L", align: "right" as const, render: (r) => fmt(r.futures_realized_pnl) }
-      );
-    }
-    if (tab === "offset") {
-      base.push(
         { key: "offset_price", header: "Offset Price", align: "right" as const, render: (r) => fmt(r.offset_price) },
         { key: "realized_pnl", header: "Realized P&L", align: "right" as const, render: (r) => fmt(r.realized_pnl) }
       );

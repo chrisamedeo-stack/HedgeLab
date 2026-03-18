@@ -9,11 +9,10 @@ interface PipelineTabsProps {
 }
 
 const TABS: { key: PipelineTab; label: string }[] = [
-  { key: "delivery", label: "Delivery" },
+  { key: "unallocated", label: "Unallocated" },
   { key: "budget", label: "Budget" },
   { key: "site", label: "Site" },
-  { key: "efp", label: "EFP" },
-  { key: "offset", label: "Offset/Expired" },
+  { key: "closed", label: "Closed" },
   { key: "all", label: "All" },
 ];
 
