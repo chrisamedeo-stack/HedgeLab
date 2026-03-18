@@ -8,6 +8,7 @@ import {
   getContractMonthOptions,
 } from "@/lib/commodity-utils";
 import { API_BASE } from "@/lib/api";
+import { inputClsFull, sectionLabel, thCls, tdCls, rowBorder, helperLink } from "@/lib/ui-classes";
 import type { Commodity } from "@/hooks/usePositions";
 import type {
   ContractType,
@@ -46,19 +47,10 @@ interface PhysicalContractFormProps {
   onSuccess: () => void;
 }
 
-// ─── Style constants (match TradeForm palette) ──────────────────────────────
+// ─── Style aliases ──────────────────────────────────────────────────────────
 
-const inputCls =
-  "w-full bg-[#1A2740] border border-[#1E3A5F] rounded-[6px] px-3 py-[10px] text-[13px] text-[#E8ECF1] focus:outline-none focus:ring-1 focus:ring-[#378ADD] focus:border-[#378ADD] placeholder:text-[#556170]";
+const inputCls = inputClsFull;
 const selectCls = inputCls + " appearance-none";
-const sectionLabel =
-  "text-[11px] uppercase tracking-[0.04em] text-[#556170] mb-2 font-medium";
-const thCls =
-  "text-[10px] uppercase text-[#556170] bg-[rgba(26,39,64,0.5)] px-3 py-2 font-medium text-left";
-const tdCls = "px-3 py-2 text-[13px]";
-const rowBorder = "border-b border-[rgba(30,58,95,0.5)]";
-const helperLink =
-  "text-[12px] cursor-pointer hover:underline transition-colors";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -132,10 +124,10 @@ function DeliveryMonthPills({
             key={m}
             type="button"
             onClick={() => onToggle(m)}
-            className={`rounded-[6px] px-3.5 py-1.5 text-[13px] transition-colors ${
+            className={`rounded-lg px-3.5 py-1.5 text-sm transition-colors ${
               active
-                ? "bg-[#378ADD] text-[#E8ECF1] font-medium"
-                : "bg-transparent text-[#556170] border border-[#1E3A5F] hover:text-[#8B95A5]"
+                ? "bg-action text-primary font-medium"
+                : "bg-transparent text-faint border border-b-default hover:text-muted"
             }`}
           >
             {fmtDeliveryMonth(m)}
@@ -146,14 +138,14 @@ function DeliveryMonthPills({
         <button
           type="button"
           onClick={onAll}
-          className={`${helperLink} text-[#378ADD]`}
+          className={`${helperLink} text-action`}
         >
           All
         </button>
         <button
           type="button"
           onClick={onClear}
-          className={`${helperLink} text-[#8B95A5]`}
+          className={`${helperLink} text-muted`}
         >
           None
         </button>
@@ -170,15 +162,15 @@ function SummaryBar({
   items: { label: string; value: string; accent?: boolean }[];
 }) {
   return (
-    <div className="flex items-center gap-6 rounded-[8px] bg-[rgba(26,39,64,0.5)] border border-[rgba(30,58,95,0.5)] px-4 py-3">
+    <div className="flex items-center gap-6 rounded-lg bg-overlay/50 border border-b-default/50 px-4 py-3">
       {items.map((it, i) => (
         <div key={i}>
-          <span className="text-[10px] uppercase tracking-[0.04em] text-[#556170] mr-2">
+          <span className="text-[10px] uppercase tracking-[0.04em] text-faint mr-2">
             {it.label}
           </span>
           <span
-            className={`text-[14px] font-semibold tabular-nums ${
-              it.accent ? "text-[#378ADD]" : "text-[#E8ECF1]"
+            className={`text-sm font-semibold tabular-nums ${
+              it.accent ? "text-action" : "text-primary"
             }`}
           >
             {it.value}
@@ -475,21 +467,21 @@ export function PhysicalContractForm({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="relative w-[780px] max-h-[90vh] overflow-y-auto rounded-[12px] border border-[#1E3A5F] bg-[#111D32] shadow-2xl">
+      <div className="relative w-[780px] max-h-[90vh] overflow-y-auto rounded-xl border border-b-default bg-form-bg shadow-2xl">
         {/* ─── Header ─────────────────────────────────────────────────────── */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[rgba(30,58,95,0.6)] bg-[#111D32]/95 backdrop-blur px-6 py-4">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-b-default/60 bg-form-bg/95 backdrop-blur px-6 py-4">
           <div className="flex items-center gap-3">
-            <h2 className="text-[15px] font-semibold text-[#E8ECF1]">
+            <h2 className="text-sm font-semibold text-primary">
               New Physical Contract
             </h2>
-            <span className="rounded-[4px] bg-[#378ADD]/15 px-2 py-0.5 text-[11px] font-medium text-[#378ADD]">
+            <span className="rounded bg-action/15 px-2 py-0.5 text-[10px] font-medium text-action">
               {commodity.ticker_root ?? commodity.name}
             </span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-[#556170] hover:text-[#8B95A5] transition-colors"
+            className="text-faint hover:text-muted transition-colors"
           >
             <XIcon size={18} />
           </button>
@@ -500,7 +492,7 @@ export function PhysicalContractForm({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={sectionLabel}>Contract Type</label>
-              <div className="flex rounded-[8px] border border-[#1E3A5F] overflow-hidden">
+              <div className="flex rounded-lg border border-b-default overflow-hidden">
                 {(["purchase", "sale"] as ContractType[]).map((ct) => (
                   <button
                     key={ct}
@@ -509,12 +501,12 @@ export function PhysicalContractForm({
                       setContractType(ct);
                       setDirection(ct === "purchase" ? "buy" : "sell");
                     }}
-                    className={`flex-1 py-[10px] text-[13px] font-medium transition-colors ${
+                    className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
                       contractType === ct
                         ? ct === "purchase"
-                          ? "bg-[#378ADD]/20 text-[#378ADD]"
-                          : "bg-[#E8443A]/20 text-[#E8443A]"
-                        : "bg-transparent text-[#556170] hover:text-[#8B95A5]"
+                          ? "bg-action/20 text-action"
+                          : "bg-destructive/20 text-destructive"
+                        : "bg-transparent text-faint hover:text-muted"
                     }`}
                   >
                     {ct === "purchase" ? "Purchase (Buy)" : "Sale (Sell)"}
@@ -590,16 +582,16 @@ export function PhysicalContractForm({
             <div className={sectionLabel}>Pricing</div>
 
             {/* Pricing tab switcher */}
-            <div className="flex rounded-[8px] border border-[#1E3A5F] overflow-hidden mb-4">
+            <div className="flex rounded-lg border border-b-default overflow-hidden mb-4">
               {pricingTabs.map((tab) => (
                 <button
                   key={tab.key}
                   type="button"
                   onClick={() => setPricingTab(tab.key)}
-                  className={`flex-1 py-2.5 text-[13px] font-medium transition-colors ${
+                  className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
                     pricingTab === tab.key
-                      ? "bg-[#378ADD]/15 text-[#378ADD] border-b-2 border-[#378ADD]"
-                      : "bg-transparent text-[#556170] hover:text-[#8B95A5]"
+                      ? "bg-action/15 text-action border-b-2 border-action"
+                      : "bg-transparent text-faint hover:text-muted"
                   }`}
                 >
                   {tab.label}
@@ -608,16 +600,16 @@ export function PhysicalContractForm({
             </div>
 
             {/* Pricing type description */}
-            <div className="text-[11px] text-[#556170] mb-3 italic">
+            <div className="text-[10px] text-faint mb-3 italic">
               {pricingTabs.find((t) => t.key === pricingTab)?.desc}
             </div>
 
             {/* Pricing fields per tab */}
-            <div className="rounded-[8px] border border-[rgba(30,58,95,0.5)] bg-[rgba(26,39,64,0.3)] p-4">
+            <div className="rounded-lg border border-b-default/50 bg-overlay/30 p-4">
               {pricingTab === "fixed" && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[11px] text-[#8B95A5] mb-1">
+                    <label className="block text-[10px] text-muted mb-1">
                       Price ({priceUnit})
                     </label>
                     <input
@@ -630,7 +622,7 @@ export function PhysicalContractForm({
                     />
                   </div>
                   <div className="flex items-end pb-[10px]">
-                    <span className="text-[12px] text-[#556170]">
+                    <span className="text-xs text-faint">
                       Price is locked for all delivery months
                     </span>
                   </div>
@@ -640,7 +632,7 @@ export function PhysicalContractForm({
               {pricingTab === "hta" && (
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-[11px] text-[#8B95A5] mb-1">
+                    <label className="block text-[10px] text-muted mb-1">
                       Futures Price ({priceUnit})
                     </label>
                     <input
@@ -653,7 +645,7 @@ export function PhysicalContractForm({
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-[#8B95A5] mb-1">
+                    <label className="block text-[10px] text-muted mb-1">
                       Futures Month
                     </label>
                     <select
@@ -670,7 +662,7 @@ export function PhysicalContractForm({
                     </select>
                   </div>
                   <div className="flex items-end pb-[10px]">
-                    <span className="text-[12px] text-[#556170]">
+                    <span className="text-xs text-faint">
                       Board locked — basis priced later
                     </span>
                   </div>
@@ -680,7 +672,7 @@ export function PhysicalContractForm({
               {pricingTab === "basis" && (
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-[11px] text-[#8B95A5] mb-1">
+                    <label className="block text-[10px] text-muted mb-1">
                       Basis ({commodity.basis_unit ?? priceUnit})
                     </label>
                     <input
@@ -697,7 +689,7 @@ export function PhysicalContractForm({
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-[#8B95A5] mb-1">
+                    <label className="block text-[10px] text-muted mb-1">
                       Reference Futures Month
                     </label>
                     <select
@@ -714,7 +706,7 @@ export function PhysicalContractForm({
                     </select>
                   </div>
                   <div className="flex items-end pb-[10px]">
-                    <span className="text-[12px] text-[#556170]">
+                    <span className="text-xs text-faint">
                       Basis locked — board priced later
                     </span>
                   </div>
@@ -724,7 +716,7 @@ export function PhysicalContractForm({
               {pricingTab === "index" && (
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-[11px] text-[#8B95A5] mb-1">
+                    <label className="block text-[10px] text-muted mb-1">
                       Index Reference
                     </label>
                     <input
@@ -738,7 +730,7 @@ export function PhysicalContractForm({
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-[#8B95A5] mb-1">
+                    <label className="block text-[10px] text-muted mb-1">
                       Premium/Discount ({priceUnit})
                     </label>
                     <input
@@ -751,7 +743,7 @@ export function PhysicalContractForm({
                     />
                   </div>
                   <div className="flex items-end pb-[10px]">
-                    <span className="text-[12px] text-[#556170]">
+                    <span className="text-xs text-faint">
                       Final price = index + premium
                     </span>
                   </div>
@@ -780,7 +772,7 @@ export function PhysicalContractForm({
             {selectedMonths.length > 0 && (
               <div className="flex items-end gap-3 mt-3">
                 <div className="w-48">
-                  <label className="block text-[11px] text-[#8B95A5] mb-1">
+                  <label className="block text-[10px] text-muted mb-1">
                     Default Volume ({volumeUnit})
                   </label>
                   <input
@@ -796,11 +788,11 @@ export function PhysicalContractForm({
                   type="button"
                   onClick={applyDefaultVolume}
                   disabled={!defaultVolume || Number(defaultVolume) <= 0}
-                  className="rounded-[6px] border border-[#1E3A5F] bg-transparent px-3 py-[10px] text-[13px] text-[#8B95A5] hover:text-[#E8ECF1] hover:border-[#378ADD] transition-colors disabled:opacity-40"
+                  className="rounded-lg border border-b-default bg-transparent px-3 py-2.5 text-sm text-muted hover:text-primary hover:border-action transition-colors disabled:opacity-40"
                 >
                   Fill equal
                 </button>
-                <span className="text-[11px] text-[#556170] pb-[10px]">
+                <span className="text-[10px] text-faint pb-[10px]">
                   Override per month below
                 </span>
               </div>
@@ -808,7 +800,7 @@ export function PhysicalContractForm({
 
             {/* Per-month volume table */}
             {deliveryRows.length > 0 && (
-              <div className="mt-3 rounded-[8px] border border-[rgba(30,58,95,0.5)] overflow-hidden">
+              <div className="mt-3 rounded-lg border border-b-default/50 overflow-hidden">
                 <table className="w-full">
                   <thead>
                     <tr>
@@ -830,7 +822,7 @@ export function PhysicalContractForm({
                       const rowNotional = vol * notionalPrice;
                       return (
                         <tr key={row.month} className={rowBorder}>
-                          <td className={`${tdCls} text-[#E8ECF1] font-medium`}>
+                          <td className={`${tdCls} text-primary font-medium`}>
                             {fmtDeliveryMonth(row.month)}
                           </td>
                           <td className={tdCls}>
@@ -841,12 +833,12 @@ export function PhysicalContractForm({
                               onChange={(e) =>
                                 updateRowVolume(row.month, e.target.value)
                               }
-                              className="w-32 bg-[#1A2740] border border-[#1E3A5F] rounded-[4px] px-2 py-1.5 text-[13px] text-[#E8ECF1] tabular-nums focus:outline-none focus:ring-1 focus:ring-[#378ADD]"
+                              className="w-32 bg-overlay border border-b-default rounded px-2 py-1.5 text-sm text-primary tabular-nums focus:outline-none focus:ring-1 focus:ring-focus"
                               placeholder="0"
                             />
                           </td>
                           <td
-                            className={`${tdCls} text-[#8B95A5] tabular-nums`}
+                            className={`${tdCls} text-muted tabular-nums`}
                           >
                             {notionalPrice > 0
                               ? `$${fmtNum(rowNotional)}`
@@ -856,7 +848,7 @@ export function PhysicalContractForm({
                             <button
                               type="button"
                               onClick={() => toggleMonth(row.month)}
-                              className="text-[#556170] hover:text-[#E8443A] transition-colors"
+                              className="text-faint hover:text-destructive transition-colors"
                             >
                               <XIcon size={14} />
                             </button>
@@ -887,14 +879,14 @@ export function PhysicalContractForm({
 
           {/* ─── Error ────────────────────────────────────────────────────── */}
           {error && (
-            <div className="rounded-[6px] bg-[#E8443A]/10 border border-[#E8443A]/20 px-3 py-2 text-[13px] text-[#E8443A]">
+            <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive">
               {error}
             </div>
           )}
 
           {/* ─── Footer ───────────────────────────────────────────────────── */}
-          <div className="flex items-center justify-between border-t border-[rgba(30,58,95,0.6)] pt-4">
-            <span className="text-[11px] text-[#556170]">
+          <div className="flex items-center justify-between border-t border-b-default/60 pt-4">
+            <span className="text-[10px] text-faint">
               {activeRows.length > 1
                 ? `Creates ${activeRows.length} contracts (one per month)`
                 : activeRows.length === 1
@@ -905,14 +897,14 @@ export function PhysicalContractForm({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-[8px] border border-[#1E3A5F] bg-transparent px-5 py-[10px] text-[13px] font-medium text-[#8B95A5] hover:text-[#E8ECF1] transition-colors"
+                className="rounded-lg border border-b-default bg-transparent px-5 py-2.5 text-sm font-medium text-muted hover:text-primary transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting || activeRows.length === 0}
-                className="rounded-[8px] bg-[#378ADD] px-5 py-[10px] text-[13px] font-semibold text-white hover:bg-[#2E75C0] transition-colors disabled:opacity-40"
+                className="rounded-lg bg-action px-5 py-2.5 text-sm font-semibold text-white hover:bg-action-hover transition-colors disabled:opacity-40"
               >
                 {submitting
                   ? "Creating..."
