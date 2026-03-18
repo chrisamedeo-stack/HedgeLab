@@ -31,6 +31,16 @@ export const pageTitleCls = "text-xl font-bold text-primary";
 export const pageSubtitleCls = "text-sm text-muted mt-0.5";
 export const sectionTitleCls = "text-sm font-semibold text-secondary uppercase tracking-wider";
 
+// Section / table classes (shared by TradeForm, PhysicalContractForm, CommoditiesTab)
+export const sectionLabel =
+  "text-xs font-semibold text-faint uppercase tracking-wider";
+export const thCls =
+  "text-[10px] uppercase text-faint bg-overlay/50 px-3 py-2 font-medium text-left";
+export const tdCls = "px-3 py-2 text-sm";
+export const rowBorder = "border-b border-b-default/50";
+export const helperLink =
+  "text-xs cursor-pointer hover:underline transition-colors";
+
 // Helpers
 export function cn(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
