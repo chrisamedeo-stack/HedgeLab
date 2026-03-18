@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTrades } from "@/hooks/useTrades";
-import { useCommodities, useSites } from "@/hooks/usePositions";
+import { useCommodities } from "@/hooks/usePositions";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { TradeBlotter } from "@/components/trades/TradeBlotter";
 import { GroupedTradeBlotter } from "@/components/trades/GroupedTradeBlotter";
@@ -18,7 +18,6 @@ export default function TradesPage() {
   const [filters, setFilters] = useState<Partial<TradeFilters>>({});
   const { data: trades, loading, error, refetch } = useTrades(orgId, filters);
   const { data: commodities } = useCommodities();
-  const { data: sites } = useSites(orgId);
 
   const setFilter = (key: keyof TradeFilters, value: string) => {
     setFilters((prev) => ({
@@ -167,7 +166,6 @@ export default function TradesPage() {
         <GroupedTradeBlotter
           trades={trades}
           commodities={(commodities ?? []).map((c) => ({ id: c.id, name: c.name }))}
-          sites={(sites ?? []).map((s) => ({ id: s.id, name: s.name, code: s.code }))}
           orgId={orgId}
           onRefresh={refetch}
         />
@@ -175,7 +173,6 @@ export default function TradesPage() {
         <TradeBlotter
           trades={trades}
           commodities={(commodities ?? []).map((c) => ({ id: c.id, name: c.name }))}
-          sites={(sites ?? []).map((s) => ({ id: s.id, name: s.name, code: s.code }))}
           orgId={orgId}
           onRefresh={refetch}
         />

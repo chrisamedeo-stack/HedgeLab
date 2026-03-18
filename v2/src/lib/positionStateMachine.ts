@@ -115,9 +115,13 @@ export function validateTransition(
   return { valid: true };
 }
 
+// Actions excluded from the position-manager context (terminal actions belong at site level)
+const PM_EXCLUDED_ACTIONS = new Set(["efp", "offset", "exercise", "expire"]);
+
 export function getAvailableActions(
   fromStatus: PositionStatus,
-  instrumentType: TradeType
+  instrumentType: TradeType,
+  context?: "position-manager" | "site"
 ): PositionAction[] {
   const targets = TRANSITIONS[fromStatus] ?? [];
   const actions: PositionAction[] = [];
@@ -131,6 +135,9 @@ export function getAvailableActions(
     // Check instrument constraint
     const constraint = INSTRUMENT_ONLY[target];
     if (constraint && !constraint.includes(instrumentType)) continue;
+
+    // Exclude terminal actions from position-manager context
+    if (context === "position-manager" && PM_EXCLUDED_ACTIONS.has(actionKey)) continue;
 
     actions.push(action);
   }

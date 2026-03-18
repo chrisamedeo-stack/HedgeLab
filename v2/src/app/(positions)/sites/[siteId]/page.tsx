@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { KPICard } from "@/components/ui/KPICard";
 import { LockModal } from "@/components/positions/LockModal";
 import { OffsetModal } from "@/components/positions/OffsetModal";
+import { SiteExerciseModal } from "@/components/positions/SiteExerciseModal";
 import { PhysicalForm } from "@/components/positions/PhysicalForm";
 import { formatContractMonth } from "@/lib/commodity-utils";
 import type { SitePositionHedge, PhysicalPosition, OpenBoardEntry, AllInSummaryEntry } from "@/types/positions";
@@ -31,6 +32,8 @@ export default function SiteViewPage({ params }: { params: Promise<{ siteId: str
   const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null);
   const [lockTarget, setLockTarget] = useState<SitePositionHedge | null>(null);
   const [offsetTarget, setOffsetTarget] = useState<SitePositionHedge | null>(null);
+  const [exerciseTarget, setExerciseTarget] = useState<SitePositionHedge | null>(null);
+  const [expireTarget, setExpireTarget] = useState<SitePositionHedge | null>(null);
   const [showPhysicalForm, setShowPhysicalForm] = useState(false);
 
   const { data: siteView, loading, refetch } = useSiteView(siteId, selectedCommodity ?? undefined);
@@ -55,23 +58,47 @@ export default function SiteViewPage({ params }: { params: Promise<{ siteId: str
     { key: "futures_pnl", header: "Futures P&L", align: "right", render: (r) => fmtPrice(r.futures_pnl) },
     { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
     {
-      key: "actions", header: "", sortable: false, width: "140px",
-      render: (r) => r.status === "open" ? (
-        <div className="flex gap-1">
-          <button
-            onClick={(e) => { e.stopPropagation(); setLockTarget(r); }}
-            className="rounded bg-profit px-2 py-1 text-xs font-medium text-white hover:bg-profit-hover"
-          >
-            Lock
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setOffsetTarget(r); }}
-            className="rounded bg-warning px-2 py-1 text-xs font-medium text-white hover:bg-warning-hover"
-          >
-            Offset
-          </button>
-        </div>
-      ) : null,
+      key: "actions", header: "", sortable: false, width: "200px",
+      render: (r) => {
+        if (r.status !== "open") return null;
+        const isOptions = r.trade_type === "options";
+        return (
+          <div className="flex gap-1">
+            {!isOptions && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setLockTarget(r); }}
+                  className="rounded bg-profit px-2 py-1 text-xs font-medium text-white hover:bg-profit-hover"
+                >
+                  Lock
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setOffsetTarget(r); }}
+                  className="rounded bg-warning px-2 py-1 text-xs font-medium text-white hover:bg-warning-hover"
+                >
+                  Offset
+                </button>
+              </>
+            )}
+            {isOptions && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setExerciseTarget(r); }}
+                  className="rounded bg-action px-2 py-1 text-xs font-medium text-white hover:bg-action-hover"
+                >
+                  Exercise
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setExpireTarget(r); }}
+                  className="rounded bg-destructive-10 border border-destructive-15 px-2 py-1 text-xs font-medium text-loss hover:bg-destructive-15"
+                >
+                  Expire
+                </button>
+              </>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -248,6 +275,22 @@ export default function SiteViewPage({ params }: { params: Promise<{ siteId: str
           allocation={offsetTarget}
           onClose={() => setOffsetTarget(null)}
           onSuccess={() => { setOffsetTarget(null); refetch(); }}
+        />
+      )}
+      {exerciseTarget && (
+        <SiteExerciseModal
+          allocation={exerciseTarget}
+          mode="exercise"
+          onClose={() => setExerciseTarget(null)}
+          onSuccess={() => { setExerciseTarget(null); refetch(); }}
+        />
+      )}
+      {expireTarget && (
+        <SiteExerciseModal
+          allocation={expireTarget}
+          mode="expire"
+          onClose={() => setExpireTarget(null)}
+          onSuccess={() => { setExpireTarget(null); refetch(); }}
         />
       )}
       {showPhysicalForm && siteView && (

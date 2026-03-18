@@ -10,7 +10,6 @@ import { TradeDetail } from "./TradeDetail";
 interface TradeBlotterProps {
   trades: FinancialTrade[];
   commodities: { id: string; name: string }[];
-  sites: { id: string; name: string; code: string }[];
   orgId: string;
   onRefresh: () => void;
 }
@@ -21,7 +20,7 @@ const typeStyle: Record<string, { bg: string; text: string }> = {
   swap: { bg: "bg-swap-15", text: "text-swap" },
 };
 
-export function TradeBlotter({ trades, commodities, sites, orgId, onRefresh }: TradeBlotterProps) {
+export function TradeBlotter({ trades, commodities, orgId, onRefresh }: TradeBlotterProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const columns: Column<FinancialTrade>[] = [
@@ -156,7 +155,6 @@ export function TradeBlotter({ trades, commodities, sites, orgId, onRefresh }: T
           <TradeDetail
             tradeId={row.id}
             commodities={commodities}
-            sites={sites}
             orgId={orgId}
             onClose={() => setExpandedId(null)}
             onRefresh={onRefresh}

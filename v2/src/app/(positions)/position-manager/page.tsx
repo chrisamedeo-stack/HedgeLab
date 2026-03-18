@@ -5,19 +5,14 @@ import { useOrgContext } from "@/contexts/OrgContext";
 import { useCommodityContext } from "@/contexts/CommodityContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHedgeBookStore } from "@/store/hedgeBookStore";
-import { useSites, useCommodities } from "@/hooks/usePositions";
-import { TradeForm } from "@/components/trades/TradeForm";
+import { useSites } from "@/hooks/usePositions";
 import { HedgeBookTabs } from "@/components/positions/HedgeBookTabs";
 import { PositionSummaryCards } from "@/components/positions/PositionSummaryCards";
 import { PipelineTabs } from "@/components/positions/PipelineTabs";
 import { PositionTable } from "@/components/positions/PositionTable";
 import { AllocateModal } from "@/components/positions/AllocateModal";
-import { EFPModal } from "@/components/positions/EFPModal";
-import { OffsetModalV2 } from "@/components/positions/OffsetModalV2";
-import { ExerciseModal } from "@/components/positions/ExerciseModal";
 import { SplitModal } from "@/components/positions/SplitModal";
 import { SkeletonTable } from "@/components/ui/Skeleton";
-import type { Commodity } from "@/hooks/usePositions";
 import type { Position, PipelineTab } from "@/types/positions";
 
 export default function PositionManagerPage() {
@@ -25,20 +20,16 @@ export default function PositionManagerPage() {
   const { commodityId } = useCommodityContext();
   const { user } = useAuth();
   const { data: sites } = useSites(orgId);
-  const { data: commodities } = useCommodities();
 
   const {
     books, activeBookId, positions, summary, activeTab, loading,
     fetchBooks, setActiveBook, setActiveTab, fetchPositions, fetchSummary,
-    allocatePosition, executeEFP, executeOffset, exerciseOption, expireOption, splitPosition,
+    allocatePosition, splitPosition,
   } = useHedgeBookStore();
 
   // Modal state
   const [modalAction, setModalAction] = useState<string | null>(null);
   const [modalPosition, setModalPosition] = useState<Position | null>(null);
-  const [showTradeForm, setShowTradeForm] = useState(false);
-  const [tradeCommodity, setTradeCommodity] = useState<Commodity | null>(null);
-
   // Load books on mount
   useEffect(() => {
     if (orgId) fetchBooks(orgId);
@@ -77,19 +68,6 @@ export default function PositionManagerPage() {
     [setActiveTab]
   );
 
-  const handleBookTrade = useCallback(() => {
-    const bookCommodity = activeBook?.commodity_id
-      ? (commodities ?? []).find((c) => c.id === activeBook.commodity_id)
-      : null;
-    setTradeCommodity(bookCommodity ?? (commodities ?? [])[0] ?? null);
-    setShowTradeForm(true);
-  }, [activeBook, commodities]);
-
-  const closeTradeForm = useCallback(() => {
-    setShowTradeForm(false);
-    setTradeCommodity(null);
-  }, []);
-
   return (
     <div className="space-y-6 page-fade">
       {/* Header */}
@@ -99,18 +77,9 @@ export default function PositionManagerPage() {
             Position Manager
           </h1>
           <p className="mt-0.5 text-xs text-faint">
-            Unified position pipeline — allocate, EFP, offset, exercise, and expire
+            Unified position pipeline — allocate and split positions
           </p>
         </div>
-        <button
-          onClick={handleBookTrade}
-          className="flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Book Trade
-        </button>
       </div>
 
       {/* Book tabs */}
@@ -134,6 +103,7 @@ export default function PositionManagerPage() {
           positions={positions}
           tab={activeTab}
           onAction={handleAction}
+          context="position-manager"
         />
       )}
 
@@ -144,49 +114,6 @@ export default function PositionManagerPage() {
           sites={sites ?? []}
           onSubmit={async (params) => {
             await allocatePosition(modalPosition!.id, { userId: user!.id, ...params });
-          }}
-          onClose={closeModal}
-        />
-      )}
-
-      {modalAction === "efp" && (
-        <EFPModal
-          position={modalPosition}
-          onSubmit={async (params) => {
-            await executeEFP(modalPosition!.id, { userId: user!.id, ...params });
-          }}
-          onClose={closeModal}
-        />
-      )}
-
-      {modalAction === "offset" && (
-        <OffsetModalV2
-          position={modalPosition}
-          onSubmit={async (params) => {
-            await executeOffset(modalPosition!.id, { userId: user!.id, ...params });
-          }}
-          onClose={closeModal}
-        />
-      )}
-
-      {modalAction === "exercise" && (
-        <ExerciseModal
-          position={modalPosition}
-          onSubmit={async (params) => {
-            await exerciseOption(modalPosition!.id, { userId: user!.id, ...params });
-          }}
-          onClose={closeModal}
-        />
-      )}
-
-      {modalAction === "expire" && modalPosition && (
-        <ExerciseModal
-          position={modalPosition}
-          onSubmit={async (params) => {
-            await expireOption(modalPosition!.id, {
-              userId: user!.id,
-              expiryDate: params.exerciseDate,
-            });
           }}
           onClose={closeModal}
         />
@@ -203,22 +130,6 @@ export default function PositionManagerPage() {
         />
       )}
 
-      {/* Book Trade modal */}
-      {showTradeForm && tradeCommodity && (
-        <TradeForm
-          orgId={orgId}
-          commodity={tradeCommodity}
-          commodities={commodities ?? []}
-          onClose={closeTradeForm}
-          onSuccess={() => {
-            closeTradeForm();
-            if (activeBookId) {
-              fetchPositions(activeBookId, activeTab);
-              fetchSummary(activeBookId);
-            }
-          }}
-        />
-      )}
     </div>
   );
 }

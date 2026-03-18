@@ -4,15 +4,11 @@ import { useParams } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useTrade } from "@/hooks/useTrades";
-import { useSites, useCommodities } from "@/hooks/usePositions";
-import { useOrgContext } from "@/contexts/OrgContext";
+import { useCommodities } from "@/hooks/usePositions";
 import { useAuth } from "@/contexts/AuthContext";
-import { TradeAllocateForm } from "@/components/trades/TradeAllocateForm";
 import { TabGroup } from "@/components/ui/TabGroup";
 import { Spinner } from "@/components/ui/Spinner";
-import { usePositionStore } from "@/store/positionStore";
 import { API_BASE } from "@/lib/api";
-import type { Allocation } from "@/types/positions";
 import { formatContractMonth } from "@/lib/commodity-utils";
 import type { SwapSettlement, SwapDetails, OptionDetails, FuturesDetails } from "@/types/trades";
 
@@ -24,26 +20,11 @@ const statusStyle: Record<string, string> = {
   cancelled: "bg-destructive-10 text-destructive",
 };
 
-const allocStatusStyle: Record<string, string> = {
-  open: "bg-profit-10 text-profit",
-  efp_closed: "bg-action-10 text-action",
-  offset: "bg-warning-10 text-warning",
-  rolled: "bg-accent-10 text-accent",
-  cancelled: "bg-destructive-10 text-destructive",
-};
-
 const typeStyle: Record<string, { bg: string; text: string }> = {
   futures: { bg: "bg-futures-15", text: "text-futures" },
   options: { bg: "bg-action-10", text: "text-action" },
   swap: { bg: "bg-swap-15", text: "text-swap" },
 };
-
-function formatBudgetMonth(ym: string): string {
-  const [year, month] = ym.split("-");
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const idx = parseInt(month, 10) - 1;
-  return idx >= 0 && idx < 12 ? `${monthNames[idx]} ${year}` : ym;
-}
 
 function DetailField({ label, value }: { label: string; value: string | number | null | undefined }) {
   return (
@@ -57,39 +38,18 @@ function DetailField({ label, value }: { label: string; value: string | number |
 export default function TradeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: tradeData, loading, error, refetch } = useTrade(id);
-  const { orgId } = useOrgContext();
   const { user } = useAuth();
-  const { data: sites } = useSites(orgId);
   const { data: commodities } = useCommodities();
 
   const trade = tradeData?.trade;
   const isSwap = trade?.trade_type === "swap";
-  const isOption = trade?.trade_type === "options";
 
   const tabs = [
     { key: "details", label: "Details" },
     ...(isSwap ? [{ key: "settlements", label: "Settlement Schedule" }] : []),
-    ...(!isSwap ? [{ key: "allocations", label: `Allocations (${tradeData?.allocations?.length ?? 0})` }] : []),
   ];
 
   const [tab, setTab] = useState("details");
-
-  // Allocation cancel state
-  const { cancelAllocation } = usePositionStore();
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
-
-  const handleCancelAllocation = async (allocationId: string) => {
-    if (!user) return;
-    setCancellingId(allocationId);
-    try {
-      await cancelAllocation(user.id, allocationId);
-      refetch();
-    } catch {
-      // error handled by store
-    } finally {
-      setCancellingId(null);
-    }
-  };
 
   // Swap settlements state
   const [settlements, setSettlements] = useState<SwapSettlement[]>([]);
@@ -154,10 +114,6 @@ export default function TradeDetailPage() {
       </div>
     );
   }
-
-  const allocations: Allocation[] = tradeData.allocations ?? [];
-  const summary = tradeData.summary;
-  const unallocated = Number(trade.unallocated_volume) || 0;
 
   const style = typeStyle[trade.trade_type] ?? typeStyle.futures;
   const tradeCommodity = commodities?.find((c) => c.id === trade.commodity_id);
@@ -406,112 +362,6 @@ export default function TradeDetailPage() {
         </div>
       )}
 
-      {/* ─── Allocations Tab (Futures & Options only) ───────────────── */}
-      {tab === "allocations" && !isSwap && (
-        <div className="space-y-4">
-          {/* Summary bar */}
-          {summary && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                ["Total Volume", summary.totalVolume?.toLocaleString()],
-                ["Allocated", summary.allocatedVolume?.toLocaleString()],
-                ["Unallocated", summary.unallocatedVolume?.toLocaleString()],
-                ["Allocations", String(summary.allocationCount ?? allocations.length)],
-              ].map(([label, value]) => (
-                <div key={label} className="bg-surface border border-b-default rounded-lg p-4">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-faint">{label}</p>
-                  <p className="mt-1 text-lg font-bold text-primary tabular-nums">{value}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Inline allocation form */}
-          {unallocated > 0 && trade.status !== "cancelled" && (
-            sites && sites.length > 0 ? (
-              <TradeAllocateForm
-                tradeId={trade.id}
-                orgId={trade.org_id}
-                commodityId={trade.commodity_id}
-                direction={trade.direction}
-                contractMonth={trade.contract_month}
-                tradePrice={Number(trade.trade_price)}
-                tradeDate={trade.trade_date}
-                currency={trade.currency}
-                remainingVolume={unallocated}
-                sites={sites}
-                onSuccess={refetch}
-                priceUnit={priceUnit}
-              />
-            ) : (
-              <div className="rounded-lg border border-warning-20 bg-warning-10 px-4 py-3 text-xs text-warning">
-                Loading sites...
-              </div>
-            )
-          )}
-
-          {/* Allocations table */}
-          <div className="bg-surface border border-b-default rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-input-bg/50 border-b border-b-default">
-                <tr>
-                  {["Site", "Volume", "Budget Month", "Contract Month", "Direction", "Price", "Status", "Date", ""].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-faint uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-b-default">
-                {allocations.length > 0 ? allocations.map((a) => (
-                  <tr key={a.id} className="hover:bg-row-hover">
-                    <td className="px-4 py-2.5 font-medium text-secondary">
-                      <Link href={`/sites/${a.site_id}`} className="hover:text-action hover:underline">
-                        {(a as unknown as { site_name?: string }).site_name ?? a.site_id.slice(0, 8)}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2.5 tabular-nums text-secondary">{Number(a.allocated_volume).toLocaleString()}</td>
-                    <td className="px-4 py-2.5 text-muted">{a.budget_month ? formatBudgetMonth(a.budget_month) : "—"}</td>
-                    <td className="px-4 py-2.5 tabular-nums text-muted">{formatContractMonth(a.contract_month)}</td>
-                    <td className="px-4 py-2.5">
-                      {a.direction ? (
-                        <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                          a.direction === "long" ? "bg-profit/10 text-profit" : "bg-loss/10 text-loss"
-                        }`}>
-                          {a.direction === "long" ? "LONG" : "SHORT"}
-                        </span>
-                      ) : "—"}
-                    </td>
-                    <td className="px-4 py-2.5 tabular-nums text-secondary">
-                      {a.trade_price != null ? `$${Number(a.trade_price).toFixed(4)}${priceUnit ? `/${priceUnit}` : ""}` : "—"}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${allocStatusStyle[a.status] ?? "bg-hover text-muted"}`}>
-                        {a.status.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-muted tabular-nums">{a.allocation_date}</td>
-                    <td className="px-4 py-2.5">
-                      {a.status === "open" && (
-                        <button
-                          onClick={() => handleCancelAllocation(a.id)}
-                          disabled={cancellingId === a.id}
-                          className="rounded px-2 py-0.5 text-xs text-faint hover:text-loss hover:bg-destructive-10 transition-colors disabled:opacity-50"
-                          title="Cancel allocation"
-                        >
-                          {cancellingId === a.id ? "..." : "Cancel"}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-faint">No allocations yet</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

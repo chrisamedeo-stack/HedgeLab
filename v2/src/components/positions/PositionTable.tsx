@@ -11,6 +11,7 @@ interface PositionTableProps {
   positions: Position[];
   tab: PipelineTab;
   onAction: (positionId: string, action: string) => void;
+  context?: "position-manager" | "site";
 }
 
 function fmt(v: number | null | undefined, decimals = 2): string {
@@ -23,7 +24,7 @@ function fmtVol(v: number | null | undefined): string {
   return Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
-export function PositionTable({ positions, tab, onAction }: PositionTableProps) {
+export function PositionTable({ positions, tab, onAction, context }: PositionTableProps) {
   const columns = useMemo(() => {
     const base: Column<Position>[] = [
       { key: "contract_month", header: "Contract", width: "100px" },
@@ -76,7 +77,7 @@ export function PositionTable({ positions, tab, onAction }: PositionTableProps) 
       sortable: false,
       align: "right" as const,
       render: (r) => {
-        const actions = getAvailableActions(r.position_status, r.trade_type as TradeType);
+        const actions = getAvailableActions(r.position_status, r.trade_type as TradeType, context);
         if (actions.length === 0) return null;
         return (
           <div className="flex gap-2 justify-end">
@@ -95,7 +96,7 @@ export function PositionTable({ positions, tab, onAction }: PositionTableProps) 
     });
 
     return base;
-  }, [tab, onAction]);
+  }, [tab, onAction, context]);
 
   return (
     <DataTable

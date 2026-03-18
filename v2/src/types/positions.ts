@@ -346,6 +346,7 @@ export interface RolloverCandidate {
 }
 
 export interface SitePositionHedge extends Allocation {
+  trade_type?: string | null;
   locked_price?: number | null;
   futures_pnl?: number | null;
   all_in_price?: number | null;

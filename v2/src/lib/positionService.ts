@@ -564,9 +564,11 @@ export async function getSitePosition(
   // Section 1: Hedges (allocations + locked info + chain roll costs)
   let hedgeSql = `
     SELECT a.*,
+           t.trade_type,
            lp.locked_price, lp.futures_pnl, lp.all_in_price,
            COALESCE(pc.cumulative_roll_cost, 0) as cumulative_roll_cost
     FROM pm_allocations a
+    LEFT JOIN tc_financial_trades t ON t.id = a.trade_id
     LEFT JOIN pm_locked_positions lp ON lp.allocation_id = a.id
     LEFT JOIN LATERAL (
       SELECT cumulative_roll_cost FROM pm_position_chains

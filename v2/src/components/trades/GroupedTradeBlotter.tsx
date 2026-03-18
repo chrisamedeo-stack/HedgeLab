@@ -5,14 +5,12 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { formatContractMonth } from "@/lib/commodity-utils";
 import { groupTrades, getSwapTrades } from "@/lib/tradeGrouping";
-import { GroupAllocateForm } from "./GroupAllocateForm";
 import { TradeDetail } from "./TradeDetail";
 import type { FinancialTrade, TradeGroupSummary } from "@/types/trades";
 
 interface GroupedTradeBlotterProps {
   trades: FinancialTrade[];
   commodities: { id: string; name: string }[];
-  sites: { id: string; name: string; code: string }[];
   orgId: string;
   onRefresh: () => void;
 }
@@ -94,36 +92,17 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
 export function GroupedTradeBlotter({
   trades,
   commodities,
-  sites,
   orgId,
   onRefresh,
 }: GroupedTradeBlotterProps) {
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
-  const [groupAllocatingId, setGroupAllocatingId] = useState<string | null>(null);
   const [expandedSwapId, setExpandedSwapId] = useState<string | null>(null);
 
   const commodityGroups = useMemo(() => groupTrades(trades), [trades]);
   const swapTrades = useMemo(() => getSwapTrades(trades), [trades]);
 
   const toggleGroup = (groupId: string) => {
-    if (expandedGroupId === groupId) {
-      setExpandedGroupId(null);
-      setGroupAllocatingId(null);
-    } else {
-      setExpandedGroupId(groupId);
-      setGroupAllocatingId(null);
-    }
-  };
-
-  const handleGroupAllocate = (groupId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpandedGroupId(groupId);
-    setGroupAllocatingId(groupAllocatingId === groupId ? null : groupId);
-  };
-
-  const handleAllocateSuccess = () => {
-    setGroupAllocatingId(null);
-    onRefresh();
+    setExpandedGroupId(expandedGroupId === groupId ? null : groupId);
   };
 
   if (commodityGroups.length === 0 && swapTrades.length === 0) {
@@ -160,12 +139,8 @@ export function GroupedTradeBlotter({
                   key={cg.commodityId}
                   commodityGroup={cg}
                   expandedGroupId={expandedGroupId}
-                  groupAllocatingId={groupAllocatingId}
                   onToggle={toggleGroup}
-                  onGroupAllocate={handleGroupAllocate}
-                  onAllocateSuccess={handleAllocateSuccess}
                   commodities={commodities}
-                  sites={sites}
                   orgId={orgId}
                   onRefresh={onRefresh}
                 />
@@ -192,7 +167,6 @@ export function GroupedTradeBlotter({
               <TradeDetail
                 tradeId={row.id}
                 commodities={commodities}
-                sites={sites}
                 orgId={orgId}
                 onClose={() => setExpandedSwapId(null)}
                 onRefresh={onRefresh}
@@ -211,12 +185,8 @@ export function GroupedTradeBlotter({
 interface CommoditySectionProps {
   commodityGroup: { commodityId: string; commodityName: string; groups: TradeGroupSummary[] };
   expandedGroupId: string | null;
-  groupAllocatingId: string | null;
   onToggle: (groupId: string) => void;
-  onGroupAllocate: (groupId: string, e: React.MouseEvent) => void;
-  onAllocateSuccess: () => void;
   commodities: { id: string; name: string }[];
-  sites: { id: string; name: string; code: string }[];
   orgId: string;
   onRefresh: () => void;
 }
@@ -224,12 +194,8 @@ interface CommoditySectionProps {
 function CommoditySection({
   commodityGroup: cg,
   expandedGroupId,
-  groupAllocatingId,
   onToggle,
-  onGroupAllocate,
-  onAllocateSuccess,
   commodities,
-  sites,
   orgId,
   onRefresh,
 }: CommoditySectionProps) {
@@ -250,7 +216,6 @@ function CommoditySection({
       {/* Summary rows for each direction+month group */}
       {cg.groups.map((g) => {
         const isExpanded = expandedGroupId === g.groupId;
-        const isGroupAllocating = groupAllocatingId === g.groupId;
         const currency = g.trades[0]?.currency ?? "USD";
 
         return (
@@ -259,12 +224,8 @@ function CommoditySection({
             group={g}
             currency={currency}
             isExpanded={isExpanded}
-            isGroupAllocating={isGroupAllocating}
             onToggle={onToggle}
-            onGroupAllocate={onGroupAllocate}
-            onAllocateSuccess={onAllocateSuccess}
             commodities={commodities}
-            sites={sites}
             orgId={orgId}
             onRefresh={onRefresh}
           />
@@ -280,12 +241,8 @@ interface SummaryRowProps {
   group: TradeGroupSummary;
   currency: string;
   isExpanded: boolean;
-  isGroupAllocating: boolean;
   onToggle: (groupId: string) => void;
-  onGroupAllocate: (groupId: string, e: React.MouseEvent) => void;
-  onAllocateSuccess: () => void;
   commodities: { id: string; name: string }[];
-  sites: { id: string; name: string; code: string }[];
   orgId: string;
   onRefresh: () => void;
 }
@@ -294,12 +251,8 @@ function SummaryRow({
   group: g,
   currency,
   isExpanded,
-  isGroupAllocating,
   onToggle,
-  onGroupAllocate,
-  onAllocateSuccess,
   commodities,
-  sites,
   orgId,
   onRefresh,
 }: SummaryRowProps) {
@@ -360,17 +313,7 @@ function SummaryRow({
           <StatusBadge status={g.aggregateStatus} />
         </td>
 
-        {/* Group allocate button */}
-        <td className="px-4 py-3 text-right">
-          {g.unallocatedVolume > 0 && sites.length > 0 && (
-            <button
-              onClick={(e) => onGroupAllocate(g.groupId, e)}
-              className="rounded-md border border-action-20 bg-action-10 px-2.5 py-1 text-[10px] font-medium text-action hover:bg-action-15 transition-colors"
-            >
-              Allocate
-            </button>
-          )}
-        </td>
+        <td className="px-4 py-3" />
       </tr>
 
       {/* Expanded content */}
@@ -379,11 +322,7 @@ function SummaryRow({
           <td colSpan={10} className="p-0 border-t border-tbl-border">
             <ExpandedGroupContent
               group={g}
-              currency={currency}
-              isGroupAllocating={isGroupAllocating}
-              onAllocateSuccess={onAllocateSuccess}
               commodities={commodities}
-              sites={sites}
               orgId={orgId}
               onRefresh={onRefresh}
             />
@@ -398,22 +337,14 @@ function SummaryRow({
 
 interface ExpandedGroupContentProps {
   group: TradeGroupSummary;
-  currency: string;
-  isGroupAllocating: boolean;
-  onAllocateSuccess: () => void;
   commodities: { id: string; name: string }[];
-  sites: { id: string; name: string; code: string }[];
   orgId: string;
   onRefresh: () => void;
 }
 
 function ExpandedGroupContent({
   group: g,
-  currency,
-  isGroupAllocating,
-  onAllocateSuccess,
   commodities,
-  sites,
   orgId,
   onRefresh,
 }: ExpandedGroupContentProps) {
@@ -507,47 +438,10 @@ function ExpandedGroupContent({
       header: "Status",
       render: (row) => <StatusBadge status={row.status} />,
     },
-    {
-      key: "actions" as string,
-      header: "",
-      align: "right",
-      sortable: false,
-      render: (row) => {
-        const unalloc = Number(row.unallocated_volume);
-        if (unalloc <= 0 || row.status === "cancelled") return null;
-        return (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleTrade(row.id);
-            }}
-            className="rounded-md border border-action-20 bg-action-10 px-2.5 py-1 text-[10px] font-medium text-action hover:bg-action-15 transition-colors"
-          >
-            Allocate
-          </button>
-        );
-      },
-    },
   ];
 
   return (
     <div className="bg-surface p-4 space-y-4">
-      {/* Group allocation form (Mode A) */}
-      {isGroupAllocating && sites.length > 0 && (
-        <GroupAllocateForm
-          trades={g.trades}
-          orgId={orgId}
-          commodityId={g.commodityId}
-          direction={g.direction}
-          contractMonth={g.contractMonth}
-          vwap={g.vwap}
-          currency={currency}
-          remainingVolume={g.unallocatedVolume}
-          sites={sites}
-          onSuccess={onAllocateSuccess}
-        />
-      )}
-
       {/* Individual trades sub-table */}
       <div>
         <h4 className="mb-2 text-xs font-medium text-muted">
@@ -563,7 +457,6 @@ function ExpandedGroupContent({
             <TradeDetail
               tradeId={row.id}
               commodities={commodities}
-              sites={sites}
               orgId={orgId}
               onClose={() => setExpandedTradeId(null)}
               onRefresh={onRefresh}

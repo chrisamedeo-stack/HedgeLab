@@ -4,43 +4,27 @@ import { useState } from "react";
 import Link from "next/link";
 import { useTrade } from "@/hooks/useTrades";
 import { useTradeStore } from "@/store/tradeStore";
-import { usePositionStore } from "@/store/positionStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { KPICard } from "@/components/ui/KPICard";
-import { DataTable, type Column } from "@/components/ui/DataTable";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatContractMonth } from "@/lib/commodity-utils";
-import { TradeAllocateForm } from "@/components/trades/TradeAllocateForm";
-import { btnPrimary, btnSecondary, btnDanger } from "@/lib/ui-classes";
-import type { Allocation } from "@/types/positions";
-
-function fmtBudgetMonth(ym: string | null | undefined): string {
-  if (!ym) return "—";
-  const [year, month] = ym.split("-");
-  const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const idx = parseInt(month, 10) - 1;
-  return idx >= 0 && idx < 12 ? `${names[idx]} ${year}` : ym;
-}
 
 interface TradeDetailProps {
   tradeId: string;
   commodities: { id: string; name: string }[];
-  sites: { id: string; name: string; code: string }[];
   orgId: string;
   onClose: () => void;
   onRefresh: () => void;
 }
 
-export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRefresh }: TradeDetailProps) {
+export function TradeDetail({ tradeId, commodities, orgId, onClose, onRefresh }: TradeDetailProps) {
   const { data, loading, refetch } = useTrade(tradeId);
   const { cancelTrade, updateTrade, deleteTrade } = useTradeStore();
-  const { cancelAllocation } = usePositionStore();
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
   const [editPrice, setEditPrice] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [undoingId, setUndoingId] = useState<string | null>(null);
 
   if (loading || !data) {
     return (
@@ -50,8 +34,7 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
     );
   }
 
-  const { trade, allocations, summary } = data;
-  const unallocated = Number(trade.unallocated_volume) || 0;
+  const { trade, summary } = data;
 
   const handleCancel = async () => {
     if (!confirm("Cancel this trade? Open allocations will also be cancelled.")) return;
@@ -81,20 +64,6 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
     }
   };
 
-  const handleUndoAllocation = async (allocationId: string) => {
-    if (!confirm("Cancel this allocation?")) return;
-    setUndoingId(allocationId);
-    try {
-      await cancelAllocation(user!.id, allocationId);
-      refetch();
-      onRefresh();
-    } catch {
-      // error handled by store
-    } finally {
-      setUndoingId(null);
-    }
-  };
-
   const handleSavePrice = async () => {
     if (!editPrice) return;
     try {
@@ -105,58 +74,6 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
     } catch {
       // error handled by store
     }
-  };
-
-  const allocationColumns: Column<Allocation>[] = [
-    {
-      key: "allocation_date",
-      header: "Date",
-      render: (row) => <span className="tabular-nums text-secondary">{row.allocation_date?.slice(0, 10)}</span>,
-    },
-    {
-      key: "site_name",
-      header: "Site",
-      render: (row) => {
-        const a = row as Allocation & { site_name?: string; site_code?: string };
-        return <span className="text-secondary">{a.site_name ?? a.site_code ?? row.site_id.slice(0, 8)}</span>;
-      },
-    },
-    {
-      key: "allocated_volume",
-      header: "Volume",
-      align: "right",
-      render: (row) => <span className="tabular-nums">{Number(row.allocated_volume).toLocaleString()}</span>,
-    },
-    {
-      key: "budget_month",
-      header: "Budget Mo",
-      render: (row) => <span className="tabular-nums text-muted">{fmtBudgetMonth(row.budget_month)}</span>,
-    },
-    {
-      key: "status",
-      header: "Status",
-      render: (row) => <StatusBadge status={row.status} />,
-    },
-    {
-      key: "actions" as keyof Allocation,
-      header: "",
-      align: "right",
-      render: (row) =>
-        row.status === "open" ? (
-          <button
-            onClick={() => handleUndoAllocation(row.id)}
-            disabled={undoingId === row.id}
-            className="text-xs text-loss hover:text-loss/80 disabled:opacity-50"
-          >
-            {undoingId === row.id ? "..." : "Undo"}
-          </button>
-        ) : null,
-    },
-  ];
-
-  const handleAllocateSuccess = () => {
-    refetch();
-    onRefresh();
   };
 
   return (
@@ -254,17 +171,12 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
         </div>
       )}
 
-      {/* KPI Cards — swaps don't use allocation */}
+      {/* KPI Card — read-only volume indicator */}
       {trade.trade_type !== "swap" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <KPICard label="Total Volume" value={summary.totalVolume.toLocaleString()} />
           <KPICard label="Allocated" value={summary.allocatedVolume.toLocaleString()} />
-          <KPICard
-            label="Unallocated"
-            value={summary.unallocatedVolume.toLocaleString()}
-            trend={summary.unallocatedVolume > 0 ? "down" : undefined}
-          />
-          <KPICard label="Allocations" value={String(summary.allocationCount)} />
+          <KPICard label="Unallocated" value={summary.unallocatedVolume.toLocaleString()} />
         </div>
       )}
 
@@ -275,41 +187,6 @@ export function TradeDetail({ tradeId, commodities, sites, orgId, onClose, onRef
         </div>
       )}
 
-      {/* Inline allocation form — not for swaps */}
-      {trade.trade_type !== "swap" && unallocated > 0 && trade.status !== "cancelled" && (
-        sites.length > 0 ? (
-          <TradeAllocateForm
-            tradeId={trade.id}
-            orgId={orgId}
-            commodityId={trade.commodity_id}
-            direction={trade.direction}
-            contractMonth={trade.contract_month}
-            tradePrice={Number(trade.trade_price)}
-            tradeDate={trade.trade_date}
-            currency={trade.currency}
-            remainingVolume={unallocated}
-            sites={sites}
-            onSuccess={handleAllocateSuccess}
-          />
-        ) : (
-          <div className="rounded-lg border border-warning-20 bg-warning-10 px-4 py-3 text-xs text-warning">
-            No sites available. Add sites in Settings before allocating.
-          </div>
-        )
-      )}
-
-      {/* Allocations table — not for swaps */}
-      {trade.trade_type !== "swap" && (
-        <div>
-          <h4 className="mb-2 text-xs font-medium text-muted">Allocations</h4>
-          <DataTable
-            columns={allocationColumns}
-            data={allocations}
-            keyField="id"
-            emptyMessage="No allocations yet"
-          />
-        </div>
-      )}
     </div>
   );
 }
