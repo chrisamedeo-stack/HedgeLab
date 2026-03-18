@@ -94,7 +94,7 @@ CREATE TABLE plugin_registry (
 );
 
 INSERT INTO plugin_registry (id, name, module_prefix, depends_on, nav_section, nav_label, nav_href, sort_order, description) VALUES
-  ('position_manager', 'Position Manager', 'pm', '{}', 'Execution', 'Hedge Book', '/hedge-book', 10, 'Hedge book, allocations, EFP, offset, rollover'),
+  ('position_manager', 'Position Manager', 'pm', '{}', 'Execution', 'Position Manager', '/position-manager', 10, 'Position manager, allocations, EFP, offset, rollover'),
   ('trade_capture', 'Trade Capture', 'tc', '{}', 'Execution', 'Trades', '/trades', 5, 'Trade entry, blotter, matching'),
   ('budget', 'Budget & Forecast', 'bgt', '{}', 'Planning', 'Budget & Forecast', '/budget', 20, 'Budget periods, line items, approval workflow'),
   ('market_data', 'Market Data', 'md', '{}', 'Market', 'Market Data', '/market', 50, 'Price entry, settlement prices, curves'),
