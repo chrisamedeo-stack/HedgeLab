@@ -68,10 +68,10 @@ interface MarketDataTabProps {
 // ─── Source Badge ───────────────────────────────────────────────────────────
 
 const SOURCE_STYLES: Record<string, string> = {
-  excel: "bg-[rgba(239,159,39,0.1)] text-[#EF9F27]",
-  manual: "bg-[rgba(139,149,165,0.1)] text-[#8B95A5]",
-  api: "bg-[rgba(55,138,221,0.1)] text-[#378ADD]",
-  missing: "bg-[rgba(226,75,74,0.1)] text-[#E24B4A]",
+  excel: "bg-swap-5 text-swap",
+  manual: "bg-accent-10 text-muted",
+  api: "bg-action-10 text-action",
+  missing: "bg-destructive-10 text-destructive",
 };
 
 function SourceBadge({ source }: { source: string }) {
@@ -91,7 +91,7 @@ function ChangeCell({ current, previous }: { current: number; previous: number |
   if (change === 0) return <span className="text-muted tabular-nums">0.00</span>;
   const isPositive = change > 0;
   return (
-    <span className={cn("tabular-nums", isPositive ? "text-[#1D9E75]" : "text-[#D85A30]")}>
+    <span className={cn("tabular-nums", isPositive ? "text-profit" : "text-loss")}>
       {isPositive ? "+" : ""}{change.toFixed(4)}
     </span>
   );
@@ -336,7 +336,7 @@ export function MarketDataTab({
             <div className="overflow-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[rgba(30,58,95,0.5)]">
+                  <tr className="border-b border-b-default/50">
                     {["Contract", "Settle", "Change", "Volume", "OI", "Source"].map((h) => (
                       <th
                         key={h}
@@ -354,7 +354,7 @@ export function MarketDataTab({
                   {allRows.map(({ month, price }) => (
                     <tr
                       key={month}
-                      className="border-b border-[rgba(30,58,95,0.5)] hover:bg-[#1A2740] transition-colors"
+                      className="border-b border-b-default/50 hover:bg-overlay transition-colors"
                     >
                       <td className="px-3 py-2 font-mono text-xs text-action">
                         {formatContractMonth(month)}
@@ -415,10 +415,10 @@ export function MarketDataTab({
               valueClass={
                 status
                   ? status.contractsPriced === status.totalContracts && status.totalContracts > 0
-                    ? "text-[#1D9E75]"
+                    ? "text-profit"
                     : status.contractsPriced === 0
-                      ? "text-[#E24B4A]"
-                      : "text-[#EF9F27]"
+                      ? "text-destructive"
+                      : "text-swap"
                   : undefined
               }
             />
@@ -451,7 +451,7 @@ export function MarketDataTab({
                     }`
                   : "0"
               }
-              valueClass={mtmCoverage?.missingPrice ? "text-[#E24B4A]" : undefined}
+              valueClass={mtmCoverage?.missingPrice ? "text-destructive" : undefined}
             />
           </div>
           {mtmCoverage && mtmCoverage.missingPrice > 0 && (
@@ -507,7 +507,7 @@ function QuickActionLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="flex items-center justify-between w-full px-3 py-2 text-xs text-[#378ADD] bg-[rgba(55,138,221,0.08)] border border-[rgba(55,138,221,0.2)] rounded-md hover:bg-[rgba(55,138,221,0.14)] transition-colors cursor-pointer"
+      className="flex items-center justify-between w-full px-3 py-2 text-xs text-action bg-action-5 border border-action-20 rounded-md hover:bg-action-10 transition-colors cursor-pointer"
     >
       <span>{label}</span>
       <span className="text-sm">→</span>

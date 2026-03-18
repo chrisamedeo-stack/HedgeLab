@@ -312,7 +312,7 @@ export default function ContractsPage() {
       {/* Commodity picker (when no commodity pre-selected) */}
       {showForm && !formCommodity && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-80 rounded-xl border border-b-default bg-[#111D32] p-5 shadow-2xl">
+          <div className="w-80 rounded-xl border border-b-default bg-form-bg p-5 shadow-2xl">
             <h3 className="text-sm font-semibold text-primary mb-3">Select commodity</h3>
             <div className="space-y-1">
               {(commodities ?? []).map((c) => (

@@ -2,12 +2,8 @@
 
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { inputCls, selectCls, btnPrimary, btnSecondary as btnCancel } from "@/lib/ui-classes";
 import type { RateTable } from "@/types/pricing";
-
-const inputCls = "w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph";
-const selectCls = inputCls;
-const btnPrimary = "inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors disabled:opacity-50";
-const btnCancel = "inline-flex items-center gap-2 rounded-lg bg-input-bg px-4 py-2 text-sm font-medium text-secondary hover:bg-hover transition-colors border border-b-input";
 
 interface Props {
   initial?: RateTable | null;

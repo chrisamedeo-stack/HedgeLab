@@ -134,7 +134,7 @@ export function LevelEditor({ orgId, levels, userId, onChanged }: Props) {
             ) : (
               <button
                 onClick={() => startEdit(idx)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-overlay border border-[#1E3A5F] rounded-lg hover:border-action/50 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-overlay border border-b-default rounded-lg hover:border-action/50 transition-colors"
               >
                 <span className="text-[10px] text-faint font-mono">{idx}</span>
                 <span className="text-secondary">{level.label}</span>
@@ -171,7 +171,7 @@ export function LevelEditor({ orgId, levels, userId, onChanged }: Props) {
           <ChevronRight className="h-3.5 w-3.5 text-faint shrink-0" />
           <button
             onClick={() => { setShowAdd(true); setEditIdx(null); }}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-dashed border-[#1E3A5F] rounded-lg text-faint hover:text-secondary hover:border-action/50 transition-colors"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-dashed border-b-default rounded-lg text-faint hover:text-secondary hover:border-action/50 transition-colors"
           >
             <Plus className="h-3 w-3" />
             Add level
