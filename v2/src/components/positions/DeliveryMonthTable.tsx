@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { usePositionStore } from "@/store/positionStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatContractMonth } from "@/lib/commodity-utils";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import type { HedgeBookEntry } from "@/types/positions";
 
 interface Props {
@@ -267,6 +268,7 @@ function TradeRow({
   onCancelAllocation?: (allocationId: string) => Promise<void>;
 }) {
   const [cancellingThis, setCancellingThis] = useState(false);
+  const { confirm, dialog } = useConfirmDialog();
   const statusColor =
     entry.status === "open" ? "text-warning" :
     entry.status === "efp_closed" ? "text-profit" :
@@ -275,6 +277,7 @@ function TradeRow({
 
   return (
     <>
+      {dialog}
       <tr className="border-b border-tbl-border bg-surface hover:bg-row-hover">
         <td className="px-3 py-2 pl-10">
           <div className="flex items-center gap-2">
@@ -300,11 +303,18 @@ function TradeRow({
               </button>
               {onCancelAllocation && entry.site_id && (
                 <button
-                  onClick={async () => {
-                    if (!confirm("Cancel this allocation?")) return;
-                    setCancellingThis(true);
-                    try { await onCancelAllocation(entry.id); } catch { /* store handles */ }
-                    finally { setCancellingThis(false); }
+                  onClick={() => {
+                    confirm({
+                      title: "Cancel allocation",
+                      description: "Cancel this allocation?",
+                      variant: "danger",
+                      confirmLabel: "Cancel Allocation",
+                      onConfirm: async () => {
+                        setCancellingThis(true);
+                        try { await onCancelAllocation(entry.id); } catch { /* store handles */ }
+                        finally { setCancellingThis(false); }
+                      },
+                    });
                   }}
                   disabled={cancellingThis}
                   className="text-xs text-loss hover:text-loss/80 disabled:opacity-50"

@@ -6,15 +6,14 @@ import { useHedgeBookStore } from "@/store/hedgeBookStore";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
+import { btnPrimary, cn } from "@/lib/ui-classes";
 import type { HedgeBook } from "@/types/positions";
-
-function cn(...classes: (string | false | null | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
-}
 
 export default function HedgeBooksSettingsPage() {
   const { orgId } = useOrgContext();
   const { books, fetchBooks, createBook, updateBook, deactivateBook } = useHedgeBookStore();
+  const { confirm, dialog } = useConfirmDialog();
 
   const [showModal, setShowModal] = useState(false);
   const [editingBook, setEditingBook] = useState<HedgeBook | null>(null);
@@ -66,13 +65,16 @@ export default function HedgeBooksSettingsPage() {
     }
   };
 
-  const handleDeactivate = async (book: HedgeBook) => {
-    if (!confirm(`Deactivate "${book.name}"? This will hide it from the position manager.`)) return;
-    try {
-      await deactivateBook(book.id);
-    } catch (err) {
-      alert((err as Error).message);
-    }
+  const handleDeactivate = (book: HedgeBook) => {
+    confirm({
+      title: "Deactivate hedge book",
+      description: `Deactivate "${book.name}"? This will hide it from the position manager.`,
+      variant: "warning",
+      confirmLabel: "Deactivate",
+      onConfirm: async () => {
+        await deactivateBook(book.id);
+      },
+    });
   };
 
   const columns: Column<HedgeBook>[] = [
@@ -106,12 +108,13 @@ export default function HedgeBooksSettingsPage() {
 
   return (
     <div className="space-y-6 page-fade">
+      {dialog}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Hedge Books</h1>
           <p className="mt-0.5 text-xs text-faint">Manage hedge books that group positions for the position manager</p>
         </div>
-        <button onClick={openCreate} className="btnPrimary text-sm">
+        <button onClick={openCreate} className={btnPrimary}>
           + New Hedge Book
         </button>
       </div>
@@ -158,7 +161,7 @@ export default function HedgeBooksSettingsPage() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className={cn("btnPrimary text-sm", submitting && "opacity-50")}
+              className={btnPrimary}
             >
               {submitting ? "Saving..." : editingBook ? "Update" : "Create"}
             </button>

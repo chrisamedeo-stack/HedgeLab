@@ -54,6 +54,7 @@ export default function TradeDetailPage() {
   // Swap settlements state
   const [settlements, setSettlements] = useState<SwapSettlement[]>([]);
   const [settlementsLoading, setSettlementsLoading] = useState(false);
+  const [settlementsError, setSettlementsError] = useState<string | null>(null);
   const [settleRowId, setSettleRowId] = useState<string | null>(null);
   const [floatingPrice, setFloatingPrice] = useState("");
   const [settling, setSettling] = useState(false);
@@ -61,13 +62,16 @@ export default function TradeDetailPage() {
   const fetchSettlements = useCallback(async () => {
     if (!id || !isSwap) return;
     setSettlementsLoading(true);
+    setSettlementsError(null);
     try {
       const res = await fetch(`${API_BASE}/api/trades/${id}/settlements`);
-      if (res.ok) {
-        setSettlements(await res.json());
+      if (!res.ok) {
+        setSettlementsError(`Failed to load settlements (${res.status})`);
+        return;
       }
-    } catch {
-      // silent
+      setSettlements(await res.json());
+    } catch (err) {
+      setSettlementsError((err as Error).message || "Failed to load settlements");
     } finally {
       setSettlementsLoading(false);
     }
@@ -82,20 +86,24 @@ export default function TradeDetailPage() {
   const handleSettle = async (settlementId: string) => {
     if (!floatingPrice || !user) return;
     setSettling(true);
+    setSettlementsError(null);
     try {
       const res = await fetch(`${API_BASE}/api/trades/${id}/settlements`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ settlementId, floatingPrice: Number(floatingPrice), userId: user.id }),
       });
-      if (res.ok) {
-        setSettleRowId(null);
-        setFloatingPrice("");
-        fetchSettlements();
-        refetch();
+      if (!res.ok) {
+        const body = await res.text();
+        setSettlementsError(body || `Settlement failed (${res.status})`);
+        return;
       }
-    } catch {
-      // silent
+      setSettleRowId(null);
+      setFloatingPrice("");
+      fetchSettlements();
+      refetch();
+    } catch (err) {
+      setSettlementsError((err as Error).message || "Settlement failed");
     } finally {
       setSettling(false);
     }
@@ -249,6 +257,12 @@ export default function TradeDetailPage() {
       {/* ─── Settlements Tab (Swap only) ────────────────────────────── */}
       {tab === "settlements" && isSwap && (
         <div className="space-y-4">
+          {settlementsError && (
+            <div className="p-3 bg-loss/10 border border-loss/20 rounded-lg text-sm text-loss flex items-center justify-between">
+              <span>{settlementsError}</span>
+              <button onClick={() => setSettlementsError(null)} className="ml-3 text-loss/60 hover:text-loss text-xs">Dismiss</button>
+            </div>
+          )}
           {settlementsLoading ? (
             <div className="py-8 text-center"><Spinner /></div>
           ) : settlements.length === 0 ? (

@@ -5,6 +5,7 @@ import { useInvoices, useSettlementStore } from "@/hooks/useSettlement";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_BASE } from "@/lib/api";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import type { InvoiceStatus, InvoiceType, InvoiceFilters } from "@/types/settlement";
 import type { Delivery } from "@/types/logistics";
 
@@ -31,6 +32,7 @@ export default function SettlementPage() {
 
   const { data: invoices, loading, error, refetch } = useInvoices(orgId, filters);
   const { createInvoice, issueInvoice, recordPayment, cancelInvoice, generateFromDeliveries } = useSettlementStore();
+  const { confirm, dialog } = useConfirmDialog();
 
   // Generate from Deliveries flow
   const [showDeliveryPicker, setShowDeliveryPicker] = useState(false);
@@ -160,10 +162,17 @@ export default function SettlementPage() {
     }
   }
 
-  async function handleCancel(id: string) {
-    if (!confirm("Cancel this invoice?")) return;
-    await cancelInvoice(id, user!.id);
-    refetch();
+  function handleCancel(id: string) {
+    confirm({
+      title: "Cancel invoice",
+      description: "Cancel this invoice?",
+      variant: "danger",
+      confirmLabel: "Cancel Invoice",
+      onConfirm: async () => {
+        await cancelInvoice(id, user!.id);
+        refetch();
+      },
+    });
   }
 
   // KPI calculations
@@ -181,6 +190,7 @@ export default function SettlementPage() {
 
   return (
     <div className="space-y-6 page-fade">
+      {dialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

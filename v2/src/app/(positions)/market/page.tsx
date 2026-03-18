@@ -62,9 +62,15 @@ function PriceBoardTab() {
   // Fetch last poll status on mount
   useEffect(() => {
     fetch(`${API_BASE}/api/market/poll-status`)
-      .then((r) => r.json())
-      .then((d) => { if (d.lastPollAt) setLastPollAt(d.lastPollAt); })
-      .catch(() => {});
+      .then((r) => {
+        if (!r.ok) return null;
+        return r.json();
+      })
+      .then((d) => { if (d?.lastPollAt) setLastPollAt(d.lastPollAt); })
+      .catch(() => {
+        // Poll status is informational — degrade gracefully
+        setLastPollAt(null);
+      });
   }, []);
 
   const handleRefresh = useCallback(async () => {

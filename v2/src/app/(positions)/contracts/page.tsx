@@ -7,6 +7,7 @@ import { useCommodityContext } from "@/contexts/CommodityContext";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { PhysicalContractForm } from "@/components/contracts/PhysicalContractForm";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import type { Commodity } from "@/hooks/usePositions";
 import type {
   PhysicalContract,
@@ -49,6 +50,7 @@ export default function ContractsPage() {
   const { data: sites } = useSites(orgId);
   const { data: commodities } = useCommodities();
   const { transitionContract, cancelContract } = useContractStore();
+  const { confirm, dialog } = useConfirmDialog();
 
   // Form state — commodity pre-selection like trades page
   const [showForm, setShowForm] = useState(false);
@@ -105,10 +107,17 @@ export default function ContractsPage() {
     }
   }
 
-  async function handleCancel(contractId: string) {
-    if (!confirm("Cancel this contract?")) return;
-    await cancelContract(contractId, user!.id);
-    refetch();
+  function handleCancel(contractId: string) {
+    confirm({
+      title: "Cancel contract",
+      description: "Cancel this contract?",
+      variant: "danger",
+      confirmLabel: "Cancel Contract",
+      onConfirm: async () => {
+        await cancelContract(contractId, user!.id);
+        refetch();
+      },
+    });
   }
 
   function deliveryPct(c: PhysicalContract): number {
@@ -122,6 +131,7 @@ export default function ContractsPage() {
 
   return (
     <div className="space-y-6 page-fade">
+      {dialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

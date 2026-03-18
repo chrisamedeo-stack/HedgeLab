@@ -254,7 +254,9 @@ export function TradeForm({
     fetch(`${API_BASE}/api/contracts/counterparties?orgId=${orgId}`)
       .then((r) => (r.ok ? r.json() : []))
       .then((data: Counterparty[]) => setCounterparties(data))
-      .catch(() => {});
+      .catch(() => {
+        setError("Failed to load counterparties");
+      });
   }, [orgId]);
 
   // ═══ COMPUTED VALUES ═══════════════════════════════════════════════════════

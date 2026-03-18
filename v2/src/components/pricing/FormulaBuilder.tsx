@@ -8,10 +8,10 @@ import type { FormulaComponent, EvaluationResult } from "@/lib/pricingEngine";
 import { ComponentRow } from "./ComponentRow";
 import { usePricingStore } from "@/store/pricingStore";
 
+import { btnPrimary, btnSecondary } from "@/lib/ui-classes";
+
 const inputCls = "w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph";
 const selectCls = inputCls;
-const btnPrimary = "inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors disabled:opacity-50";
-const btnCancel = "inline-flex items-center gap-2 rounded-lg bg-input-bg px-4 py-2 text-sm font-medium text-secondary hover:bg-hover transition-colors border border-b-input";
 
 interface Props {
   initial?: FormulaRow | null;
@@ -233,7 +233,7 @@ export function FormulaBuilder({ initial, rateTables, commodities, saving, onSav
 
       {/* Actions */}
       <div className="flex justify-end gap-2 pt-2">
-        <button type="button" onClick={onCancel} className={btnCancel}>Cancel</button>
+        <button type="button" onClick={onCancel} className={btnSecondary}>Cancel</button>
         <button type="submit" disabled={saving || !name || components.length === 0} className={btnPrimary}>
           {saving ? "Saving..." : initial ? "Update Formula" : "Create Formula"}
         </button>

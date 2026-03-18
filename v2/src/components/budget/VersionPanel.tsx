@@ -2,6 +2,7 @@
 
 import type { BudgetVersion } from "@/types/budget";
 import { useBudgetStore } from "@/store/budgetStore";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { format } from "date-fns";
 
 interface VersionPanelProps {
@@ -13,6 +14,7 @@ interface VersionPanelProps {
 
 export function VersionPanel({ periodId, versions, userId, locked }: VersionPanelProps) {
   const { restoreVersion } = useBudgetStore();
+  const { confirm, dialog } = useConfirmDialog();
 
   if (versions.length === 0) {
     return (
@@ -25,6 +27,7 @@ export function VersionPanel({ periodId, versions, userId, locked }: VersionPane
 
   return (
     <div className="rounded-lg border border-b-default bg-surface">
+      {dialog}
       <div className="px-4 py-3 border-b border-b-default">
         <h3 className="text-sm font-semibold text-secondary">Version History</h3>
       </div>
@@ -51,9 +54,15 @@ export function VersionPanel({ periodId, versions, userId, locked }: VersionPane
               {!locked && (
                 <button
                   onClick={() => {
-                    if (confirm(`Restore to v${v.version_number}? Current data will be snapshot first.`)) {
-                      restoreVersion(periodId, v.version_number, userId);
-                    }
+                    confirm({
+                      title: "Restore version",
+                      description: `Restore to v${v.version_number}? Current data will be snapshot first.`,
+                      variant: "warning",
+                      confirmLabel: "Restore",
+                      onConfirm: async () => {
+                        await restoreVersion(periodId, v.version_number, userId);
+                      },
+                    });
                   }}
                   className="px-2.5 py-1 text-xs text-muted border border-b-input rounded-lg hover:bg-hover hover:text-secondary transition-colors"
                 >

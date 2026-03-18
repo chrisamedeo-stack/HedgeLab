@@ -6,6 +6,7 @@ import { useSites, useCommodities } from "@/hooks/usePositions";
 import { useCommodityContext } from "@/contexts/CommodityContext";
 import { useOrgContext } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import type { DeliveryStatus, DeliveryFilters } from "@/types/logistics";
 
 const statusStyle: Record<string, string> = {
@@ -44,6 +45,7 @@ export default function LogisticsPage() {
   const { data: sites } = useSites(orgId);
   const { data: commodities } = useCommodities();
   const { updateDelivery, cancelDelivery } = useLogisticsStore();
+  const { confirm, dialog } = useConfirmDialog();
 
   const { data: inventory } = useInventory(
     showInventory && invSite ? { siteId: invSite, orgId } : undefined
@@ -160,10 +162,17 @@ export default function LogisticsPage() {
     }
   }
 
-  async function handleCancel(id: string) {
-    if (!confirm("Cancel this delivery?")) return;
-    await cancelDelivery(id, user!.id);
-    refetch();
+  function handleCancel(id: string) {
+    confirm({
+      title: "Cancel delivery",
+      description: "Cancel this delivery?",
+      variant: "danger",
+      confirmLabel: "Cancel Delivery",
+      onConfirm: async () => {
+        await cancelDelivery(id, user!.id);
+        refetch();
+      },
+    });
   }
 
   const inputClass =
@@ -171,6 +180,7 @@ export default function LogisticsPage() {
 
   return (
     <div className="space-y-6 page-fade">
+      {dialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

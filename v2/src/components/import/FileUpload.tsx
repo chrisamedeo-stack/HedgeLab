@@ -6,12 +6,14 @@ import { useImportStore } from "@/store/importStore";
 export function FileUpload() {
   const { parseCSV, loading, rawHeaders, rawRows, fileName } = useImportStore();
   const [dragActive, setDragActive] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback(
     (file: File) => {
+      setFileError(null);
       if (!file.name.endsWith(".csv")) {
-        alert("Only .csv files are supported");
+        setFileError("Only .csv files are supported");
         return;
       }
       parseCSV(file);
@@ -97,6 +99,12 @@ export function FileUpload() {
       <p className="mb-6 text-sm text-faint">
         Drag and drop your CSV file or click to browse.
       </p>
+      {fileError && (
+        <div className="mb-4 p-3 bg-loss/10 border border-loss/20 rounded-lg text-sm text-loss flex items-center justify-between">
+          <span>{fileError}</span>
+          <button onClick={() => setFileError(null)} className="ml-3 text-loss/60 hover:text-loss text-xs">Dismiss</button>
+        </div>
+      )}
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}

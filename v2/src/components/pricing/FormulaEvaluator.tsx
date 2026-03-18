@@ -6,9 +6,10 @@ import type { FormulaRow } from "@/types/pricing";
 import type { EvaluationResult } from "@/lib/pricingEngine";
 import { usePricingStore } from "@/store/pricingStore";
 
+import { btnPrimary } from "@/lib/ui-classes";
+
 const inputCls = "w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph";
 const selectCls = inputCls;
-const btnPrimary = "inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors disabled:opacity-50";
 
 interface Props {
   formulas: FormulaRow[];

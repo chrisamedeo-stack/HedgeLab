@@ -16,12 +16,14 @@ import { CoverageChart } from "@/components/budget/CoverageChart";
 import { BudgetVsCommittedChart } from "@/components/budget/BudgetVsCommittedChart";
 import { FiscalYearGrid } from "@/components/budget/FiscalYearGrid";
 import { btnPrimary, btnCancel, selectCls } from "@/lib/ui-classes";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 type ChartMode = "coverage" | "budget-vs-committed";
 type TabMode = "periods" | "forecast" | "scenarios";
 
 export default function BudgetPage() {
+  const router = useRouter();
   const { orgId } = useOrgContext();
   const { commodityId } = useCommodityContext();
   const { user } = useAuth();
@@ -67,8 +69,8 @@ export default function BudgetPage() {
       setCreating(false);
       setShowNewBudget(false);
       refetch();
-      // Redirect to the period detail page with the grid
-      window.location.href = `/budget/${period.id}`;
+      // Navigate to the period detail page with the grid
+      router.push(`/budget/${period.id}`);
     } catch {
       setCreating(false);
     }

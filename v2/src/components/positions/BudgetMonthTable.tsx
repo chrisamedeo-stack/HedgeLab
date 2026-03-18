@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { API_BASE } from "@/lib/api";
 import { formatContractMonth } from "@/lib/commodity-utils";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import type { HedgeBookEntry } from "@/types/positions";
 
 interface BudgetLineItem {
@@ -253,20 +254,31 @@ function BudgetAllocationRow({
   onCancelAllocation?: (allocationId: string) => Promise<void>;
 }) {
   const [cancelling, setCancelling] = useState(false);
+  const { confirm, dialog } = useConfirmDialog();
 
   const statusColor =
     alloc.status === "open" ? "text-warning" :
     alloc.status === "efp_closed" ? "text-profit" :
     alloc.status === "offset" ? "text-muted" : "text-faint";
 
-  const handleCancel = useCallback(async () => {
-    if (!onCancelAllocation || !confirm("Cancel this allocation?")) return;
-    setCancelling(true);
-    try { await onCancelAllocation(alloc.id); } catch { /* store handles */ }
-    finally { setCancelling(false); }
-  }, [onCancelAllocation, alloc.id]);
+  const handleCancel = useCallback(() => {
+    if (!onCancelAllocation) return;
+    confirm({
+      title: "Cancel allocation",
+      description: "Cancel this allocation?",
+      variant: "danger",
+      confirmLabel: "Cancel Allocation",
+      onConfirm: async () => {
+        setCancelling(true);
+        try { await onCancelAllocation(alloc.id); } catch { /* store handles */ }
+        finally { setCancelling(false); }
+      },
+    });
+  }, [onCancelAllocation, alloc.id, confirm]);
 
   return (
+    <>
+    {dialog}
     <tr className="border-b border-tbl-border bg-surface hover:bg-row-hover">
       <td className="px-3 py-2 pl-10 text-xs text-faint">
         {formatContractMonth(alloc.contract_month)} / {alloc.site_name ?? "—"}
@@ -293,5 +305,6 @@ function BudgetAllocationRow({
         )}
       </td>
     </tr>
+    </>
   );
 }

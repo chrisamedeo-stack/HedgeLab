@@ -18,6 +18,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TabGroup } from "@/components/ui/TabGroup";
 import { Spinner } from "@/components/ui/Spinner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { btnPrimary, btnSecondary } from "@/lib/ui-classes";
 import Link from "next/link";
 import type { BudgetLineItem, CoverageDataPoint } from "@/types/budget";
@@ -45,6 +46,7 @@ export default function BudgetDetailPage() {
   const { data: commodities } = useCommodities();
   const { deleteLineItem } = useBudgetStore();
   const { user } = useAuth();
+  const { confirm, dialog } = useConfirmDialog();
 
   const [tab, setTab] = useState<Tab>("budget");
   const [formMode, setFormMode] = useState<FormMode>("none");
@@ -108,6 +110,7 @@ export default function BudgetDetailPage() {
 
   return (
     <div className="space-y-6 page-fade">
+      {dialog}
       {/* Breadcrumb + header */}
       <div>
         <Link href="/budget" className="text-xs text-muted hover:text-secondary transition-colors">
@@ -255,9 +258,15 @@ export default function BudgetDetailPage() {
           locked={isLocked}
           onEdit={!isLocked ? (li) => { setEditItem(li); setFormMode("edit-month"); } : undefined}
           onDelete={!isLocked ? (id) => {
-            if (confirm("Delete this line item?")) {
-              deleteLineItem(periodId, id, user!.id);
-            }
+            confirm({
+              title: "Delete line item",
+              description: "Delete this line item?",
+              variant: "danger",
+              confirmLabel: "Delete",
+              onConfirm: async () => {
+                await deleteLineItem(periodId, id, user!.id);
+              },
+            });
           } : undefined}
         />
       )}

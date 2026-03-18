@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { btnPrimary } from "@/lib/ui-classes";
 import type { Position } from "@/types/positions";
 
 interface OffsetModalV2Props {
@@ -95,7 +96,7 @@ export function OffsetModalV2({ position, onSubmit, onClose }: OffsetModalV2Prop
 
         <div className="flex justify-end gap-3 pt-2">
           <button onClick={onClose} className="text-sm text-muted hover:text-secondary">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting || !offsetPrice} className="btnPrimary text-sm disabled:opacity-50">
+          <button onClick={handleSubmit} disabled={submitting || !offsetPrice} className={btnPrimary}>
             {submitting ? "Executing..." : "Offset"}
           </button>
         </div>

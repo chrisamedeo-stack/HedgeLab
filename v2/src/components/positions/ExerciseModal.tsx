@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { btnPrimary } from "@/lib/ui-classes";
 import type { Position } from "@/types/positions";
 
 interface ExerciseModalProps {
@@ -62,7 +63,7 @@ export function ExerciseModal({ position, onSubmit, onClose }: ExerciseModalProp
 
         <div className="flex justify-end gap-3 pt-2">
           <button onClick={onClose} className="text-sm text-muted hover:text-secondary">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting} className="btnPrimary text-sm disabled:opacity-50">
+          <button onClick={handleSubmit} disabled={submitting} className={btnPrimary}>
             {submitting ? "Exercising..." : "Exercise Option"}
           </button>
         </div>

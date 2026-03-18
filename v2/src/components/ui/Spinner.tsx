@@ -14,6 +14,8 @@ interface SpinnerProps {
 export function Spinner({ size = "md", className = "" }: SpinnerProps) {
   return (
     <svg
+      role="status"
+      aria-label="Loading"
       className={`animate-spin text-action ${sizes[size]} ${className}`}
       fill="none"
       viewBox="0 0 24 24"

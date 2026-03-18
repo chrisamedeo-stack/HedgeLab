@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { btnPrimary } from "@/lib/ui-classes";
 import type { Position } from "@/types/positions";
 
 interface AllocateModalProps {
@@ -94,7 +95,7 @@ export function AllocateModal({ position, sites, onSubmit, onClose }: AllocateMo
 
         <div className="flex justify-end gap-3 pt-2">
           <button onClick={onClose} className="text-sm text-muted hover:text-secondary">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting || (!budgetMonth && !siteId)} className="btnPrimary text-sm disabled:opacity-50">
+          <button onClick={handleSubmit} disabled={submitting || (!budgetMonth && !siteId)} className={btnPrimary}>
             {submitting ? "Saving..." : isPartial ? "Allocate & Split" : "Allocate"}
           </button>
         </div>

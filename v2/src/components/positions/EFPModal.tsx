@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { API_BASE } from "@/lib/api";
+import { btnPrimary } from "@/lib/ui-classes";
 import type { Position } from "@/types/positions";
 
 interface PhysicalOption {
@@ -156,7 +157,7 @@ export function EFPModal({ position, onSubmit, onClose }: EFPModalProps) {
 
         <div className="flex justify-end gap-3 pt-2">
           <button onClick={onClose} className="text-sm text-muted hover:text-secondary">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting || !physicalContractId || !efpMarketPrice} className="btnPrimary text-sm disabled:opacity-50">
+          <button onClick={handleSubmit} disabled={submitting || !physicalContractId || !efpMarketPrice} className={btnPrimary}>
             {submitting ? "Executing..." : "Execute EFP"}
           </button>
         </div>

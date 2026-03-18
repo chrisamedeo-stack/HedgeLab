@@ -13,16 +13,11 @@ import { usePricingStore } from "@/store/pricingStore";
 import { useOrgContext } from "@/contexts/OrgContext";
 import type { FormulaRow, RateTable, FormulaTemplate } from "@/types/pricing";
 import type { FormulaComponent } from "@/lib/pricingEngine";
+import { btnPrimary, btnSecondary, cn } from "@/lib/ui-classes";
 
 type SubTab = "formulas" | "rate-tables" | "evaluator";
 
-const btnPrimary = "inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors disabled:opacity-50";
-const btnCancel = "inline-flex items-center gap-2 rounded-lg bg-input-bg px-4 py-2 text-sm font-medium text-secondary hover:bg-hover transition-colors border border-b-input";
 const inputCls = "w-full bg-input-bg border border-b-input text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-focus placeholder:text-ph";
-
-function cn(...classes: (string | false | null | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
-}
 
 async function apiFetch(path: string, opts?: RequestInit) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -234,7 +229,7 @@ export default function FormulasPage() {
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted">{formulas.length} formulas</p>
             <div className="flex items-center gap-2">
-              <button onClick={() => setShowTemplateModal(true)} className={btnCancel}>
+              <button onClick={() => setShowTemplateModal(true)} className={btnSecondary}>
                 From Template
               </button>
               <button onClick={() => { setEditingFormula(null); setTemplatePrefill(null); setShowFormulaModal(true); }} className={btnPrimary}>
@@ -399,7 +394,7 @@ function ConfirmDialog({ title, desc, onConfirm, onCancel }: { title: string; de
         <h3 className="text-sm font-semibold text-secondary">{title}</h3>
         <p className="text-sm text-muted">{desc}</p>
         <div className="flex justify-end gap-2">
-          <button onClick={onCancel} className={btnCancel}>Cancel</button>
+          <button onClick={onCancel} className={btnSecondary}>Cancel</button>
           <button onClick={onConfirm} className="inline-flex items-center gap-2 rounded-lg bg-loss px-4 py-2 text-sm font-medium text-white hover:bg-loss/80 transition-colors">Confirm</button>
         </div>
       </div>

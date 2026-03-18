@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { btnPrimary } from "@/lib/ui-classes";
 import type { Position } from "@/types/positions";
 
 interface SplitRow {
@@ -139,7 +140,7 @@ export function SplitModal({ position, sites, onSubmit, onClose }: SplitModalPro
           <button
             onClick={handleSubmit}
             disabled={submitting || Math.abs(remaining) > 0.01}
-            className="btnPrimary text-sm disabled:opacity-50"
+            className={btnPrimary}
           >
             {submitting ? "Splitting..." : "Split Position"}
           </button>

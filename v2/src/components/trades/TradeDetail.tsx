@@ -7,6 +7,7 @@ import { useTradeStore } from "@/store/tradeStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { KPICard } from "@/components/ui/KPICard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useConfirmDialog } from "@/components/ui/useConfirmDialog";
 import { formatContractMonth } from "@/lib/commodity-utils";
 
 interface TradeDetailProps {
@@ -21,6 +22,7 @@ export function TradeDetail({ tradeId, commodities, orgId, onClose, onRefresh }:
   const { data, loading, refetch } = useTrade(tradeId);
   const { cancelTrade, updateTrade, deleteTrade } = useTradeStore();
   const { user } = useAuth();
+  const { confirm, dialog } = useConfirmDialog();
   const [editing, setEditing] = useState(false);
   const [editPrice, setEditPrice] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -36,32 +38,46 @@ export function TradeDetail({ tradeId, commodities, orgId, onClose, onRefresh }:
 
   const { trade, summary } = data;
 
-  const handleCancel = async () => {
-    if (!confirm("Cancel this trade? Open allocations will also be cancelled.")) return;
-    setCancelling(true);
-    try {
-      await cancelTrade(tradeId, user!.id, "User cancelled from blotter");
-      onRefresh();
-      onClose();
-    } catch {
-      // error handled by store
-    } finally {
-      setCancelling(false);
-    }
+  const handleCancel = () => {
+    confirm({
+      title: "Cancel trade",
+      description: "Cancel this trade? Open allocations will also be cancelled.",
+      variant: "danger",
+      confirmLabel: "Cancel Trade",
+      onConfirm: async () => {
+        setCancelling(true);
+        try {
+          await cancelTrade(tradeId, user!.id, "User cancelled from blotter");
+          onRefresh();
+          onClose();
+        } catch {
+          // error handled by store
+        } finally {
+          setCancelling(false);
+        }
+      },
+    });
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Permanently delete this trade? This cannot be undone.")) return;
-    setDeleting(true);
-    try {
-      await deleteTrade(tradeId, user!.id);
-      onRefresh();
-      onClose();
-    } catch {
-      // error handled by store
-    } finally {
-      setDeleting(false);
-    }
+  const handleDelete = () => {
+    confirm({
+      title: "Delete trade",
+      description: "Permanently delete this trade? This cannot be undone.",
+      variant: "danger",
+      confirmLabel: "Delete",
+      onConfirm: async () => {
+        setDeleting(true);
+        try {
+          await deleteTrade(tradeId, user!.id);
+          onRefresh();
+          onClose();
+        } catch {
+          // error handled by store
+        } finally {
+          setDeleting(false);
+        }
+      },
+    });
   };
 
   const handleSavePrice = async () => {
@@ -78,6 +94,7 @@ export function TradeDetail({ tradeId, commodities, orgId, onClose, onRefresh }:
 
   return (
     <div className="bg-surface p-4 space-y-4">
+      {dialog}
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

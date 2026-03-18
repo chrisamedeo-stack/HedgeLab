@@ -101,7 +101,7 @@ export default function ForecastPage() {
           hedgePrice: Number(formHedgePrice),
         };
       case "stress_test":
-        return { priceDeltas: STRESS_PRESETS[1].deltas };
+        return { priceDeltas: STRESS_PRESETS[stressPreset].deltas };
     }
   };
 
