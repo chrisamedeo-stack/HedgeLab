@@ -178,7 +178,7 @@ export default function ForecastPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Forecasting</h1>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Forecasting</h1>
           <p className="mt-0.5 text-xs text-faint">Scenario analysis, sensitivity, and stress testing</p>
         </div>
         {tab === "scenarios" && (

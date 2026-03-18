@@ -40,7 +40,7 @@ export default function CoveragePage() {
   return (
     <div className="space-y-6 page-fade">
       <div>
-        <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Coverage Overview</h1>
+        <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Coverage Overview</h1>
         <p className="mt-0.5 text-xs text-faint">Track budget coverage across sites and months</p>
       </div>
 

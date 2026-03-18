@@ -64,7 +64,7 @@ export default function SitesIndexPage() {
   return (
     <div className="space-y-6 page-fade">
       <div>
-        <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Sites</h1>
+        <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Sites</h1>
         <p className="mt-0.5 text-xs text-faint">
           Operating locations grouped by {groupingLevelLabel.toLowerCase()}
         </p>

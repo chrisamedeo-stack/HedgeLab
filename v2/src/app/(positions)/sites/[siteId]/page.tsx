@@ -146,7 +146,7 @@ export default function SiteViewPage({ params }: { params: Promise<{ siteId: str
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Site Position</h1>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Site Position</h1>
           <p className="mt-0.5 text-lg font-semibold text-primary">
             {siteView?.siteName ?? "Loading..."}
             {siteView && <span className="ml-2 text-sm font-normal text-faint">{siteView.siteCode}</span>}

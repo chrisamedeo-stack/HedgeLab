@@ -1,8 +1,8 @@
 "use client";
 
-import { createPortal } from "react-dom";
 import { Plus } from "lucide-react";
-import { btnPrimary, btnCancel, cn } from "./shared";
+import { btnPrimary, cn } from "./shared";
+import { ConfirmDialog as BaseConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export function TableSkeleton() {
   return (
@@ -29,17 +29,13 @@ export function EmptyState({ title, desc, onAction, actionLabel }: { title: stri
 }
 
 export function ConfirmDialog({ title, desc, onConfirm, onCancel }: { title: string; desc: string; onConfirm: () => void; onCancel: () => void }) {
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-surface border border-b-default rounded-lg p-6 max-w-md w-full mx-4 space-y-4">
-        <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">{title}</h3>
-        <p className="text-sm text-muted">{desc}</p>
-        <div className="flex justify-end gap-2">
-          <button onClick={onCancel} className={btnCancel}>Cancel</button>
-          <button onClick={onConfirm} className="inline-flex items-center gap-2 rounded-lg bg-loss px-4 py-2 text-sm font-medium text-white hover:bg-loss/80 transition-colors">Confirm</button>
-        </div>
-      </div>
-    </div>,
-    document.body
+  return (
+    <BaseConfirmDialog
+      open
+      title={title}
+      description={desc}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
   );
 }

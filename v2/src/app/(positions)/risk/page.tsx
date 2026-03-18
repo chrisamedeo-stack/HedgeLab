@@ -30,7 +30,7 @@ export default function RiskPage() {
     <div className="space-y-6 page-fade">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-sm font-semibold uppercase tracking-wider text-muted">Risk Management</h1>
+          <h1 className="text-sm font-semibold text-muted uppercase tracking-wider">Risk Management</h1>
           <p className="mt-0.5 text-xs text-faint">Mark-to-market, position limits &amp; exposure analysis</p>
         </div>
       </div>
