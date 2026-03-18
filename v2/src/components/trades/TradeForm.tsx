@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getContractMonthOptions } from "@/lib/commodity-utils";
 import { detectStrategy } from "@/lib/optionStrategyDetector";
 import { API_BASE } from "@/lib/api";
+import { inputClsFull, selectCls as sharedSelectCls, sectionLabel, thCls, tdCls, rowBorder, helperLink } from "@/lib/ui-classes";
 import type { Commodity } from "@/hooks/usePositions";
 import type { CreateTradeParams } from "@/types/trades";
 import type { Direction } from "@/types/positions";
@@ -42,19 +43,10 @@ interface TradeFormProps {
   onSuccess: () => void;
 }
 
-// ─── Style constants ─────────────────────────────────────────────────────────
+// ─── Style aliases ──────────────────────────────────────────────────────────
 
-const inputCls =
-  "w-full bg-[#020812] border border-[#1E3A5F] rounded-[6px] px-3 py-[10px] text-[13px] text-[#E8ECF1] focus:outline-none focus:ring-1 focus:ring-[#378ADD] focus:border-[#378ADD] placeholder:text-[#556170]";
-const selectCls = inputCls + " appearance-none";
-const sectionLabel =
-  "text-[11px] uppercase tracking-[0.04em] text-[#556170] mb-2 font-medium";
-const thCls =
-  "text-[10px] uppercase text-[#556170] bg-[rgba(26,39,64,0.5)] px-3 py-2 font-medium text-left";
-const tdCls = "px-3 py-2 text-[13px]";
-const rowBorder = "border-b border-[rgba(30,58,95,0.5)]";
-const helperLink =
-  "text-[12px] cursor-pointer hover:underline transition-colors";
+const inputCls = inputClsFull;
+const selectCls = sharedSelectCls + " appearance-none w-full";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -108,28 +100,28 @@ function MonthPills({
             key={m.value}
             type="button"
             onClick={() => onToggle(m.value)}
-            className={`rounded-[6px] px-3.5 py-1.5 text-[13px] transition-colors ${
+            className={`rounded-lg px-3.5 py-1.5 text-sm transition-colors ${
               active
-                ? "bg-[#378ADD] text-[#E8ECF1] font-medium"
-                : "bg-transparent text-[#556170] border border-[#1E3A5F] hover:text-[#8B95A5]"
+                ? "bg-action text-primary font-medium"
+                : "bg-transparent text-faint border border-b-default hover:text-muted"
             }`}
           >
             {m.label}
           </button>
         );
       })}
-      <span className="text-[#1E3A5F] mx-1">|</span>
+      <span className="text-b-default mx-1">|</span>
       <button
         type="button"
         onClick={onAll}
-        className="text-[12px] text-[#378ADD] hover:underline"
+        className="text-xs text-action hover:underline"
       >
         All
       </button>
       <button
         type="button"
         onClick={onClear}
-        className="text-[12px] text-[#8B95A5] hover:underline ml-1"
+        className="text-xs text-muted hover:underline ml-1"
       >
         Clear
       </button>
@@ -141,7 +133,7 @@ function MonthPills({
 
 function SummaryBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-[#0B1426] border border-[#1E3A5F] rounded-lg px-4 py-3 text-[12px] text-[#8B95A5]">
+    <div className="bg-surface border border-b-default rounded-lg px-4 py-3 text-xs text-muted">
       {children}
     </div>
   );
@@ -638,22 +630,22 @@ export function TradeForm({
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
       <div
-        className="w-full max-w-4xl rounded-xl border border-[#1E3A5F] bg-[#111D32] shadow-2xl max-h-[90vh] flex flex-col"
+        className="w-full max-w-4xl rounded-xl border border-b-default bg-form-bg shadow-2xl max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ─── Header ──────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1E3A5F] shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-b-default shrink-0">
           <div className="flex items-center gap-3">
-            <h2 className="text-[15px] font-semibold text-[#E8ECF1]">
+            <h2 className="text-sm font-semibold text-primary">
               Book Trade
             </h2>
-            <span className="font-mono text-sm text-[#378ADD] bg-[rgba(55,138,221,0.1)] px-2.5 py-1 rounded">
+            <span className="font-mono text-sm text-action bg-action-10 px-2.5 py-1 rounded">
               {code}
             </span>
           </div>
           <button
             onClick={onClose}
-            className="text-[#556170] hover:text-[#8B95A5] transition-colors p-1"
+            className="text-faint hover:text-muted transition-colors p-1"
           >
             <XIcon size={20} />
           </button>
@@ -663,13 +655,13 @@ export function TradeForm({
         <div className="px-6 py-5 overflow-y-auto flex-1 space-y-5">
           {/* Error */}
           {error && (
-            <div className="rounded-md bg-[rgba(216,90,48,0.08)] border border-[rgba(216,90,48,0.2)] px-3 py-2 text-[13px] text-[#D85A30]">
+            <div className="rounded-md bg-loss-5 border border-loss-20 px-3 py-2 text-sm text-loss">
               {error}
             </div>
           )}
 
           {/* ─── Instrument tabs ───────────────────────────────────────── */}
-          <div className="bg-[#1A2740] border border-[#1E3A5F] rounded-md p-[3px] flex">
+          <div className="bg-overlay border border-b-default rounded-md p-[3px] flex">
             {(
               ["futures", "options", "swap", "spread"] as InstrumentType[]
             ).map((tab) => (
@@ -679,8 +671,8 @@ export function TradeForm({
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 py-2 text-sm rounded transition-colors ${
                   activeTab === tab
-                    ? "bg-[#378ADD] font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
-                    : "text-[#556170] hover:text-[#8B95A5]"
+                    ? "bg-action font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
+                    : "text-faint hover:text-muted"
                 }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -758,7 +750,7 @@ export function TradeForm({
           {activeTab === "futures" && (
             <div className="space-y-4">
               {/* Strip grid */}
-              <div className="border border-[#1E3A5F] rounded-lg overflow-hidden">
+              <div className="border border-b-default rounded-lg overflow-hidden">
                 <table className="w-full">
                   <thead>
                     <tr>
@@ -818,7 +810,7 @@ export function TradeForm({
                           </td>
                           <td
                             className={
-                              tdCls + " font-mono text-[#8B95A5]"
+                              tdCls + " font-mono text-muted"
                             }
                           >
                             {vol > 0
@@ -845,7 +837,7 @@ export function TradeForm({
                           </td>
                           <td
                             className={
-                              tdCls + " font-mono text-[#556170]"
+                              tdCls + " font-mono text-faint"
                             }
                           >
                             {notional > 0
@@ -861,7 +853,7 @@ export function TradeForm({
                                   prev.filter((r) => r.key !== row.key)
                                 )
                               }
-                              className={`text-[#556170] hover:text-[#D85A30] transition-colors ${
+                              className={`text-faint hover:text-loss transition-colors ${
                                 futuresRows.length <= 1
                                   ? "opacity-0 pointer-events-none"
                                   : ""
@@ -882,23 +874,23 @@ export function TradeForm({
                 <button
                   type="button"
                   onClick={addFuturesRow}
-                  className={helperLink + " text-[#378ADD]"}
+                  className={helperLink + " text-action"}
                 >
                   + Add month
                 </button>
-                <span className="text-[#1E3A5F]">|</span>
+                <span className="text-b-default">|</span>
                 <button
                   type="button"
                   onClick={fillEqual}
-                  className={helperLink + " text-[#8B95A5]"}
+                  className={helperLink + " text-muted"}
                 >
                   Fill equal
                 </button>
-                <span className="text-[#1E3A5F]">|</span>
+                <span className="text-b-default">|</span>
                 <button
                   type="button"
                   onClick={copyPriceDown}
-                  className={helperLink + " text-[#8B95A5]"}
+                  className={helperLink + " text-muted"}
                 >
                   Copy price down
                 </button>
@@ -910,11 +902,11 @@ export function TradeForm({
                   {futuresSummary.months} month
                   {futuresSummary.months !== 1 ? "s" : ""} &middot;{" "}
                   {futuresSummary.contracts} contracts{"  "}
-                  <span className="font-mono text-[#E8ECF1]">
+                  <span className="font-mono text-primary">
                     {futuresSummary.volume.toLocaleString()} {volUnit}
                   </span>
                   {"  "}VWAP{" "}
-                  <span className="font-mono text-[#E8ECF1]">
+                  <span className="font-mono text-primary">
                     {fmtNum(futuresSummary.vwap, priceDecimals)}
                   </span>
                 </SummaryBar>
@@ -930,7 +922,7 @@ export function TradeForm({
               {/* Strategy legs */}
               <div>
                 <div className={sectionLabel}>Strategy legs</div>
-                <div className="border border-[#1E3A5F] rounded-lg overflow-hidden">
+                <div className="border border-b-default rounded-lg overflow-hidden">
                   <table className="w-full">
                     <thead>
                       <tr>
@@ -1049,8 +1041,8 @@ export function TradeForm({
                                 tdCls +
                                 " font-mono " +
                                 (netUnit >= 0
-                                  ? "text-[#1D9E75]"
-                                  : "text-[#D85A30]")
+                                  ? "text-profit"
+                                  : "text-loss")
                               }
                             >
                               {prem > 0
@@ -1070,7 +1062,7 @@ export function TradeForm({
                                     )
                                   )
                                 }
-                                className={`text-[#556170] hover:text-[#D85A30] transition-colors ${
+                                className={`text-faint hover:text-loss transition-colors ${
                                   optionLegs.length <= 1
                                     ? "opacity-0 pointer-events-none"
                                     : ""
@@ -1088,7 +1080,7 @@ export function TradeForm({
                 <button
                   type="button"
                   onClick={addOptionLeg}
-                  className={helperLink + " text-[#378ADD] mt-2 inline-block"}
+                  className={helperLink + " text-action mt-2 inline-block"}
                 >
                   + Add leg
                 </button>
@@ -1096,17 +1088,17 @@ export function TradeForm({
 
               {/* Strategy detection banner */}
               {detectedStrategy.name && (
-                <div className="bg-[rgba(55,138,221,0.06)] border border-[rgba(55,138,221,0.2)] rounded-md px-3.5 py-2.5 flex items-center gap-4">
-                  <span className="text-[13px] font-semibold text-[#378ADD]">
+                <div className="bg-action-5 border border-action-20 rounded-md px-3.5 py-2.5 flex items-center gap-4">
+                  <span className="text-sm font-semibold text-action">
                     {detectedStrategy.name}
                   </span>
-                  <span className="text-[13px] text-[#8B95A5]">
+                  <span className="text-sm text-muted">
                     {Object.entries(detectedStrategy.metrics).map(
                       ([k, v], i) => (
                         <span key={k}>
                           {i > 0 && " · "}
                           {k}:{" "}
-                          <span className="font-mono text-[#E8ECF1]">
+                          <span className="font-mono text-primary">
                             {v}
                           </span>
                         </span>
@@ -1134,7 +1126,7 @@ export function TradeForm({
               {optSelectedMonths.length > 0 && (
                 <div>
                   <div className={sectionLabel}>Volume</div>
-                  <div className="border border-[#1E3A5F] rounded-lg overflow-hidden">
+                  <div className="border border-b-default rounded-lg overflow-hidden">
                     <table className="w-full">
                       <thead>
                         <tr>
@@ -1160,7 +1152,7 @@ export function TradeForm({
                                 <td
                                   className={
                                     tdCls +
-                                    " text-[13px] font-semibold text-[#E8ECF1]"
+                                    " text-sm font-semibold text-primary"
                                   }
                                 >
                                   {label}
@@ -1189,7 +1181,7 @@ export function TradeForm({
                                 <td
                                   className={
                                     tdCls +
-                                    " font-mono text-[#8B95A5]"
+                                    " font-mono text-muted"
                                   }
                                 >
                                   {vol > 0
@@ -1203,8 +1195,8 @@ export function TradeForm({
                                     tdCls +
                                     " font-mono " +
                                     (netCost >= 0
-                                      ? "text-[#1D9E75]"
-                                      : "text-[#D85A30]")
+                                      ? "text-profit"
+                                      : "text-loss")
                                   }
                                 >
                                   {vol > 0
@@ -1223,7 +1215,7 @@ export function TradeForm({
                     type="button"
                     onClick={optFillEqual}
                     className={
-                      helperLink + " text-[#8B95A5] mt-2 inline-block"
+                      helperLink + " text-muted mt-2 inline-block"
                     }
                   >
                     Fill equal
@@ -1244,7 +1236,7 @@ export function TradeForm({
                     &middot; {optSelectedMonths.length} month
                     {optSelectedMonths.length !== 1 ? "s" : ""}
                     {"  "}
-                    <span className="font-mono text-[#E8ECF1]">
+                    <span className="font-mono text-primary">
                       {(
                         optSelectedMonths.reduce(
                           (s, m) =>
@@ -1261,8 +1253,8 @@ export function TradeForm({
                       className={
                         "font-mono " +
                         (optNetPremium >= 0
-                          ? "text-[#1D9E75]"
-                          : "text-[#D85A30]")
+                          ? "text-profit"
+                          : "text-loss")
                       }
                     >
                       {optNetPremium >= 0 ? "+" : "−"}$
@@ -1292,7 +1284,7 @@ export function TradeForm({
                 <div className={sectionLabel}>Terms</div>
 
                 {/* Sub-type selector */}
-                <div className="bg-[#1A2740] border border-[#1E3A5F] rounded-md p-[3px] flex max-w-[320px] mb-4">
+                <div className="bg-overlay border border-b-default rounded-md p-[3px] flex max-w-[320px] mb-4">
                   {(
                     [
                       ["fixed_for_floating", "Fixed for floating"],
@@ -1303,10 +1295,10 @@ export function TradeForm({
                       key={val}
                       type="button"
                       onClick={() => setSwapSubType(val)}
-                      className={`flex-1 py-2 text-[13px] rounded transition-colors ${
+                      className={`flex-1 py-2 text-sm rounded transition-colors ${
                         swapSubType === val
-                          ? "bg-[#111D32] font-medium text-[#E8ECF1] shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
-                          : "text-[#556170] hover:text-[#8B95A5]"
+                          ? "bg-form-bg font-medium text-primary shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
+                          : "text-faint hover:text-muted"
                       }`}
                     >
                       {label}
@@ -1456,7 +1448,7 @@ export function TradeForm({
                 </div>
 
                 {/* Warning */}
-                <div className="mt-3 rounded bg-[rgba(186,117,23,0.08)] border border-[rgba(186,117,23,0.15)] px-3 py-2 text-[10px] text-[#BA7517]">
+                <div className="mt-3 rounded bg-caution-5 border border-caution-10 px-3 py-2 text-[10px] text-caution">
                   Swaps settle on their own schedule — not allocatable to
                   sites
                 </div>
@@ -1479,7 +1471,7 @@ export function TradeForm({
 
                 {swSelectedMonths.length > 0 && (
                   <>
-                    <div className="border border-[#1E3A5F] rounded-lg overflow-hidden mt-3">
+                    <div className="border border-b-default rounded-lg overflow-hidden mt-3">
                       <table className="w-full">
                         <thead>
                           <tr>
@@ -1509,7 +1501,7 @@ export function TradeForm({
                                   <td
                                     className={
                                       tdCls +
-                                      " text-[13px] font-semibold text-[#E8ECF1]"
+                                      " text-sm font-semibold text-primary"
                                     }
                                   >
                                     {label}
@@ -1539,7 +1531,7 @@ export function TradeForm({
                                   <td
                                     className={
                                       tdCls +
-                                      " font-mono text-[#556170]"
+                                      " font-mono text-faint"
                                     }
                                   >
                                     {notional > 0
@@ -1568,17 +1560,17 @@ export function TradeForm({
                           }
                         }}
                         className={
-                          helperLink + " text-[#378ADD]"
+                          helperLink + " text-action"
                         }
                       >
                         + Add month
                       </button>
-                      <span className="text-[#1E3A5F]">|</span>
+                      <span className="text-b-default">|</span>
                       <button
                         type="button"
                         onClick={swFillEqual}
                         className={
-                          helperLink + " text-[#8B95A5]"
+                          helperLink + " text-muted"
                         }
                       >
                         Fill equal
@@ -1592,7 +1584,7 @@ export function TradeForm({
               {swSelectedMonths.length > 0 && (
                 <SummaryBar>
                   Fixed{" "}
-                  <span className="font-mono text-[#E8ECF1]">
+                  <span className="font-mono text-primary">
                     {swapFixedPrice || "—"}
                   </span>
                   {swapSubType === "fixed_for_floating"
@@ -1603,7 +1595,7 @@ export function TradeForm({
                       }`
                     : ` vs ${swapRefA || "—"}/${swapRefB || "—"}`}
                   {"  "}
-                  <span className="font-mono text-[#E8ECF1]">
+                  <span className="font-mono text-primary">
                     {swSelectedMonths
                       .reduce(
                         (s, m) =>
@@ -1644,7 +1636,7 @@ export function TradeForm({
                 <div className={sectionLabel}>Spread legs</div>
 
                 {/* Sub-type selector */}
-                <div className="bg-[#1A2740] border border-[#1E3A5F] rounded-md p-[3px] flex max-w-[320px] mb-4">
+                <div className="bg-overlay border border-b-default rounded-md p-[3px] flex max-w-[320px] mb-4">
                   {(
                     [
                       ["calendar", "Calendar"],
@@ -1655,10 +1647,10 @@ export function TradeForm({
                       key={val}
                       type="button"
                       onClick={() => setSpreadSubType(val)}
-                      className={`flex-1 py-2 text-[13px] rounded transition-colors ${
+                      className={`flex-1 py-2 text-sm rounded transition-colors ${
                         spreadSubType === val
-                          ? "bg-[#111D32] font-medium text-[#E8ECF1] shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
-                          : "text-[#556170] hover:text-[#8B95A5]"
+                          ? "bg-form-bg font-medium text-primary shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
+                          : "text-faint hover:text-muted"
                       }`}
                     >
                       {label}
@@ -1667,7 +1659,7 @@ export function TradeForm({
                 </div>
 
                 {/* Leg table */}
-                <div className="border border-[#1E3A5F] rounded-lg overflow-hidden">
+                <div className="border border-b-default rounded-lg overflow-hidden">
                   <table className="w-full">
                     <thead>
                       <tr>
@@ -1686,7 +1678,7 @@ export function TradeForm({
                         <td
                           className={
                             tdCls +
-                            " text-[13px] font-semibold text-[#E8ECF1]"
+                            " text-sm font-semibold text-primary"
                           }
                         >
                           Near
@@ -1694,7 +1686,7 @@ export function TradeForm({
                         {spreadSubType === "inter_commodity" && (
                           <td
                             className={
-                              tdCls + " text-[13px] text-[#8B95A5]"
+                              tdCls + " text-sm text-muted"
                             }
                           >
                             {commodity.name}
@@ -1718,7 +1710,7 @@ export function TradeForm({
                         <td
                           className={
                             tdCls +
-                            " text-[13px] font-medium text-[#1D9E75]"
+                            " text-sm font-medium text-profit"
                           }
                         >
                           Buy
@@ -1741,7 +1733,7 @@ export function TradeForm({
                         <td
                           className={
                             tdCls +
-                            " text-[13px] font-semibold text-[#E8ECF1]"
+                            " text-sm font-semibold text-primary"
                           }
                         >
                           Far
@@ -1781,7 +1773,7 @@ export function TradeForm({
                         <td
                           className={
                             tdCls +
-                            " text-[13px] font-medium text-[#D85A30]"
+                            " text-sm font-medium text-loss"
                           }
                         >
                           Sell
@@ -1805,9 +1797,9 @@ export function TradeForm({
 
                 {/* Spread value */}
                 {nearPrice && farPrice && (
-                  <div className="mt-2 text-[13px] text-[#8B95A5]">
+                  <div className="mt-2 text-sm text-muted">
                     Spread:{" "}
-                    <span className="font-mono text-[#E8ECF1]">
+                    <span className="font-mono text-primary">
                       {fmtNum(
                         (Number(nearPrice) || 0) -
                           (Number(farPrice) || 0),
@@ -1834,17 +1826,17 @@ export function TradeForm({
                           key={pair.key}
                           type="button"
                           onClick={() => toggleSpreadPair(pair.key)}
-                          className={`rounded-[6px] px-3.5 py-1.5 text-[13px] transition-colors ${
+                          className={`rounded-lg px-3.5 py-1.5 text-sm transition-colors ${
                             active
-                              ? "bg-[#378ADD] text-[#E8ECF1] font-medium"
-                              : "bg-transparent text-[#556170] border border-[#1E3A5F] hover:text-[#8B95A5]"
+                              ? "bg-action text-primary font-medium"
+                              : "bg-transparent text-faint border border-b-default hover:text-muted"
                           }`}
                         >
                           {pair.label}
                         </button>
                       );
                     })}
-                    <span className="text-[#1E3A5F] mx-1">|</span>
+                    <span className="text-b-default mx-1">|</span>
                     <button
                       type="button"
                       onClick={() =>
@@ -1852,14 +1844,14 @@ export function TradeForm({
                           spreadPairs.map((p) => p.key)
                         )
                       }
-                      className="text-[12px] text-[#378ADD] hover:underline"
+                      className="text-xs text-action hover:underline"
                     >
                       All
                     </button>
                     <button
                       type="button"
                       onClick={() => setActiveSpreadPairs([])}
-                      className="text-[12px] text-[#8B95A5] hover:underline ml-1"
+                      className="text-xs text-muted hover:underline ml-1"
                     >
                       Clear
                     </button>
@@ -1868,7 +1860,7 @@ export function TradeForm({
 
                 {/* Volume table */}
                 {activeSpreadPairs.length > 0 && (
-                  <div className="border border-[#1E3A5F] rounded-lg overflow-hidden">
+                  <div className="border border-b-default rounded-lg overflow-hidden">
                     <table className="w-full">
                       <thead>
                         <tr>
@@ -1901,7 +1893,7 @@ export function TradeForm({
                                 <td
                                   className={
                                     tdCls +
-                                    " text-[13px] font-semibold text-[#E8ECF1]"
+                                    " text-sm font-semibold text-primary"
                                   }
                                 >
                                   {pair.label}
@@ -1933,7 +1925,7 @@ export function TradeForm({
                                 <td
                                   className={
                                     tdCls +
-                                    " font-mono text-[#8B95A5]"
+                                    " font-mono text-muted"
                                   }
                                 >
                                   {vol > 0
@@ -1945,7 +1937,7 @@ export function TradeForm({
                                 <td
                                   className={
                                     tdCls +
-                                    " font-mono text-[#556170]"
+                                    " font-mono text-faint"
                                   }
                                 >
                                   {vol > 0
@@ -1967,7 +1959,7 @@ export function TradeForm({
                   {activeSpreadPairs.length} spread
                   {activeSpreadPairs.length !== 1 ? "s" : ""}
                   {"  "}
-                  <span className="font-mono text-[#E8ECF1]">
+                  <span className="font-mono text-primary">
                     {spreadPairs
                       .filter((p) =>
                         activeSpreadPairs.includes(p.key)
@@ -1984,7 +1976,7 @@ export function TradeForm({
                     {volUnit}
                   </span>
                   {"  "}Net{" "}
-                  <span className="font-mono text-[#E8ECF1]">
+                  <span className="font-mono text-primary">
                     $
                     {fmtNum(
                       spreadPairs
@@ -2010,11 +2002,11 @@ export function TradeForm({
         </div>
 
         {/* ─── Actions ─────────────────────────────────────────────────── */}
-        <div className="px-6 py-4 border-t border-[#1E3A5F] flex justify-end gap-3 shrink-0">
+        <div className="px-6 py-4 border-t border-b-default flex justify-end gap-3 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="text-[#8B95A5] bg-[#1A2740] border border-[#1E3A5F] rounded-[6px] px-5 py-[10px] text-sm hover:text-[#E8ECF1] transition-colors"
+            className="text-muted bg-overlay border border-b-default rounded-lg px-5 py-2.5 text-sm hover:text-primary transition-colors"
           >
             Cancel
           </button>
@@ -2022,7 +2014,7 @@ export function TradeForm({
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
-            className="bg-[#378ADD] text-white rounded-[6px] px-6 py-[10px] text-sm font-medium hover:bg-[#2B7ACC] disabled:opacity-50 transition-colors"
+            className="bg-action text-white rounded-lg px-6 py-2.5 text-sm font-medium hover:bg-action-hover disabled:opacity-50 transition-colors"
           >
             {submitLabel}
           </button>
