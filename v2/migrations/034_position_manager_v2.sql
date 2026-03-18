@@ -180,12 +180,12 @@ WHERE ft.id = sub.trade_id
 
 -- ─── 1I. Permissions ────────────────────────────────────────────────────────
 
-INSERT INTO permissions (id, name, description, category)
+INSERT INTO permissions (id, module, action, description)
 VALUES
-  ('position.manage_books', 'Manage Hedge Books', 'Create, edit, and deactivate hedge books', 'positions'),
-  ('position.split', 'Split Positions', 'Split positions into child positions', 'positions'),
-  ('position.exercise', 'Exercise Options', 'Exercise option positions', 'positions'),
-  ('position.reassign_book', 'Reassign Hedge Book', 'Move positions between hedge books', 'positions')
+  ('position.manage_books', 'position', 'manage_books', 'Create, edit, and deactivate hedge books'),
+  ('position.split', 'position', 'split', 'Split positions into child positions'),
+  ('position.exercise', 'position', 'exercise', 'Exercise option positions'),
+  ('position.reassign_book', 'position', 'reassign_book', 'Move positions between hedge books')
 ON CONFLICT (id) DO NOTHING;
 
 -- ─── Updated_at trigger for hedge_books ─────────────────────────────────────
