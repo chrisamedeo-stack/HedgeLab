@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Plus, ArrowLeft, Trash2, Pencil, Check, X } from "lucide-react";
 import { apiFetch, btnPrimary, inputCls, selectCls, cn } from "./shared";
+import { sectionLabel as sharedSectionLabel } from "@/lib/ui-classes";
 import { TableSkeleton } from "./SharedUI";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -112,14 +113,14 @@ interface Commodity {
 
 // ─── Styling constants ──────────────────────────────────────────────────────
 
-const sectionCard = "bg-[#111D32] border border-[#1E3A5F] rounded-lg p-5 space-y-4";
-const sectionLabel = "text-[11px] font-semibold text-[#556170] uppercase tracking-[0.06em]";
-const fieldLabel = "block text-[10px] font-medium text-[#8B95A5] mb-1";
-const fieldInput = "w-full bg-[#1A2740] border border-[#1E3A5F] rounded-md px-2.5 py-[7px] text-xs text-[#E8ECF1] focus:border-[#378ADD] focus:outline-none focus:ring-0";
+const sectionCard = "bg-form-bg border border-b-default rounded-lg p-5 space-y-4";
+const sectionLabel = sharedSectionLabel;
+const fieldLabel = "block text-[10px] font-medium text-muted mb-1";
+const fieldInput = "w-full bg-overlay border border-b-default rounded-md px-2.5 py-[7px] text-xs text-primary focus:border-action focus:outline-none focus:ring-0";
 const fieldSelect = fieldInput + " appearance-none";
-const readOnlyInput = fieldInput + " text-[#556170] cursor-default";
-const presetActive = "text-[10px] px-2.5 py-1 rounded-sm bg-[#378ADD] text-white";
-const presetInactive = "text-[10px] px-2.5 py-1 rounded-sm bg-[#1A2740] text-[#8B95A5] border border-[#1E3A5F]";
+const readOnlyInput = fieldInput + " text-faint cursor-default";
+const presetActive = "text-[10px] px-2.5 py-1 rounded-sm bg-action text-white";
+const presetInactive = "text-[10px] px-2.5 py-1 rounded-sm bg-overlay text-muted border border-b-default";
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
@@ -239,7 +240,7 @@ export function CommoditiesTab() {
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-2">
                       <button type="button" onClick={handleCreate} disabled={creating || !addForm.id || !addForm.name}
-                        className="px-3 py-1.5 text-xs font-medium bg-[#378ADD] text-white rounded-md hover:bg-[#378ADD]/90 disabled:opacity-50 transition-colors">
+                        className="px-3 py-1.5 text-xs font-medium bg-action text-white rounded-md hover:bg-action/90 disabled:opacity-50 transition-colors">
                         {creating ? "..." : "Create"}
                       </button>
                       <button type="button" onClick={() => { setAdding(false); setAddForm({ id: "", name: "", category: "ag", unit: "Bushels", currency: "USD" }); }}
@@ -362,23 +363,23 @@ function CommodityDetail({ commodity, onBack, onSaved }: {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="text-xs text-[#378ADD] hover:text-[#378ADD]/80 transition-colors flex items-center gap-1">
+          <button onClick={onBack} className="text-xs text-action hover:text-action/80 transition-colors flex items-center gap-1">
             <ArrowLeft className="h-3.5 w-3.5" /> Commodities
           </button>
         </div>
         {dirty && (
           <button onClick={handleSave} disabled={saving}
-            className="px-4 py-2 text-sm font-medium bg-[#378ADD] text-white rounded-md hover:bg-[#378ADD]/90 disabled:opacity-50 transition-colors">
+            className="px-4 py-2 text-sm font-medium bg-action text-white rounded-md hover:bg-action/90 disabled:opacity-50 transition-colors">
             {saving ? "Saving..." : "Save changes"}
           </button>
         )}
       </div>
 
       <div className="flex items-center gap-3">
-        <h2 className="text-lg font-semibold text-[#E8ECF1]">{form.display_name || form.name || commodity.id}</h2>
-        <span className="px-2 py-0.5 text-xs font-mono bg-[#378ADD]/10 text-[#378ADD] rounded">{commodity.id}</span>
+        <h2 className="text-lg font-semibold text-primary">{form.display_name || form.name || commodity.id}</h2>
+        <span className="px-2 py-0.5 text-xs font-mono bg-action/10 text-action rounded">{commodity.id}</span>
         <span className={cn("px-2 py-0.5 text-xs font-medium rounded-full",
-          form.is_active ? "bg-[#1D9E75]/10 text-[#1D9E75]" : "bg-[#556170]/20 text-[#556170]")}>
+          form.is_active ? "bg-profit/10 text-profit" : "bg-faint/20 text-faint")}>
           {form.is_active ? "Active" : "Inactive"}
         </span>
       </div>
@@ -386,7 +387,7 @@ function CommodityDetail({ commodity, onBack, onSaved }: {
       {error && <div className="p-3 bg-loss/10 border border-loss/20 rounded-lg text-sm text-loss">{error}</div>}
 
       {/* Tabs */}
-      <div className="border-b border-[#1E3A5F]">
+      <div className="border-b border-b-default">
         <div className="flex gap-0">
           {[
             { key: "setup" as DetailTab, label: "Setup" },
@@ -395,7 +396,7 @@ function CommodityDetail({ commodity, onBack, onSaved }: {
             <button key={t.key} onClick={() => setTab(t.key)}
               className={cn(
                 "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
-                tab === t.key ? "border-[#378ADD] text-[#E8ECF1]" : "border-transparent text-[#556170] hover:text-[#8B95A5]"
+                tab === t.key ? "border-action text-primary" : "border-transparent text-faint hover:text-muted"
               )}>
               {t.label}
             </button>
@@ -567,7 +568,7 @@ function SetupTab({ form, set, activeLetters, priceUnitOptions, uomAbbr, pricePr
               <input type="number" step="any" value={form.contract_size}
                 onChange={(e) => set("contract_size", e.target.value)}
                 className={fieldInput + " rounded-r-none border-r-0"} placeholder="5000" />
-              <span className="bg-[#1A2740] border border-[#1E3A5F] border-l-0 rounded-r-md px-2 py-[7px] text-[10px] text-[#556170] flex items-center">
+              <span className="bg-overlay border border-b-default border-l-0 rounded-r-md px-2 py-[7px] text-[10px] text-faint flex items-center">
                 {uomAbbr}
               </span>
             </div>
@@ -612,7 +613,7 @@ function SetupTab({ form, set, activeLetters, priceUnitOptions, uomAbbr, pricePr
           </div>
           <div className="col-span-2">
             <label className={fieldLabel}>Price preview</label>
-            <div className="bg-[#0B1426] border border-[#1E3A5F] rounded-md px-3 py-[7px] text-sm font-mono text-[#1D9E75]">
+            <div className="bg-surface border border-b-default rounded-md px-3 py-[7px] text-sm font-mono text-profit">
               {pricePreview}
             </div>
           </div>
@@ -644,7 +645,7 @@ function SetupTab({ form, set, activeLetters, priceUnitOptions, uomAbbr, pricePr
               <button key={f.code} onClick={() => toggleFuturesMonth(f.code)}
                 className={cn(
                   "text-center py-2 rounded-md transition-colors",
-                  isActive ? "bg-[#378ADD] text-white" : "bg-[#1A2740] text-[#556170]"
+                  isActive ? "bg-action text-white" : "bg-overlay text-faint"
                 )}>
                 <span className="block text-sm font-semibold font-mono">{f.code}</span>
                 <span className="block text-[9px]">{f.name.slice(0, 3)}</span>
@@ -653,7 +654,7 @@ function SetupTab({ form, set, activeLetters, priceUnitOptions, uomAbbr, pricePr
           })}
         </div>
 
-        <p className="text-[10px] text-[#556170]">
+        <p className="text-[10px] text-faint">
           Active: {activeLetters.join(" ") || "none"} · Click to toggle
         </p>
 
@@ -663,7 +664,7 @@ function SetupTab({ form, set, activeLetters, priceUnitOptions, uomAbbr, pricePr
             <div className="flex items-center justify-between pt-2">
               <div>
                 <p className={sectionLabel}>Budget Month Mapping</p>
-                <p className="text-[10px] text-[#556170]">Which budget/delivery months does each futures contract cover?</p>
+                <p className="text-[10px] text-faint">Which budget/delivery months does each futures contract cover?</p>
               </div>
               <button onClick={() => {
                 // Reset to default based on current active months
@@ -676,7 +677,7 @@ function SetupTab({ form, set, activeLetters, priceUnitOptions, uomAbbr, pricePr
               <table className="w-full text-xs">
                 <thead>
                   <tr>
-                    <th className="text-left px-2 py-1.5 text-[10px] font-medium text-[#556170] uppercase w-20">Futures</th>
+                    <th className="text-left px-2 py-1.5 text-[10px] font-medium text-faint uppercase w-20">Futures</th>
                     {MONTH_ABBR.map((m, idx) => {
                       const monthNum = idx + 1;
                       const covers = allCovered.get(monthNum) ?? [];
@@ -685,7 +686,7 @@ function SetupTab({ form, set, activeLetters, priceUnitOptions, uomAbbr, pricePr
                       return (
                         <th key={m} className={cn(
                           "px-0.5 py-1.5 text-center text-[10px] font-medium uppercase w-8",
-                          uncovered ? "text-[#E24B4A]" : doubleCovered ? "text-[#EF9F27]" : "text-[#556170]"
+                          uncovered ? "text-destructive" : doubleCovered ? "text-swap" : "text-faint"
                         )}>{m}</th>
                       );
                     })}
@@ -697,8 +698,8 @@ function SetupTab({ form, set, activeLetters, priceUnitOptions, uomAbbr, pricePr
                     return (
                       <tr key={code}>
                         <td className="px-2 py-1.5">
-                          <span className="text-sm font-mono font-semibold text-[#378ADD]">{code}</span>
-                          <span className="text-[10px] text-[#8B95A5] ml-1.5">{fm?.name ?? ""}</span>
+                          <span className="text-sm font-mono font-semibold text-action">{code}</span>
+                          <span className="text-[10px] text-muted ml-1.5">{fm?.name ?? ""}</span>
                         </td>
                         {MONTH_ABBR.map((m, idx) => {
                           const monthNum = idx + 1;
@@ -708,7 +709,7 @@ function SetupTab({ form, set, activeLetters, priceUnitOptions, uomAbbr, pricePr
                               <button onClick={() => toggleBudgetCell(code, monthNum)}
                                 className={cn(
                                   "inline-flex items-center justify-center h-7 w-7 rounded-md text-[10px] font-medium transition-colors",
-                                  isSelected ? "bg-[#378ADD] text-white" : "bg-[#1A2740] text-[#556170]"
+                                  isSelected ? "bg-action text-white" : "bg-overlay text-faint"
                                 )}>
                                 {m}
                               </button>
@@ -724,19 +725,19 @@ function SetupTab({ form, set, activeLetters, priceUnitOptions, uomAbbr, pricePr
 
             {/* Validation warnings */}
             {Array.from(allCovered.entries()).some(([, codes]) => codes.length === 0) && (
-              <p className="text-[10px] text-[#E24B4A]">
+              <p className="text-[10px] text-destructive">
                 Warning: {Array.from(allCovered.entries()).filter(([, codes]) => codes.length === 0).map(([m]) => MONTH_ABBR[m - 1]).join(", ")} not covered by any futures month.
               </p>
             )}
             {Array.from(allCovered.entries()).some(([, codes]) => codes.length > 1) && (
-              <p className="text-[10px] text-[#EF9F27]">
+              <p className="text-[10px] text-swap">
                 Warning: {Array.from(allCovered.entries()).filter(([, codes]) => codes.length > 1).map(([m]) => MONTH_ABBR[m - 1]).join(", ")} covered by multiple futures months.
               </p>
             )}
 
             {/* Summary */}
-            <p className="text-[10px] text-[#556170]">{summaryParts.join(" · ")}</p>
-            <p className="text-[10px] text-[#556170]">Every calendar month must be covered by exactly one futures month.</p>
+            <p className="text-[10px] text-faint">{summaryParts.join(" · ")}</p>
+            <p className="text-[10px] text-faint">Every calendar month must be covered by exactly one futures month.</p>
           </>
         )}
       </div>
@@ -843,22 +844,22 @@ function ReportingUnitsTab({ units, setUnits, tradeUnit, contractSize, samplePri
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-[#1E3A5F]">
+              <tr className="border-b border-b-default">
                 {["Unit Name","Abbreviation","1 Trade Unit =","1 Report Unit =","Default Report","",""].map((h) => (
-                  <th key={h} className="text-left px-2 py-2 text-[10px] font-medium text-[#556170] uppercase">{h}</th>
+                  <th key={h} className="text-left px-2 py-2 text-[10px] font-medium text-faint uppercase">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {/* Trade unit row (read-only) */}
-              <tr className={cn("border-b border-[#1E3A5F]/50", isTradeDefault && "bg-[#378ADD]/[0.04]")}>
-                <td className="px-2 py-2.5 text-[13px] text-[#E8ECF1]">
+              <tr className={cn("border-b border-b-default/50", isTradeDefault && "bg-action/[0.04]")}>
+                <td className="px-2 py-2.5 text-sm text-primary">
                   {tradeUnitObj.unit_name}
-                  <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-[#378ADD]/10 text-[#378ADD] rounded">trade unit</span>
+                  <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-action/10 text-action rounded">trade unit</span>
                 </td>
-                <td className="px-2 py-2.5 font-mono text-[#E8ECF1]">{tradeAbbr}</td>
-                <td className="px-2 py-2.5 font-mono text-[#E8ECF1]">1.0000</td>
-                <td className="px-2 py-2.5 font-mono text-[#E8ECF1]">1.0000</td>
+                <td className="px-2 py-2.5 font-mono text-primary">{tradeAbbr}</td>
+                <td className="px-2 py-2.5 font-mono text-primary">1.0000</td>
+                <td className="px-2 py-2.5 font-mono text-primary">1.0000</td>
                 <td className="px-2 py-2.5">
                   <RadioDot selected={isTradeDefault} onClick={() => setDefaultReport("trade")} />
                 </td>
@@ -867,8 +868,8 @@ function ReportingUnitsTab({ units, setUnits, tradeUnit, contractSize, samplePri
               </tr>
               {/* Additional units */}
               {units.map((u, i) => (
-                <tr key={i} className={cn("border-b border-[#1E3A5F]/50 hover:bg-[#1A2740]",
-                  u.is_default_report && "bg-[#378ADD]/[0.04]")}>
+                <tr key={i} className={cn("border-b border-b-default/50 hover:bg-overlay",
+                  u.is_default_report && "bg-action/[0.04]")}>
                   {editingIdx === i ? (
                     <>
                       <td className="px-2 py-2"><input value={u.unit_name} onChange={(e) => updateUnit(i, "unit_name", e.target.value)} className={fieldInput + " text-xs"} /></td>
@@ -876,25 +877,25 @@ function ReportingUnitsTab({ units, setUnits, tradeUnit, contractSize, samplePri
                       <td className="px-2 py-2"><input type="number" step="any" value={u.to_trade_unit} onChange={(e) => updateUnit(i, "to_trade_unit", Number(e.target.value))} className={fieldInput + " font-mono text-xs"} /></td>
                       <td className="px-2 py-2"><input type="number" step="any" value={u.from_trade_unit} onChange={(e) => updateUnit(i, "from_trade_unit", Number(e.target.value))} className={fieldInput + " font-mono text-xs"} /></td>
                       <td className="px-2 py-2"><RadioDot selected={u.is_default_report} onClick={() => setDefaultReport(i)} /></td>
-                      <td className="px-2 py-2"><button onClick={() => setEditingIdx(null)} className="text-[#1D9E75] hover:text-[#1D9E75]/80"><Check className="h-3.5 w-3.5" /></button></td>
+                      <td className="px-2 py-2"><button onClick={() => setEditingIdx(null)} className="text-profit hover:text-profit/80"><Check className="h-3.5 w-3.5" /></button></td>
                       <td />
                     </>
                   ) : (
                     <>
-                      <td className="px-2 py-2.5 text-[13px] text-[#E8ECF1]">{u.unit_name}</td>
-                      <td className="px-2 py-2.5 font-mono text-[#E8ECF1]">{u.abbreviation}</td>
-                      <td className="px-2 py-2.5 font-mono text-[#E8ECF1]">{Number(u.to_trade_unit).toFixed(4)}</td>
-                      <td className="px-2 py-2.5 font-mono text-[#E8ECF1]">{Number(u.from_trade_unit).toFixed(4)}</td>
+                      <td className="px-2 py-2.5 text-sm text-primary">{u.unit_name}</td>
+                      <td className="px-2 py-2.5 font-mono text-primary">{u.abbreviation}</td>
+                      <td className="px-2 py-2.5 font-mono text-primary">{Number(u.to_trade_unit).toFixed(4)}</td>
+                      <td className="px-2 py-2.5 font-mono text-primary">{Number(u.from_trade_unit).toFixed(4)}</td>
                       <td className="px-2 py-2.5"><RadioDot selected={u.is_default_report} onClick={() => setDefaultReport(i)} /></td>
-                      <td className="px-2 py-2.5"><button onClick={() => setEditingIdx(i)} className="text-[#556170] hover:text-[#8B95A5]"><Pencil className="h-3.5 w-3.5" /></button></td>
-                      <td className="px-2 py-2.5"><button onClick={() => removeUnit(i)} className="text-[#556170] hover:text-[#E24B4A]"><Trash2 className="h-3.5 w-3.5" /></button></td>
+                      <td className="px-2 py-2.5"><button onClick={() => setEditingIdx(i)} className="text-faint hover:text-muted"><Pencil className="h-3.5 w-3.5" /></button></td>
+                      <td className="px-2 py-2.5"><button onClick={() => removeUnit(i)} className="text-faint hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button></td>
                     </>
                   )}
                 </tr>
               ))}
               {/* Add new row */}
               {addingNew && (
-                <tr className="border-b border-[#1E3A5F]/50 bg-action/5">
+                <tr className="border-b border-b-default/50 bg-action/5">
                   <td className="px-2 py-2"><input value={newUnit.unit_name} onChange={(e) => setNewUnit((n) => ({ ...n, unit_name: e.target.value }))} className={fieldInput + " text-xs"} placeholder="Metric tons" autoFocus /></td>
                   <td className="px-2 py-2"><input value={newUnit.abbreviation} onChange={(e) => setNewUnit((n) => ({ ...n, abbreviation: e.target.value }))} className={fieldInput + " font-mono text-xs"} placeholder="MT" /></td>
                   <td className="px-2 py-2">
@@ -913,10 +914,10 @@ function ReportingUnitsTab({ units, setUnits, tradeUnit, contractSize, samplePri
                   </td>
                   <td className="px-2 py-2"><RadioDot selected={false} onClick={() => setNewUnit((n) => ({ ...n, is_default_report: true }))} /></td>
                   <td className="px-2 py-2">
-                    <button onClick={handleAddSave} className="text-[#1D9E75] hover:text-[#1D9E75]/80"><Check className="h-3.5 w-3.5" /></button>
+                    <button onClick={handleAddSave} className="text-profit hover:text-profit/80"><Check className="h-3.5 w-3.5" /></button>
                   </td>
                   <td className="px-2 py-2">
-                    <button onClick={() => setAddingNew(false)} className="text-[#556170] hover:text-[#8B95A5]"><X className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => setAddingNew(false)} className="text-faint hover:text-muted"><X className="h-3.5 w-3.5" /></button>
                   </td>
                 </tr>
               )}
@@ -928,7 +929,7 @@ function ReportingUnitsTab({ units, setUnits, tradeUnit, contractSize, samplePri
       {/* SECTION 2: Live Preview */}
       <div className={sectionCard}>
         <p className={sectionLabel}>Live Preview</p>
-        <p className="text-[11px] text-[#556170]">
+        <p className="text-[10px] text-faint">
           How a position of {contractSize.toLocaleString()} {tradeUnit} at {formatPreview(samplePrice, priceUnit, priceDecimals)} displays in each unit:
         </p>
 
@@ -964,7 +965,7 @@ function ReportingUnitsTab({ units, setUnits, tradeUnit, contractSize, samplePri
           })}
         </div>
 
-        <p className="text-[10px] text-[#556170]">
+        <p className="text-[10px] text-faint">
           Total value is always the same — only the unit expression changes.
           The default reporting unit is used on dashboards, reports, and exports.
         </p>
@@ -980,7 +981,7 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
     <button type="button" onClick={() => onChange(!checked)}
       className={cn(
         "relative inline-flex h-5 w-9 items-center rounded-full transition-colors mt-0.5",
-        checked ? "bg-[#1D9E75]" : "bg-[#1A2740]"
+        checked ? "bg-profit" : "bg-overlay"
       )}>
       <span className={cn(
         "inline-block h-4 w-4 rounded-full bg-white transition-transform",
@@ -995,7 +996,7 @@ function RadioDot({ selected, onClick }: { selected: boolean; onClick: () => voi
     <button type="button" onClick={onClick}
       className={cn(
         "h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors",
-        selected ? "border-[#378ADD] bg-[#378ADD]" : "border-[#556170]"
+        selected ? "border-action bg-action" : "border-faint"
       )}>
       {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
     </button>
@@ -1014,19 +1015,19 @@ function PreviewCard({ label, isDefault, volume, volumeAbbr, price, priceUnit, t
 }) {
   return (
     <div className={cn(
-      "bg-[#1A2740] rounded-md p-3",
-      isDefault && "border border-[#378ADD]/30"
+      "bg-overlay rounded-md p-3",
+      isDefault && "border border-action/30"
     )}>
-      <p className={cn("text-[10px] uppercase mb-1", isDefault ? "text-[#378ADD]" : "text-[#556170]")}>
+      <p className={cn("text-[10px] uppercase mb-1", isDefault ? "text-action" : "text-faint")}>
         {label} {isDefault && "(default)"}
       </p>
-      <p className="text-base font-semibold font-mono text-[#E8ECF1]">
+      <p className="text-base font-semibold font-mono text-primary">
         {volume.toLocaleString("en-US", { maximumFractionDigits: 2 })} {volumeAbbr}
       </p>
-      <p className="text-xs font-mono text-[#8B95A5]">
+      <p className="text-xs font-mono text-muted">
         {formatPreview(price, priceUnit, priceDecimals)}
       </p>
-      <p className="text-xs font-mono text-[#1D9E75]">
+      <p className="text-xs font-mono text-profit">
         ${totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </p>
     </div>
